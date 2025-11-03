@@ -1,4 +1,14 @@
 function evaluarPostulacionesPUCV2() {
+  // --- MEJORA: Usar LockService para evitar ejecuciones simultáneas ---
+  // Esto es crucial para activadores automáticos como 'onFormSubmit'.
+  // Evita que dos ejecuciones del script se pisen entre sí si llegan dos respuestas de formulario muy rápido.
+  const lock = LockService.getScriptLock();
+  const tuvoExito = lock.tryLock(10000); // Intentar obtener el bloqueo por 10 segundos.
+  if (!tuvoExito) {
+    console.log("No se pudo obtener el bloqueo. Otra instancia del script ya se está ejecutando.");
+    return; // Salir si no se puede obtener el bloqueo.
+  }
+
   const SHEET_ID = "1ohh906fh213G8K0MRhMjlxQFlRXctq97rhw3ply7NQ8";
   const INPUT_SHEET = "Respuestas de formulario 1";
   const OUTPUT_SHEET = "Evaluación automatizada";
@@ -290,59 +300,100 @@ function evaluarPostulacionesPUCV2() {
      "Puntaje Año Ingreso", "Puntaje Compromiso", "Puntaje Carta", "PUNTAJE TOTAL"]
   ];
 
+  // --- OPTIMIZACIÓN: Identificar la columna de estado ---
+  const COLUMNA_ESTADO = "Estado de Procesamiento";
+  const indiceEstado = encabezados.indexOf(COLUMNA_ESTADO);
+
   for (let r = 1; r < datos.length; r++) {
-    const fila = datos[r];
-    // --- Datos Personales ---
-    const apellidos = [obtenerValor(fila, "Apellido paterno"), obtenerValor(fila, "Apellido materno")].filter(Boolean).join(" ");
-    const nombres = [obtenerValor(fila, "Primer nombre"), obtenerValor(fila, "Segundo nombre")].filter(Boolean).join(" ");
-    const correo = obtenerValor(fila, "Dirección de correo electrónico");
-    const rut = obtenerValor(fila, "RUT");
-    const fechaPostulacion = obtenerValor(fila, "Marca temporal");
-    const tipoPostulante = obtenerValor(fila, "Indica si eres funcionario, alumno, profesor, académico, etc.");
-    const sede = obtenerValor(fila, "¿En qué sede realizas la mayoría de tus actividades académicas o profesionales?");
+    try { // <--- INICIO DEL BLOQUE TRY
+      const fila = datos[r];
 
-    // 1. Disponibilidad (máx 4 puntos)
-    let puntajeDisponibilidad = 0;
-    if (esSi(obtenerValor(fila, "¿Tienes disponibilidad para dedicar 3 sesiones semanales?"))) puntajeDisponibilidad++;
-    if (!esSi(obtenerValor(fila, "¿Tienes compromisos académicos/laborales que podrían impedir cumplir con la asistencia obligatoria?"))) puntajeDisponibilidad++; // "No" es la respuesta deseada
-    if (esSi(obtenerValor(fila, "¿Estás en condiciones de asistir al menos al 80 % de las clases?"))) puntajeDisponibilidad++;
-    if (esSi(obtenerValor(fila, "¿Puedes comprometerse a dedicar 4 horas semanales de estudio autónomo además de las clases?"))) puntajeDisponibilidad++;
+      // --- OPTIMIZACIÓN: Ignorar filas ya procesadas ---
+      if (indiceEstado !== -1 && obtenerValor(fila, COLUMNA_ESTADO) !== "") {
+        continue; // Saltar a la siguiente iteración del bucle
+      }
 
-    // --- Cálculo de Puntajes por Área ---
-    const puntajeTipo = calcularPuntajeTipoPostulante(tipoPostulante);
-    const puntajeUso = calcularPuntajeUsoIngles(fila);
-    const puntajeIntl = calcularPuntajeInternacionalizacion(fila);
-    const puntajeNivelIngles = calcularPuntajeCertificado(fila);
-    const puntajeAnio = calcularPuntajeAnioIngreso(fila);
+      // --- Datos Personales ---
+      const apellidos = [obtenerValor(fila, "Apellido paterno"), obtenerValor(fila, "Apellido materno")].filter(Boolean).join(" ");
+      const nombres = [obtenerValor(fila, "Primer nombre"), obtenerValor(fila, "Segundo nombre")].filter(Boolean).join(" ");
+      const correo = obtenerValor(fila, "Dirección de correo electrónico");
+      const rut = obtenerValor(fila, "RUT");
+      const fechaPostulacion = obtenerValor(fila, "Marca temporal");
+      const tipoPostulante = obtenerValor(fila, "Indica si eres funcionario, alumno, profesor, académico, etc.");
+      const sede = obtenerValor(fila, "¿En qué sede realizas la mayoría de tus actividades académicas o profesionales?");
 
-    // Compromiso (máx 3 puntos)
-    let puntajeCompromiso = 0;
-    if (esSi(obtenerValor(fila, "Compromiso con el programa "))) puntajeCompromiso++;
-    if (esSi(obtenerValor(fila, "Veracidad de la información"))) puntajeCompromiso++;
-    if (esSi(obtenerValor(fila, "Consecuencias por incumplimiento"))) puntajeCompromiso++;
+      // 1. Disponibilidad (máx 4 puntos)
+      let puntajeDisponibilidad = 0;
+      if (esSi(obtenerValor(fila, "¿Tienes disponibilidad para dedicar 3 sesiones semanales?"))) puntajeDisponibilidad++;
+      if (!esSi(obtenerValor(fila, "¿Tienes compromisos académicos/laborales que podrían impedir cumplir con la asistencia obligatoria?"))) puntajeDisponibilidad++; // "No" es la respuesta deseada
+      if (esSi(obtenerValor(fila, "¿Estás en condiciones de asistir al menos al 80 % de las clases?"))) puntajeDisponibilidad++;
+      if (esSi(obtenerValor(fila, "¿Puedes comprometerse a dedicar 4 horas semanales de estudio autónomo además de las clases?"))) puntajeDisponibilidad++;
 
-    // Carta de respaldo (máx 3 puntos)
-    let puntajeCarta = 0;
-    if (esSi(obtenerValor(fila, "¿Cuentas con el respaldo de tu jefatura directa para participar en este programa?"))) puntajeCarta++;
-    if (obtenerValor(fila, "Si la respuesta anterior fue \"Sí\", por favor, adjunta una carta de respaldo de tu jefatura?\" [Nota: Opcional, pero otorga puntaje adicional]")) puntajeCarta++;
-    if (esSi(obtenerValor(fila, "¿Tu jefatura está en conocimiento y aprueba tu participación en el horario establecido?"))) puntajeCarta++;
+      // --- Cálculo de Puntajes por Área ---
+      const puntajeTipo = calcularPuntajeTipoPostulante(tipoPostulante);
+      const puntajeUso = calcularPuntajeUsoIngles(fila);
+      const puntajeIntl = calcularPuntajeInternacionalizacion(fila);
+      const puntajeNivelIngles = calcularPuntajeCertificado(fila);
+      const puntajeAnio = calcularPuntajeAnioIngreso(fila);
 
-    const puntajeTotal = puntajeDisponibilidad + puntajeTipo + puntajeUso + puntajeIntl + puntajeNivelIngles + puntajeAnio + puntajeCompromiso + puntajeCarta;
-    resultados.push([
-      apellidos, nombres, correo, rut, fechaPostulacion, tipoPostulante, sede,
-      puntajeDisponibilidad, puntajeTipo, puntajeUso.toFixed(2),
-      puntajeIntl.toFixed(2), puntajeNivelIngles, puntajeAnio,
-      puntajeCompromiso, puntajeCarta,
-      puntajeTotal.toFixed(2)
-    ]);
+      // Compromiso (máx 3 puntos)
+      let puntajeCompromiso = 0;
+      if (esSi(obtenerValor(fila, "Compromiso con el programa "))) puntajeCompromiso++;
+      if (esSi(obtenerValor(fila, "Veracidad de la información"))) puntajeCompromiso++;
+      if (esSi(obtenerValor(fila, "Consecuencias por incumplimiento"))) puntajeCompromiso++;
+
+      // Carta de respaldo (máx 3 puntos)
+      let puntajeCarta = 0;
+      if (esSi(obtenerValor(fila, "¿Cuentas con el respaldo de tu jefatura directa para participar en este programa?"))) puntajeCarta++;
+      if (obtenerValor(fila, "Si la respuesta anterior fue \"Sí\", por favor, adjunta una carta de respaldo de tu jefatura?\" [Nota: Opcional, pero otorga puntaje adicional]")) puntajeCarta++;
+      if (esSi(obtenerValor(fila, "¿Tu jefatura está en conocimiento y aprueba tu participación en el horario establecido?"))) puntajeCarta++;
+
+      const puntajeTotal = puntajeDisponibilidad + puntajeTipo + puntajeUso + puntajeIntl + puntajeNivelIngles + puntajeAnio + puntajeCompromiso + puntajeCarta;
+      resultados.push([
+        apellidos, nombres, correo, rut, fechaPostulacion, tipoPostulante, sede,
+        puntajeDisponibilidad, puntajeTipo, puntajeUso.toFixed(2),
+        puntajeIntl.toFixed(2), puntajeNivelIngles, puntajeAnio,
+        puntajeCompromiso, puntajeCarta,
+        puntajeTotal.toFixed(2)
+      ]);
+
+      // --- OPTIMIZACIÓN: Marcar la fila como procesada ---
+      if (indiceEstado !== -1) {
+        hojaEntrada.getRange(r + 1, indiceEstado + 1).setValue(new Date());
+      }
+
+    } catch (e) { // <--- INICIO DEL BLOQUE CATCH
+      // Si ocurre un error en el bloque 'try', el código salta aquí.
+      const numeroFila = r + 1;
+      console.error(`Error al procesar la fila ${numeroFila} de la hoja '${INPUT_SHEET}'. Causa: ${e.message}`);
+      console.error(`Stack del error: ${e.stack}`); // Información muy útil para depurar
+
+      // Marcar la fila con error en la hoja para revisión manual.
+      if (indiceEstado !== -1) {
+        hojaEntrada.getRange(numeroFila, indiceEstado + 1).setValue(`ERROR: ${e.message}`);
+      }
+    } // <--- FIN DEL BLOQUE TRY...CATCH
+  }
+
+  // Si no se procesaron nuevas filas, no hay nada más que hacer.
+  if (resultados.length <= 1) {
+    console.log("No hay nuevas postulaciones para añadir.");
+    lock.releaseLock();
+    return;
   }
 
   let hojaResultados = ss.getSheetByName(OUTPUT_SHEET);
-  if (!hojaResultados) hojaResultados = ss.insertSheet(OUTPUT_SHEET);
-  else hojaResultados.clear();
-  hojaResultados.getRange(1, 1, resultados.length, resultados[0].length).setValues(resultados);
+  if (!hojaResultados) {
+    hojaResultados = ss.insertSheet(OUTPUT_SHEET);
+    // Si la hoja es nueva, escribimos los encabezados y los datos
+    hojaResultados.getRange(1, 1, resultados.length, resultados[0].length).setValues(resultados);
+  } else {
+    // Si la hoja ya existe, añadimos solo las nuevas filas de datos (sin encabezados)
+    const datosNuevos = resultados.slice(1);
+    hojaResultados.getRange(hojaResultados.getLastRow() + 1, 1, datosNuevos.length, datosNuevos[0].length).setValues(datosNuevos);
+  }
 
-  // --- Crear Hoja de Seleccionados (Top 25) ---
+  // --- REGENERAR Hoja de Seleccionados y Dashboard (ya que los rankings y promedios cambian) ---
   if (resultados.length > 1) {
     const datosPostulantes = resultados.slice(1);
     const indicePuntajeTotal = resultados[0].indexOf("PUNTAJE TOTAL");
@@ -402,7 +453,7 @@ function evaluarPostulacionesPUCV2() {
   }
 
   // --- Aplicar Formato Condicional a los Puntajes ---
-  // Primero, limpiamos las reglas de formato existentes en la hoja para evitar duplicados.
+  // Limpiamos y reaplicamos las reglas de formato para que cubran los nuevos datos.
   hojaResultados.clearConditionalFormatRules();
 
   if (resultados.length > 1) { // Solo aplicar si hay datos
@@ -423,9 +474,17 @@ function evaluarPostulacionesPUCV2() {
     hojaResultados.setConditionalFormatRules(reglas);
   }
 
-  // Generar y actualizar el dashboard con los resultados finales
-  generarYActualizarDashboard(resultados, ss);
+  // Para el dashboard y seleccionados, sí necesitamos leer todos los datos de nuevo para recalcular totales y rankings.
+  const todosLosResultados = hojaResultados.getDataRange().getValues();
+  generarYActualizarDashboard(todosLosResultados, ss);
+  // La función para crear la hoja de seleccionados también debería ser llamada aquí,
+  // usando `todosLosResultados` para asegurar que el ranking es correcto.
   SpreadsheetApp.flush(); // Asegura que todos los cambios se escriban en la hoja.
+
+  // --- MEJORA: Liberar el bloqueo al final de la ejecución ---
+  // Es fundamental liberar el bloqueo para que la próxima ejecución pueda comenzar.
+  lock.releaseLock();
+  console.log("Proceso completado y bloqueo liberado.");
 }
 
 /**
