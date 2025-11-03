@@ -1,8 +1,9 @@
 function evaluarPostulacionesPUCV2() {
-  const SHEET_ID = "1wxljJRiF6G9Ejs6e83BOTLTZFeiyZmSPCip_vpAdO4Q";
+  const SHEET_ID = "1ohh906fh213G8K0MRhMjlxQFlRXctq97rhw3ply7NQ8";
   const INPUT_SHEET = "Respuestas de formulario 1";
   const OUTPUT_SHEET = "Evaluación automatizada";
   const DASHBOARD_SHEET = "Dashboard";
+  const SELECCIONADOS_SHEET = "Seleccionados";
 
   const ss = SpreadsheetApp.openById(SHEET_ID);
   const hojaEntrada = ss.getSheetByName(INPUT_SHEET);
@@ -78,21 +79,25 @@ function evaluarPostulacionesPUCV2() {
   const calcularPuntajeInternacionalizacion = (fila) => {
     let puntaje = 0;
 
+    const tieneDocumentos = !!obtenerValor(fila, "Adjunta los documentos de respaldo");
+
     // 1. Etapa del proceso
     const etapa = obtenerValor(fila, "¿En qué etapa se encuentra tu proceso de internacionalización?").toLowerCase();
-    if (etapa.includes("postulación enviada") || etapa.includes("carta de aceptación")) puntaje += 3;
-    else if (etapa.includes("programa identificado") || etapa.includes("en contacto")) puntaje += 2;
-    else if (etapa.includes("buscando programa")) puntaje += 1;
+    if (etapa.includes("carta de aceptación")) {
+      puntaje += 3.5; // Mayor puntaje por tener la aceptación confirmada.
+      if (tieneDocumentos) puntaje += 0.5; // Bonus si adjunta la carta.
+    } else if (etapa.includes("postulación enviada")) {
+      puntaje += 2.5; // Un poco menos que tener la carta.
+    } else if (etapa.includes("programa identificado") || etapa.includes("en contacto")) {
+      puntaje += 1.5;
+    } else if (etapa.includes("buscando programa")) {
+      puntaje += 0.5;
+    }
 
     // 2. Plan de internacionalización (palabras clave)
     const plan = obtenerValor(fila, "¿Cómo has planeado internacionalizar tu carrera?");
     const palabrasClavePlan = ["pasantía", "postdoctorado", "doctorado", "magíster", "investigación", "colaboración", "congreso", "publicar"];
     puntaje += contarPalabrasClave(plan, palabrasClavePlan) * 0.5;
-
-    // 3. Documentos de respaldo
-    if (obtenerValor(fila, "Adjunta los documentos de respaldo")) {
-      puntaje += 1; // Punto por adjuntar al menos un documento
-    }
 
     return Math.min(5, puntaje); // Máximo 5 puntos
   };
@@ -126,58 +131,161 @@ function evaluarPostulacionesPUCV2() {
    * @param {Spreadsheet} spreadsheet - La hoja de cálculo activa.
    */
   const generarYActualizarDashboard = (resultadosCompletos, spreadsheet) => {
-    const datosPostulantes = resultadosCompletos.slice(1); // Omitir encabezados
+    const encabezadosResultados = resultadosCompletos[0];
+    const datosPostulantes = resultadosCompletos.slice(1);
     if (datosPostulantes.length === 0) {
       return; // No hay datos para generar un dashboard
     }
 
-    // Índices basados en la estructura del array 'resultados'
-    const INDICE_CATEGORIA = 5;
-    const INDICE_PUNTAJE_TOTAL = 14;
+    // --- Mapeo dinámico de índices desde los encabezados de resultados ---
+    const getIndice = (nombre) => encabezadosResultados.indexOf(nombre);
+    const INDICE_CATEGORIA = getIndice("Categoría Postulante");
+    const INDICE_PUNTAJE_TOTAL = getIndice("PUNTAJE TOTAL");
+    const INDICE_SEDE = getIndice("Sede");
 
-    const puntajes = datosPostulantes.map(fila => parseFloat(fila[INDICE_PUNTAJE_TOTAL]));
+    // --- 1. Cálculos Estadísticos ---
+    const puntajes = datosPostulantes.map(fila => parseFloat(fila[INDICE_PUNTAJE_TOTAL] || 0));
     const totalPostulantes = datosPostulantes.length;
     const puntajePromedio = puntajes.reduce((acc, p) => acc + p, 0) / totalPostulantes;
     const puntajeMaximo = Math.max(...puntajes);
     const puntajeMinimo = Math.min(...puntajes);
 
-    const statsPorCategoria = {};
-    datosPostulantes.forEach(fila => {
-      const categoria = fila[INDICE_CATEGORIA] || "Sin Categoría";
-      const puntaje = parseFloat(fila[INDICE_PUNTAJE_TOTAL]);
-      if (!statsPorCategoria[categoria]) {
-        statsPorCategoria[categoria] = { sumaPuntajes: 0, contador: 0 };
+    const agruparStats = (indice) => {
+      const stats = {};
+      datosPostulantes.forEach(fila => {
+        const clave = fila[indice] || "No especificado";
+        const puntaje = parseFloat(fila[INDICE_PUNTAJE_TOTAL] || 0);
+        if (!stats[clave]) {
+          stats[clave] = {
+            suma: 0,
+            contador: 0
+          };
+        }
+        stats[clave].suma += puntaje;
+        stats[clave].contador++;
+      });
+      return stats;
+    };
+
+    const statsPorCategoria = agruparStats(INDICE_CATEGORIA);
+    const statsPorSede = agruparStats(INDICE_SEDE);
+
+    // Para el año de ingreso, necesitamos el dato original, no el puntaje.
+    // Lo extraeremos de la hoja de entrada original.
+    const indiceAnioOriginal = indiceColumnas["¿En qué año ingresaste a tu carrera actual?"];
+    const statsPorAnio = {};
+    datos.slice(1).forEach((filaOriginal, i) => {
+      const anio = filaOriginal[indiceAnioOriginal] || "No especificado";
+      const puntaje = parseFloat(datosPostulantes[i][INDICE_PUNTAJE_TOTAL] || 0);
+      if (!statsPorAnio[anio]) {
+        statsPorAnio[anio] = {
+          suma: 0,
+          contador: 0
+        };
       }
-      statsPorCategoria[categoria].sumaPuntajes += puntaje;
-      statsPorCategoria[categoria].contador++;
+      statsPorAnio[anio].suma += puntaje;
+      statsPorAnio[anio].contador++;
     });
 
-    // Preparar datos para la hoja
-    const datosDashboard = [
-      ["Métrica General", "Valor"],
-      ["Número Total de Postulantes", totalPostulantes],
-      ["Puntaje Promedio General", puntajePromedio.toFixed(2)],
-      ["Puntaje Máximo", puntajeMaximo.toFixed(2)],
-      ["Puntaje Mínimo", puntajeMinimo.toFixed(2)],
-      [], // Fila vacía para separar
-      ["Análisis por Categoría", "Nº Postulantes", "Puntaje Promedio"]
+    // Análisis cruzado Sede x Categoría
+    const statsCruzados = {};
+    datosPostulantes.forEach(fila => {
+      const sede = fila[INDICE_SEDE] || "N/A";
+      const categoria = fila[INDICE_CATEGORIA] || "N/A";
+      const puntaje = parseFloat(fila[INDICE_PUNTAJE_TOTAL] || 0);
+      if (!statsCruzados[sede]) statsCruzados[sede] = {};
+      if (!statsCruzados[sede][categoria]) statsCruzados[sede][categoria] = {
+        suma: 0,
+        contador: 0
+      };
+      statsCruzados[sede][categoria].suma += puntaje;
+      statsCruzados[sede][categoria].contador++;
+    });
+
+    // --- 2. Preparar Datos para la Hoja ---
+    let datosDashboard = [
+      ["MÉTRICAS GENERALES", "", ""],
+      ["Número Total de Postulantes", totalPostulantes, ""],
+      ["Puntaje Promedio General", puntajePromedio.toFixed(2), ""],
+      ["Puntaje Máximo / Mínimo", `${puntajeMaximo.toFixed(2)} / ${puntajeMinimo.toFixed(2)}`, ""],
+      [], // Separador
     ];
 
-    for (const categoria in statsPorCategoria) {
-      const stats = statsPorCategoria[categoria];
-      const promedioCategoria = stats.sumaPuntajes / stats.contador;
-      datosDashboard.push([categoria, stats.contador, promedioCategoria.toFixed(2)]);
+    const anadirTabla = (titulo, stats) => {
+      datosDashboard.push([titulo, "Nº Postulantes", "Puntaje Promedio"]);
+      for (const clave in stats) {
+        const promedio = stats[clave].suma / stats[clave].contador;
+        datosDashboard.push([clave, stats[clave].contador, promedio.toFixed(2)]);
+      }
+      datosDashboard.push([]); // Separador
+    };
+
+    anadirTabla("DESGLOSE POR CATEGORÍA", statsPorCategoria);
+    anadirTabla("DESGLOSE POR SEDE", statsPorSede);
+    anadirTabla("DESGLOSE POR AÑO DE INGRESO", statsPorAnio);
+
+    // Añadir tabla de análisis cruzado
+    datosDashboard.push(["ANÁLISIS CRUZADO: SEDE vs CATEGORÍA", "Puntaje Promedio", ""]);
+    for (const sede in statsCruzados) {
+      for (const categoria in statsCruzados[sede]) {
+        const promedio = statsCruzados[sede][categoria].suma / statsCruzados[sede][categoria].contador;
+        datosDashboard.push([`${sede} - ${categoria}`, promedio.toFixed(2), `(${statsCruzados[sede][categoria].contador} postulantes)`]);
+      }
     }
 
+    // --- 3. Escribir en la Hoja ---
     let hojaDashboard = spreadsheet.getSheetByName(DASHBOARD_SHEET);
     if (!hojaDashboard) hojaDashboard = spreadsheet.insertSheet(DASHBOARD_SHEET);
-    else hojaDashboard.clear();
+    else {
+      // Limpiamos contenido y formato del rango que usaremos, es más seguro que clear()
+      hojaDashboard.getRange("A:C").clearContent().clearFormat();
+      // Limpiamos también los gráficos antiguos para evitar duplicados
+      hojaDashboard.getCharts().forEach(chart => hojaDashboard.removeChart(chart));
+      // Limpiamos el área que usaremos para los datos del gráfico
+      hojaDashboard.getRange("E:F").clearContent();
+    }
 
-    hojaDashboard.getRange(1, 1, datosDashboard.length, datosDashboard[0].length).setValues(datosDashboard);
+    if (datosDashboard.length > 0) {
+      // Rellenar filas para que todas tengan 3 columnas
+      const datosRectangulares = datosDashboard.map(fila => {
+        const filaCompleta = [...fila];
+        while (filaCompleta.length < 3) filaCompleta.push("");
+        return filaCompleta;
+      });
+      hojaDashboard.getRange(1, 1, datosRectangulares.length, 3).setValues(datosRectangulares);
+
+      // Aplicar formato básico
+      datosRectangulares.forEach((fila, i) => {
+        if (fila[0].endsWith(":") || fila[1] === "Nº Postulantes") {
+          hojaDashboard.getRange(i + 1, 1, 1, 3).setFontWeight("bold");
+        }
+      });
+      hojaDashboard.getRange("A1:C1").setFontSize(12);
+    }
+
+    // --- 4. Añadir Gráfico de Distribución por Sede ---
+    const datosGraficoSede = [["Sede", "Nº Postulantes"]];
+    for (const sede in statsPorSede) {
+      datosGraficoSede.push([sede, statsPorSede[sede].contador]);
+    }
+
+    if (datosGraficoSede.length > 1) { // Solo crear gráfico si hay datos
+      const rangoDatosGrafico = hojaDashboard.getRange(1, 5, datosGraficoSede.length, 2); // Rango E1:F...
+      rangoDatosGrafico.setValues(datosGraficoSede);
+
+      const chart = hojaDashboard.newChart()
+        .setChartType(Charts.ChartType.PIE)
+        .addRange(rangoDatosGrafico)
+        .setOption('title', 'Distribución de Postulantes por Sede')
+        .setPosition(5, 5, 0, 0) // Anclar en la celda E5
+        .build();
+
+      hojaDashboard.insertChart(chart);
+    }
   };
 
   const resultados = [
-    ["Apellido(s)", "Nombre(s)", "Correo Electrónico", "RUT", "Fecha de Postulación", "Categoría Postulante",
+    ["Apellido(s)", "Nombre(s)", "Correo Electrónico", "RUT", "Fecha de Postulación", "Categoría Postulante", "Sede",
      "Puntaje Disponibilidad", "Puntaje Tipo", "Puntaje Uso Inglés", "Puntaje Intl.", "Puntaje Nivel Inglés",
      "Puntaje Año Ingreso", "Puntaje Compromiso", "Puntaje Carta", "PUNTAJE TOTAL"]
   ];
@@ -191,6 +299,7 @@ function evaluarPostulacionesPUCV2() {
     const rut = obtenerValor(fila, "RUT");
     const fechaPostulacion = obtenerValor(fila, "Marca temporal");
     const tipoPostulante = obtenerValor(fila, "Indica si eres funcionario, alumno, profesor, académico, etc.");
+    const sede = obtenerValor(fila, "¿En qué sede realizas la mayoría de tus actividades académicas o profesionales?");
 
     // 1. Disponibilidad (máx 4 puntos)
     let puntajeDisponibilidad = 0;
@@ -220,7 +329,7 @@ function evaluarPostulacionesPUCV2() {
 
     const puntajeTotal = puntajeDisponibilidad + puntajeTipo + puntajeUso + puntajeIntl + puntajeNivelIngles + puntajeAnio + puntajeCompromiso + puntajeCarta;
     resultados.push([
-      apellidos, nombres, correo, rut, fechaPostulacion, tipoPostulante,
+      apellidos, nombres, correo, rut, fechaPostulacion, tipoPostulante, sede,
       puntajeDisponibilidad, puntajeTipo, puntajeUso.toFixed(2),
       puntajeIntl.toFixed(2), puntajeNivelIngles, puntajeAnio,
       puntajeCompromiso, puntajeCarta,
@@ -233,7 +342,160 @@ function evaluarPostulacionesPUCV2() {
   else hojaResultados.clear();
   hojaResultados.getRange(1, 1, resultados.length, resultados[0].length).setValues(resultados);
 
+  // --- Crear Hoja de Seleccionados (Top 25) ---
+  if (resultados.length > 1) {
+    const datosPostulantes = resultados.slice(1);
+    const indicePuntajeTotal = resultados[0].indexOf("PUNTAJE TOTAL");
+
+    // Ordenar postulantes por puntaje total de mayor a menor
+    datosPostulantes.sort((a, b) => {
+      const puntajeB = parseFloat(b[indicePuntajeTotal] || 0);
+      const puntajeA = parseFloat(a[indicePuntajeTotal] || 0);
+      return puntajeB - puntajeA;
+    });
+
+    // Tomar los mejores 25 (o menos si no hay tantos)
+    const top25 = datosPostulantes.slice(0, 25);
+
+    // Añadir la columna de Ranking a los datos
+    const seleccionadosConRanking = top25.map((fila, index) => [index + 1, ...fila]);
+
+    // Añadir encabezados para Ranking y columnas de verificación manual
+    const encabezadosSeleccionados = [
+      "Ranking", ...resultados[0],
+      "Verificación Certificado", "Nivel Asignado", "Aceptación"
+    ];
+
+    // Preparar los datos para escribir en la hoja (encabezados + seleccionados)
+    // Las filas de datos tendrán espacios vacíos para las nuevas columnas manuales
+    const datosParaHoja = [encabezadosSeleccionados, ...seleccionadosConRanking.map(fila => [...fila, "", "", "Pendiente"])];
+
+    let hojaSeleccionados = ss.getSheetByName(SELECCIONADOS_SHEET);
+    if (!hojaSeleccionados) {
+      hojaSeleccionados = ss.insertSheet(SELECCIONADOS_SHEET);
+    } else {
+      hojaSeleccionados.clear();
+    }
+    if (datosParaHoja.length > 1) {
+      const rangoDatos = hojaSeleccionados.getRange(1, 1, datosParaHoja.length, datosParaHoja[0].length);
+      rangoDatos.setValues(datosParaHoja);
+
+      // --- Añadir Menú Desplegable y Formato Condicional ---
+      const indiceColAceptacion = encabezadosSeleccionados.indexOf("Aceptación") + 1;
+      const rangoAceptacion = hojaSeleccionados.getRange(2, indiceColAceptacion, datosParaHoja.length - 1, 1);
+
+      // Crear regla para menú desplegable
+      const reglaDesplegable = SpreadsheetApp.newDataValidation().requireValueInList(['Acepta', 'Rechaza', 'Pendiente'], true).build();
+      rangoAceptacion.setDataValidation(reglaDesplegable);
+
+      // Limpiar reglas de formato antiguas y aplicar nuevas
+      hojaSeleccionados.clearConditionalFormatRules();
+      const rangoCompletoFila = hojaSeleccionados.getRange(2, 1, datosParaHoja.length - 1, datosParaHoja[0].length);
+
+      const reglaVerde = SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied(`=$${_columnaALetra(indiceColAceptacion)}2="Acepta"`).setBackground("#D9EAD3").setRanges([rangoCompletoFila]).build();
+      const reglaRojo = SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied(`=$${_columnaALetra(indiceColAceptacion)}2="Rechaza"`).setBackground("#F4CCCC").setRanges([rangoCompletoFila]).build();
+      
+      const reglas = hojaSeleccionados.getConditionalFormatRules();
+      reglas.push(reglaVerde, reglaRojo);
+      hojaSeleccionados.setConditionalFormatRules(reglas);
+    }
+  }
+
+  // --- Aplicar Formato Condicional a los Puntajes ---
+  // Primero, limpiamos las reglas de formato existentes en la hoja para evitar duplicados.
+  hojaResultados.clearConditionalFormatRules();
+
+  if (resultados.length > 1) { // Solo aplicar si hay datos
+    // El rango de los puntajes va desde la columna H (8) hasta la P (16)
+    const rangoPuntajes = hojaResultados.getRange(2, 8, resultados.length - 1, 9);
+
+    // Crear una regla de escala de colores (rojo -> amarillo -> verde)
+    const reglaFormato = SpreadsheetApp.newConditionalFormatRule()
+      .setGradientMinpoint('#F8696B') // Rojo para el valor más bajo
+      .setGradientMidpointWithValue('#FFEB84', SpreadsheetApp.InterpolationType.PERCENT, '50') // Amarillo para el 50%
+      .setGradientMaxpoint('#63BE7B') // Verde para el valor más alto
+      .setRanges([rangoPuntajes])
+      .build();
+
+    // Obtener todas las reglas de la hoja (puede haber otras) y añadir la nuestra
+    const reglas = hojaResultados.getConditionalFormatRules();
+    reglas.push(reglaFormato);
+    hojaResultados.setConditionalFormatRules(reglas);
+  }
+
   // Generar y actualizar el dashboard con los resultados finales
   generarYActualizarDashboard(resultados, ss);
   SpreadsheetApp.flush(); // Asegura que todos los cambios se escriban en la hoja.
+}
+
+/**
+ * Helper function to convert column index to letter (e.g., 1 -> A, 27 -> AA)
+ * Necesario para las fórmulas de formato condicional.
+ */
+function _columnaALetra(columna) {
+  let temp, letra = '';
+  while (columna > 0) {
+    temp = (columna - 1) % 26;
+    letra = String.fromCharCode(temp + 65) + letra;
+    columna = (columna - temp - 1) / 26;
+  }
+  return letra;
+}
+
+/**
+ * Se ejecuta automáticamente cuando se abre la hoja de cálculo.
+ * Crea un menú personalizado para ejecutar el script de evaluación.
+ */
+function onOpen() {
+  SpreadsheetApp.getUi()
+      .createMenu('Evaluación PUCV')
+      .addItem('Actualizar Evaluación y Dashboard', 'evaluarPostulacionesPUCV2')
+      .addSeparator()
+      .addItem('Enviar Notificaciones a Seleccionados', 'enviarNotificacionesSeleccionados')
+      .addToUi();
+}
+
+/**
+ * Envía un correo de notificación a los postulantes en la hoja "Seleccionados".
+ */
+function enviarNotificacionesSeleccionados() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const hojaSeleccionados = ss.getSheetByName("Seleccionados");
+  if (!hojaSeleccionados) {
+    SpreadsheetApp.getUi().alert("No se encontró la hoja 'Seleccionados'. Por favor, ejecuta primero la evaluación.");
+    return;
+  }
+
+  const datos = hojaSeleccionados.getDataRange().getValues();
+  const encabezados = datos.shift(); // Quita y guarda los encabezados
+
+  const indiceNombre = encabezados.indexOf("Nombre(s)");
+  const indiceCorreo = encabezados.indexOf("Correo Electrónico");
+
+  if (indiceNombre === -1 || indiceCorreo === -1) {
+    SpreadsheetApp.getUi().alert("No se encontraron las columnas 'Nombre(s)' o 'Correo Electrónico' en la hoja 'Seleccionados'.");
+    return;
+  }
+
+  const confirmacion = SpreadsheetApp.getUi().alert(
+    'Confirmación de Envío',
+    `¿Estás seguro de que quieres enviar un correo de notificación a ${datos.length} postulantes seleccionados?`,
+    SpreadsheetApp.getUi().ButtonSet.YES_NO
+  );
+
+  if (confirmacion !== SpreadsheetApp.getUi().Button.YES) {
+    return;
+  }
+
+  datos.forEach(fila => {
+    const nombre = fila[indiceNombre];
+    const correo = fila[indiceCorreo];
+    const asunto = "¡Felicitaciones! Has sido seleccionado para el Programa de Inglés PUCV";
+    const cuerpo = `Estimado/a ${nombre},\n\nNos complace informarte que has sido seleccionado/a para participar en el programa de inglés.\n\nPor favor, responde a este correo para confirmar si aceptas o rechazas tu cupo a la brevedad.\n\nSaludos cordiales,\nEl equipo de PUCV.`;
+    
+    // MailApp.sendEmail(correo, asunto, cuerpo); // DESCOMENTAR PARA ENVIAR CORREOS REALES
+    console.log(`Correo preparado para ${nombre} a ${correo}`); // Para pruebas
+  });
+
+  SpreadsheetApp.getUi().alert(`Se ha completado el proceso de envío de correos a ${datos.length} postulantes.`);
 }
