@@ -1,3 +1,19 @@
+// MEJORA: Mover CONFIG fuera de la función para que sea una constante global.
+// Esto permite que otras funciones como `enviarNotificacionesSeleccionados` también la usen.
+const CONFIG = {
+  SHEET_ID: "1ohh906fh213G8K0MRhMjlxQFlRXctq97rhw3ply7NQ8",
+  SHEETS: {
+    INPUT: "Respuestas de formulario 1",
+    OUTPUT: "Evaluación automatizada",
+    DASHBOARD: "Dashboard",
+    SELECTED: "Seleccionados"
+  },
+  COLUMNS: { // Centraliza los nombres de las columnas para evitar errores de tipeo
+    PROCESSING_STATUS: "Estado de Procesamiento"
+  }
+};
+
+
 function evaluarPostulacionesPUCV2() {
   // --- MEJORA: Usar LockService para evitar ejecuciones simultáneas ---
   // Esto es crucial para activadores automáticos como 'onFormSubmit'.
@@ -9,16 +25,10 @@ function evaluarPostulacionesPUCV2() {
     return; // Salir si no se puede obtener el bloqueo.
   }
 
-  const SHEET_ID = "1ohh906fh213G8K0MRhMjlxQFlRXctq97rhw3ply7NQ8";
-  const INPUT_SHEET = "Respuestas de formulario 1";
-  const OUTPUT_SHEET = "Evaluación automatizada";
-  const DASHBOARD_SHEET = "Dashboard";
-  const SELECCIONADOS_SHEET = "Seleccionados";
-
-  const ss = SpreadsheetApp.openById(SHEET_ID);
-  const hojaEntrada = ss.getSheetByName(INPUT_SHEET);
+  const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
+  const hojaEntrada = ss.getSheetByName(CONFIG.SHEETS.INPUT);
   if (!hojaEntrada) {
-    throw new Error("Hoja de entrada no encontrada: " + INPUT_SHEET);
+    throw new Error("Hoja de entrada no encontrada: " + CONFIG.SHEETS.INPUT);
   }
 
   const ultimaFila = hojaEntrada.getLastRow();
@@ -55,6 +65,22 @@ function evaluarPostulacionesPUCV2() {
     return 1;
   };
 
+  // --- MEJORA: Agrupar constantes de puntuación para fácil mantenimiento ---
+  const SCORING_PARAMS = {
+    UsoIngles: {
+      Frecuencia: { "diariamente": 1.5, "semanalmente": 1, "mensualmente": 0.5 },
+      Actividades: { "visitas internacionales": 1, "presentaciones": 1, "reuniones": 0.75, "clases": 0.5, "papers": 0.5, "correos": 0.25, "leer documentación": 0.25 },
+      PalabrasClaveContribucion: ["proyección", "internacional", "colaborar", "crecimiento", "oportunidades", "movilidad", "publicar", "desarrollo"],
+      PuntajePorPalabraClave: 0.25,
+      MaxPuntaje: 4
+    },
+    Internacionalizacion: {
+      PalabrasClavePlan: ["pasantía", "postdoctorado", "doctorado", "magíster", "investigación", "colaboración", "congreso", "publicar"],
+      PuntajePorPalabraClave: 0.5,
+      MaxPuntaje: 5
+    }
+  };
+
   // --- NUEVAS FUNCIONES DE PUNTUACIÓN COMPLEJAS ---
 
   const calcularPuntajeUsoIngles = (fila) => {
@@ -62,15 +88,14 @@ function evaluarPostulacionesPUCV2() {
 
     // 1. Frecuencia de uso
     const frecuencia = obtenerValor(fila, "¿Con qué frecuencia requieres utilizar el idioma inglés en tus funciones actuales?").toLowerCase();
-    if (frecuencia.includes("diariamente")) puntaje += 1.5;
-    else if (frecuencia.includes("semanalmente")) puntaje += 1;
-    else if (frecuencia.includes("mensualmente")) puntaje += 0.5;
+    for (const [key, value] of Object.entries(SCORING_PARAMS.UsoIngles.Frecuencia)) {
+      if (frecuencia.includes(key)) puntaje += value;
+    }
 
     // 2. Actividades (con pesos)
     const actividades = obtenerValor(fila, "Seleccione las actividades que realizas en inglés como parte de tus funciones:").toLowerCase();
-    const pesosActividades = { "visitas internacionales": 1, "presentaciones": 1, "reuniones": 0.75, "clases": 0.5, "papers": 0.5, "correos": 0.25, "leer documentación": 0.25 };
-    for (const actividad in pesosActividades) {
-      if (actividades.includes(actividad)) puntaje += pesosActividades[actividad];
+    for (const [actividad, peso] of Object.entries(SCORING_PARAMS.UsoIngles.Actividades)) {
+      if (actividades.includes(actividad)) puntaje += peso;
     }
 
     // 3. Proyectos futuros
@@ -80,10 +105,9 @@ function evaluarPostulacionesPUCV2() {
 
     // 4. Contribución al desempeño (palabras clave)
     const contribucion = obtenerValor(fila, "¿Cómo contribuiría el mejoramiento de tu nivel de inglés a tu desempeño profesional?");
-    const palabrasClaveContribucion = ["proyección", "internacional", "colaborar", "crecimiento", "oportunidades", "movilidad", "publicar", "desarrollo"];
-    puntaje += contarPalabrasClave(contribucion, palabrasClaveContribucion) * 0.25;
+    puntaje += contarPalabrasClave(contribucion, SCORING_PARAMS.UsoIngles.PalabrasClaveContribucion) * SCORING_PARAMS.UsoIngles.PuntajePorPalabraClave;
 
-    return Math.min(4, puntaje); // Máximo 4 puntos para esta categoría
+    return Math.min(SCORING_PARAMS.UsoIngles.MaxPuntaje, puntaje);
   };
 
   const calcularPuntajeInternacionalizacion = (fila) => {
@@ -106,10 +130,9 @@ function evaluarPostulacionesPUCV2() {
 
     // 2. Plan de internacionalización (palabras clave)
     const plan = obtenerValor(fila, "¿Cómo has planeado internacionalizar tu carrera?");
-    const palabrasClavePlan = ["pasantía", "postdoctorado", "doctorado", "magíster", "investigación", "colaboración", "congreso", "publicar"];
-    puntaje += contarPalabrasClave(plan, palabrasClavePlan) * 0.5;
+    puntaje += contarPalabrasClave(plan, SCORING_PARAMS.Internacionalizacion.PalabrasClavePlan) * SCORING_PARAMS.Internacionalizacion.PuntajePorPalabraClave;
 
-    return Math.min(5, puntaje); // Máximo 5 puntos
+    return Math.min(SCORING_PARAMS.Internacionalizacion.MaxPuntaje, puntaje);
   };
 
   const calcularPuntajeCertificado = (fila) => {
@@ -136,11 +159,10 @@ function evaluarPostulacionesPUCV2() {
   };
 
   /**
-   * Calcula estadísticas y actualiza la hoja del Dashboard.
-   * @param {Array<Array<any>>} resultadosCompletos - Los datos procesados de los postulantes, incluyendo encabezados.
-   * @param {Spreadsheet} spreadsheet - La hoja de cálculo activa.
+   * MEJORA (Modularidad): Función dedicada solo a calcular estadísticas.
+   * @returns {object} Un objeto con todas las estadísticas calculadas.
    */
-  const generarYActualizarDashboard = (resultadosCompletos, spreadsheet) => {
+  const calcularEstadisticas = (resultadosCompletos, datosOriginales, indicesOriginales) => {
     const encabezadosResultados = resultadosCompletos[0];
     const datosPostulantes = resultadosCompletos.slice(1);
     if (datosPostulantes.length === 0) {
@@ -153,7 +175,6 @@ function evaluarPostulacionesPUCV2() {
     const INDICE_PUNTAJE_TOTAL = getIndice("PUNTAJE TOTAL");
     const INDICE_SEDE = getIndice("Sede");
 
-    // --- 1. Cálculos Estadísticos ---
     const puntajes = datosPostulantes.map(fila => parseFloat(fila[INDICE_PUNTAJE_TOTAL] || 0));
     const totalPostulantes = datosPostulantes.length;
     const puntajePromedio = puntajes.reduce((acc, p) => acc + p, 0) / totalPostulantes;
@@ -182,9 +203,9 @@ function evaluarPostulacionesPUCV2() {
 
     // Para el año de ingreso, necesitamos el dato original, no el puntaje.
     // Lo extraeremos de la hoja de entrada original.
-    const indiceAnioOriginal = indiceColumnas["¿En qué año ingresaste a tu carrera actual?"];
+    const indiceAnioOriginal = indicesOriginales["¿En qué año ingresaste a tu carrera actual?"];
     const statsPorAnio = {};
-    datos.slice(1).forEach((filaOriginal, i) => {
+    datosOriginales.slice(1).forEach((filaOriginal, i) => {
       const anio = filaOriginal[indiceAnioOriginal] || "No especificado";
       const puntaje = parseFloat(datosPostulantes[i][INDICE_PUNTAJE_TOTAL] || 0);
       if (!statsPorAnio[anio]) {
@@ -212,7 +233,18 @@ function evaluarPostulacionesPUCV2() {
       statsCruzados[sede][categoria].contador++;
     });
 
-    // --- 2. Preparar Datos para la Hoja ---
+    return { totalPostulantes, puntajePromedio, puntajeMaximo, puntajeMinimo, statsPorCategoria, statsPorSede, statsPorAnio, statsCruzados };
+  };
+
+  /**
+   * MEJORA (Modularidad): Función dedicada a formatear los datos para la hoja del dashboard.
+   * @param {object} stats - El objeto de estadísticas generado por calcularEstadisticas.
+   * @returns {Array<Array<any>>} Un array 2D listo para ser escrito en la hoja.
+   */
+  const formatearDatosDashboard = (stats) => {
+    const { totalPostulantes, puntajePromedio, puntajeMaximo, puntajeMinimo, statsPorCategoria, statsPorSede, statsPorAnio, statsCruzados } = stats;
+    if (!totalPostulantes) return [];
+
     let datosDashboard = [
       ["MÉTRICAS GENERALES", "", ""],
       ["Número Total de Postulantes", totalPostulantes, ""],
@@ -236,16 +268,53 @@ function evaluarPostulacionesPUCV2() {
 
     // Añadir tabla de análisis cruzado
     datosDashboard.push(["ANÁLISIS CRUZADO: SEDE vs CATEGORÍA", "Puntaje Promedio", ""]);
-    for (const sede in statsCruzados) {
-      for (const categoria in statsCruzados[sede]) {
-        const promedio = statsCruzados[sede][categoria].suma / statsCruzados[sede][categoria].contador;
-        datosDashboard.push([`${sede} - ${categoria}`, promedio.toFixed(2), `(${statsCruzados[sede][categoria].contador} postulantes)`]);
+    for (const sede in stats.statsCruzados) {
+      for (const categoria in stats.statsCruzados[sede]) {
+        const promedio = stats.statsCruzados[sede][categoria].suma / stats.statsCruzados[sede][categoria].contador;
+        datosDashboard.push([`${sede} - ${categoria}`, promedio.toFixed(2), `(${stats.statsCruzados[sede][categoria].contador} postulantes)`]);
       }
     }
+    return datosDashboard;
+  };
 
+  /**
+   * MEJORA (Modularidad): Función dedicada a crear el gráfico.
+   */
+  const crearGraficoSede = (hojaDashboard, statsPorSede) => {
+    const datosGraficoSede = [["Sede", "Nº Postulantes"]];
+    for (const sede in statsPorSede) {
+      datosGraficoSede.push([sede, statsPorSede[sede].contador]);
+    }
+
+    if (datosGraficoSede.length > 1) { // Solo crear gráfico si hay datos
+      const rangoDatosGrafico = hojaDashboard.getRange(1, 5, datosGraficoSede.length, 2); // Rango E1:F...
+      rangoDatosGrafico.setValues(datosGraficoSede);
+
+      const chart = hojaDashboard.newChart()
+        .setChartType(Charts.ChartType.PIE)
+        .addRange(rangoDatosGrafico)
+        .setOption('title', 'Distribución de Postulantes por Sede')
+        .setPosition(5, 5, 0, 0) // Anclar en la celda E5
+        .build();
+
+      hojaDashboard.insertChart(chart);
+    }
+  };
+
+  /**
+   * Orquesta la creación y actualización del Dashboard.
+   * @param {Array<Array<any>>} resultadosCompletos - Los datos procesados de los postulantes.
+   * @param {Spreadsheet} spreadsheet - La hoja de cálculo activa.
+   */
+  const generarYActualizarDashboard = (resultadosCompletos, spreadsheet, datosOriginales, indicesOriginales) => {
+    // 1. Calcular estadísticas
+    const estadisticas = calcularEstadisticas(resultadosCompletos, datosOriginales, indicesOriginales);
+    // 2. Formatear los datos para la hoja
+    const datosDashboard = formatearDatosDashboard(estadisticas);
+    
     // --- 3. Escribir en la Hoja ---
-    let hojaDashboard = spreadsheet.getSheetByName(DASHBOARD_SHEET);
-    if (!hojaDashboard) hojaDashboard = spreadsheet.insertSheet(DASHBOARD_SHEET);
+    let hojaDashboard = spreadsheet.getSheetByName(CONFIG.SHEETS.DASHBOARD);
+    if (!hojaDashboard) hojaDashboard = spreadsheet.insertSheet(CONFIG.SHEETS.DASHBOARD);
     else {
       // Limpiamos contenido y formato del rango que usaremos, es más seguro que clear()
       hojaDashboard.getRange("A:C").clearContent().clearFormat();
@@ -273,27 +342,10 @@ function evaluarPostulacionesPUCV2() {
       hojaDashboard.getRange("A1:C1").setFontSize(12);
     }
 
-    // --- 4. Añadir Gráfico de Distribución por Sede ---
-    const datosGraficoSede = [["Sede", "Nº Postulantes"]];
-    for (const sede in statsPorSede) {
-      datosGraficoSede.push([sede, statsPorSede[sede].contador]);
-    }
-
-    if (datosGraficoSede.length > 1) { // Solo crear gráfico si hay datos
-      const rangoDatosGrafico = hojaDashboard.getRange(1, 5, datosGraficoSede.length, 2); // Rango E1:F...
-      rangoDatosGrafico.setValues(datosGraficoSede);
-
-      const chart = hojaDashboard.newChart()
-        .setChartType(Charts.ChartType.PIE)
-        .addRange(rangoDatosGrafico)
-        .setOption('title', 'Distribución de Postulantes por Sede')
-        .setPosition(5, 5, 0, 0) // Anclar en la celda E5
-        .build();
-
-      hojaDashboard.insertChart(chart);
-    }
+    // 4. Crear el gráfico
+    crearGraficoSede(hojaDashboard, estadisticas.statsPorSede);
   };
-
+  
   const resultados = [
     ["Apellido(s)", "Nombre(s)", "Correo Electrónico", "RUT", "Fecha de Postulación", "Categoría Postulante", "Sede",
      "Puntaje Disponibilidad", "Puntaje Tipo", "Puntaje Uso Inglés", "Puntaje Intl.", "Puntaje Nivel Inglés",
@@ -301,15 +353,15 @@ function evaluarPostulacionesPUCV2() {
   ];
 
   // --- OPTIMIZACIÓN: Identificar la columna de estado ---
-  const COLUMNA_ESTADO = "Estado de Procesamiento";
-  const indiceEstado = encabezados.indexOf(COLUMNA_ESTADO);
+  const COLUMNA_ESTADO_NOMBRE = CONFIG.COLUMNS.PROCESSING_STATUS;
+  const indiceEstado = encabezados.indexOf(COLUMNA_ESTADO_NOMBRE);
 
   for (let r = 1; r < datos.length; r++) {
     try { // <--- INICIO DEL BLOQUE TRY
       const fila = datos[r];
 
       // --- OPTIMIZACIÓN: Ignorar filas ya procesadas ---
-      if (indiceEstado !== -1 && obtenerValor(fila, COLUMNA_ESTADO) !== "") {
+      if (indiceEstado !== -1 && obtenerValor(fila, COLUMNA_ESTADO_NOMBRE) !== "") {
         continue; // Saltar a la siguiente iteración del bucle
       }
 
@@ -365,7 +417,7 @@ function evaluarPostulacionesPUCV2() {
     } catch (e) { // <--- INICIO DEL BLOQUE CATCH
       // Si ocurre un error en el bloque 'try', el código salta aquí.
       const numeroFila = r + 1;
-      console.error(`Error al procesar la fila ${numeroFila} de la hoja '${INPUT_SHEET}'. Causa: ${e.message}`);
+      console.error(`Error al procesar la fila ${numeroFila} de la hoja '${CONFIG.SHEETS.INPUT}'. Causa: ${e.message}`);
       console.error(`Stack del error: ${e.stack}`); // Información muy útil para depurar
 
       // Marcar la fila con error en la hoja para revisión manual.
@@ -382,9 +434,9 @@ function evaluarPostulacionesPUCV2() {
     return;
   }
 
-  let hojaResultados = ss.getSheetByName(OUTPUT_SHEET);
+  let hojaResultados = ss.getSheetByName(CONFIG.SHEETS.OUTPUT);
   if (!hojaResultados) {
-    hojaResultados = ss.insertSheet(OUTPUT_SHEET);
+    hojaResultados = ss.insertSheet(CONFIG.SHEETS.OUTPUT);
     // Si la hoja es nueva, escribimos los encabezados y los datos
     hojaResultados.getRange(1, 1, resultados.length, resultados[0].length).setValues(resultados);
   } else {
@@ -421,9 +473,9 @@ function evaluarPostulacionesPUCV2() {
     // Las filas de datos tendrán espacios vacíos para las nuevas columnas manuales
     const datosParaHoja = [encabezadosSeleccionados, ...seleccionadosConRanking.map(fila => [...fila, "", "", "Pendiente"])];
 
-    let hojaSeleccionados = ss.getSheetByName(SELECCIONADOS_SHEET);
+    let hojaSeleccionados = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
     if (!hojaSeleccionados) {
-      hojaSeleccionados = ss.insertSheet(SELECCIONADOS_SHEET);
+      hojaSeleccionados = ss.insertSheet(CONFIG.SHEETS.SELECTED);
     } else {
       hojaSeleccionados.clear();
     }
@@ -476,7 +528,7 @@ function evaluarPostulacionesPUCV2() {
 
   // Para el dashboard y seleccionados, sí necesitamos leer todos los datos de nuevo para recalcular totales y rankings.
   const todosLosResultados = hojaResultados.getDataRange().getValues();
-  generarYActualizarDashboard(todosLosResultados, ss);
+  generarYActualizarDashboard(todosLosResultados, ss, datos, indiceColumnas);
   // La función para crear la hoja de seleccionados también debería ser llamada aquí,
   // usando `todosLosResultados` para asegurar que el ranking es correcto.
   SpreadsheetApp.flush(); // Asegura que todos los cambios se escriban en la hoja.
@@ -519,7 +571,7 @@ function onOpen() {
  */
 function enviarNotificacionesSeleccionados() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const hojaSeleccionados = ss.getSheetByName("Seleccionados");
+  const hojaSeleccionados = ss.getSheetByName(CONFIG.SHEETS.SELECTED); // MEJORA: Usar la constante global
   if (!hojaSeleccionados) {
     SpreadsheetApp.getUi().alert("No se encontró la hoja 'Seleccionados'. Por favor, ejecuta primero la evaluación.");
     return;
