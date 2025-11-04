@@ -436,16 +436,14 @@ function evaluarPostulacionesPUCV2() {
 
   let hojaResultados = ss.getSheetByName(CONFIG.SHEETS.OUTPUT);
   if (!hojaResultados) {
-    hojaResultados = ss.insertSheet(CONFIG.SHEETS.OUTPUT);
-    // Si la hoja es nueva, escribimos los encabezados y los datos
-    hojaResultados.getRange(1, 1, resultados.length, resultados[0].length).setValues(resultados);
+    hojaResultados = ss.insertSheet(CONFIG.SHEETS.OUTPUT); // Si no existe, la crea.
   } else {
-    // Si la hoja ya existe, añadimos solo las nuevas filas de datos (sin encabezados)
-    const datosNuevos = resultados.slice(1);
-    hojaResultados.getRange(hojaResultados.getLastRow() + 1, 1, datosNuevos.length, datosNuevos[0].length).setValues(datosNuevos);
+    hojaResultados.clear(); // Si ya existe, la limpia por completo para evitar duplicados.
   }
+  // Escribe todos los resultados (encabezados + datos) en la hoja limpia.
+  hojaResultados.getRange(1, 1, resultados.length, resultados[0].length).setValues(resultados);
 
-  // --- REGENERAR Hoja de Seleccionados y Dashboard (ya que los rankings y promedios cambian) ---
+  // --- REGENERAR Hoja de Seleccionados y Dashboard ---
   if (resultados.length > 1) {
     const datosPostulantes = resultados.slice(1);
     const indicePuntajeTotal = resultados[0].indexOf("PUNTAJE TOTAL");
@@ -526,11 +524,8 @@ function evaluarPostulacionesPUCV2() {
     hojaResultados.setConditionalFormatRules(reglas);
   }
 
-  // Para el dashboard y seleccionados, sí necesitamos leer todos los datos de nuevo para recalcular totales y rankings.
-  const todosLosResultados = hojaResultados.getDataRange().getValues();
-  generarYActualizarDashboard(todosLosResultados, ss, datos, indiceColumnas);
-  // La función para crear la hoja de seleccionados también debería ser llamada aquí,
-  // usando `todosLosResultados` para asegurar que el ranking es correcto.
+  // Para el dashboard y seleccionados, usamos los 'resultados' que acabamos de calcular.
+  generarYActualizarDashboard(resultados, ss, datos, indiceColumnas);
   SpreadsheetApp.flush(); // Asegura que todos los cambios se escriban en la hoja.
 
   // --- MEJORA: Liberar el bloqueo al final de la ejecución ---
