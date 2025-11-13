@@ -66,52 +66,87 @@ function evaluarPostulacionesPUCV2() {
   };
 
   // --- MEJORA: Agrupar constantes de puntuación para fácil mantenimiento ---
+  // Ahora con ponderaciones diferentes por tipo de postulante
   const SCORING_PARAMS = {
     UsoIngles: {
       Frecuencia: { "diariamente": 1.5, "semanalmente": 1, "mensualmente": 0.5 },
       Actividades: { "visitas internacionales": 1, "presentaciones": 1, "reuniones": 0.75, "clases": 0.5, "papers": 0.5, "correos": 0.25, "leer documentación": 0.25 },
       PalabrasClaveContribucion: ["proyección", "internacional", "colaborar", "crecimiento", "oportunidades", "movilidad", "publicar", "desarrollo"],
       PuntajePorPalabraClave: 0.25,
-      MaxPuntaje: 4
+      MaxPuntaje: 4,
+      peso: { // Ponderación por tipo de postulante
+        estudiante: 0.75,  // Reducimos el peso para estudiantes
+        funcionario: 1,
+        academico: 1
+      }
     },
     Internacionalizacion: {
       PalabrasClavePlan: ["pasantía", "postdoctorado", "doctorado", "magíster", "investigación", "colaboración", "congreso", "publicar"],
       PuntajePorPalabraClave: 0.5,
-      MaxPuntaje: 5
+      MaxPuntaje: 5,
+      peso: { // Ponderación por tipo de postulante
+        estudiante: 1,
+        funcionario: 0.75,  // Reducimos el peso para funcionarios
+        academico: 1
+      }
+    },
+    CartaRespaldo: {
+      peso: { // Ponderación por tipo de postulante
+        estudiante: 0.5,  // Reducimos el peso para estudiantes
+        funcionario: 1,
+        academico: 1,
+        // Añadimos una clave para identificar el tipo de perfil
+        // para la función de análisis.
+        // 'perfil' es para estudiantes, 'profesional' para el resto.
+        _perfil: {
+          estudiante: "perfil",
+        }
+      }
     }
   };
+
+  const esEstudiante = (tipoPostulante) => {
+    const tipoNormalizado = String(tipoPostulante || "").toLowerCase();
+    return /estudiante|alumno/.test(tipoNormalizado) && !/postgrado|posgrado/.test(tipoNormalizado);
+  }
 
   // --- NUEVAS FUNCIONES DE PUNTUACIÓN COMPLEJAS ---
 
-  const calcularPuntajeUsoIngles = (fila) => {
+  const calcularPuntajeUsoIngles = (fila, tipoPostulante) => {
     let puntaje = 0;
-
-    // 1. Frecuencia de uso
-    const frecuencia = obtenerValor(fila, "¿Con qué frecuencia requieres utilizar el idioma inglés en tus funciones actuales?").toLowerCase();
-    for (const [key, value] of Object.entries(SCORING_PARAMS.UsoIngles.Frecuencia)) {
-      if (frecuencia.includes(key)) puntaje += value;
-    }
-
-    // 2. Actividades (con pesos)
-    const actividades = obtenerValor(fila, "Seleccione las actividades que realizas en inglés como parte de tus funciones:").toLowerCase();
-    for (const [actividad, peso] of Object.entries(SCORING_PARAMS.UsoIngles.Actividades)) {
-      if (actividades.includes(actividad)) puntaje += peso;
-    }
-
-    // 3. Proyectos futuros
-    if (esSi(obtenerValor(fila, "¿Tu unidad tiene proyectos futuros que requerirán mayor uso del inglés?"))) {
-      puntaje += 1;
-    }
-
-    // 4. Contribución al desempeño (palabras clave)
     const contribucion = obtenerValor(fila, "¿Cómo contribuiría el mejoramiento de tu nivel de inglés a tu desempeño profesional?");
-    puntaje += contarPalabrasClave(contribucion, SCORING_PARAMS.UsoIngles.PalabrasClaveContribucion) * SCORING_PARAMS.UsoIngles.PuntajePorPalabraClave;
+    const peso = SCORING_PARAMS.UsoIngles.peso[esEstudiante(tipoPostulante) ? "estudiante" : "funcionario"] || 1; // Obtener el peso, default 1
 
-    return Math.min(SCORING_PARAMS.UsoIngles.MaxPuntaje, puntaje);
+    if (esEstudiante(tipoPostulante)) {
+
+      // Lógica para Estudiantes: Enfocada en la proyección académica y motivación.
+      // Un estudiante no tiene "funciones actuales", por lo que se evalúa su potencial.
+      const palabrasClaveEstudiante = ["intercambio", "magíster", "doctorado", "investigación", "publicar", "congreso", "competitividad", "oportunidades"];
+      puntaje += contarPalabrasClave(contribucion, palabrasClaveEstudiante) * 0.5; // 0.5 por palabra clave relevante
+
+    } else {
+      // Lógica Original para Funcionarios/Académicos:
+      // 1. Frecuencia de uso
+      const frecuencia = obtenerValor(fila, "¿Con qué frecuencia requieres utilizar el idioma inglés en tus funciones actuales?").toLowerCase();
+      for (const [key, value] of Object.entries(SCORING_PARAMS.UsoIngles.Frecuencia)) {
+        if (frecuencia.includes(key)) puntaje += value;
+      }
+      // 2. Actividades (con pesos)
+      const actividades = obtenerValor(fila, "Seleccione las actividades que realizas en inglés como parte de tus funciones:").toLowerCase();
+      for (const [actividad, peso] of Object.entries(SCORING_PARAMS.UsoIngles.Actividades)) {
+        if (actividades.includes(actividad)) puntaje += peso;
+      }
+      // 3. Proyectos futuros y contribución
+      if (esSi(obtenerValor(fila, "¿Tu unidad tiene proyectos futuros que requerirán mayor uso del inglés?"))) puntaje += 1;
+      puntaje += contarPalabrasClave(contribucion, SCORING_PARAMS.UsoIngles.PalabrasClaveContribucion) * SCORING_PARAMS.UsoIngles.PuntajePorPalabraClave;
+    }
+    
+    return Math.min(SCORING_PARAMS.UsoIngles.MaxPuntaje, puntaje) * peso; // Aplicar el peso al puntaje final
   };
 
-  const calcularPuntajeInternacionalizacion = (fila) => {
+  const calcularPuntajeInternacionalizacion = (fila, tipoPostulante) => {
     let puntaje = 0;
+    const peso = SCORING_PARAMS.Internacionalizacion.peso[esEstudiante(tipoPostulante) ? "estudiante" : "funcionario"] || 1; // Obtener el peso, default 1
 
     const tieneDocumentos = !!obtenerValor(fila, "Adjunta los documentos de respaldo");
 
@@ -132,7 +167,13 @@ function evaluarPostulacionesPUCV2() {
     const plan = obtenerValor(fila, "¿Cómo has planeado internacionalizar tu carrera?");
     puntaje += contarPalabrasClave(plan, SCORING_PARAMS.Internacionalizacion.PalabrasClavePlan) * SCORING_PARAMS.Internacionalizacion.PuntajePorPalabraClave;
 
-    return Math.min(SCORING_PARAMS.Internacionalizacion.MaxPuntaje, puntaje);
+    // 3. AJUSTE: Si es estudiante, otorgar puntaje base por tener planes, ya que es un objetivo clave para ellos.
+    // Esto compensa la falta de experiencia profesional.
+    if (esEstudiante(tipoPostulante) && (etapa.length > 0 || plan.length > 10)) {
+      puntaje += 0.5; // Bonus REDUCIDO por demostrar interés y planificación.
+    }
+
+    return Math.min(SCORING_PARAMS.Internacionalizacion.MaxPuntaje, puntaje) * peso; // Aplicar el peso al puntaje final
   };
 
   const calcularPuntajeCertificado = (fila) => {
@@ -149,13 +190,22 @@ function evaluarPostulacionesPUCV2() {
     return 1; // Puntaje mínimo si hay algo pero no coincide
   };
 
-  const calcularPuntajeAnioIngreso = (fila) => {
+  const calcularPuntajeAnioIngreso = (fila, tipoPostulante) => {
     const anio = obtenerValor(fila, "¿En qué año ingresaste a tu carrera actual?");
-    if (anio === "2023") return 2;
-    if (anio === "2024") return 1.5;
-    if (anio === "2022") return 1;
-    if (anio === "2025") return 0.5;
-    return 0;
+    const anioActual = new Date().getFullYear();
+    const anioNum = parseInt(anio, 10);
+
+    if (esEstudiante(tipoPostulante)) {
+      if (anioNum === anioActual - 2) return 2;   // Ej: 2023 si estamos en 2025
+      if (anioNum === anioActual - 1) return 1.5; // Ej: 2024
+      if (anioNum === anioActual - 3) return 1;   // Ej: 2022
+      if (anioNum === anioActual) return 0.5;     // Ej: 2025 (recién ingresado)
+      return 0;
+    } else { // Para funcionarios, académicos, etc., premiar antigüedad.
+      if (anioNum < anioActual - 10) return 2; // Más de 10 años
+      if (anioNum < anioActual - 5) return 1;  // Entre 5 y 10 años
+      return 0.5; // Menos de 5 años
+    }
   };
 
   /**
@@ -383,10 +433,10 @@ function evaluarPostulacionesPUCV2() {
 
       // --- Cálculo de Puntajes por Área ---
       const puntajeTipo = calcularPuntajeTipoPostulante(tipoPostulante);
-      const puntajeUso = calcularPuntajeUsoIngles(fila);
-      const puntajeIntl = calcularPuntajeInternacionalizacion(fila);
+      const puntajeUso = calcularPuntajeUsoIngles(fila, tipoPostulante);
+      const puntajeIntl = calcularPuntajeInternacionalizacion(fila, tipoPostulante);
       const puntajeNivelIngles = calcularPuntajeCertificado(fila);
-      const puntajeAnio = calcularPuntajeAnioIngreso(fila);
+      const puntajeAnio = calcularPuntajeAnioIngreso(fila, tipoPostulante);
 
       // Compromiso (máx 3 puntos)
       let puntajeCompromiso = 0;
@@ -395,12 +445,22 @@ function evaluarPostulacionesPUCV2() {
       if (esSi(obtenerValor(fila, "Consecuencias por incumplimiento"))) puntajeCompromiso++;
 
       // Carta de respaldo (máx 3 puntos)
+      const pesoCarta = SCORING_PARAMS.CartaRespaldo.peso[esEstudiante(tipoPostulante) ? "estudiante" : "funcionario"] || 1; // Obtener el peso, default 1
+      // AJUSTE: Si es estudiante, se le asigna un puntaje base para compensar que no puede tener carta de jefatura.
       let puntajeCarta = 0;
-      if (esSi(obtenerValor(fila, "¿Cuentas con el respaldo de tu jefatura directa para participar en este programa?"))) puntajeCarta++;
-      if (obtenerValor(fila, "Si la respuesta anterior fue \"Sí\", por favor, adjunta una carta de respaldo de tu jefatura?\" [Nota: Opcional, pero otorga puntaje adicional]")) puntajeCarta++;
-      if (esSi(obtenerValor(fila, "¿Tu jefatura está en conocimiento y aprueba tu participación en el horario establecido?"))) puntajeCarta++;
+      const tieneCartaRespaldo = !!obtenerValor(fila, "Si la respuesta anterior fue \"Sí\", por favor, adjunta una carta de respaldo de tu jefatura?\" [Nota: Opcional, pero otorga puntaje adicional]");
 
-      const puntajeTotal = puntajeDisponibilidad + puntajeTipo + puntajeUso + puntajeIntl + puntajeNivelIngles + puntajeAnio + puntajeCompromiso + puntajeCarta;
+      if (esEstudiante(tipoPostulante)) {
+        puntajeCarta = 1; // Puntaje base por ser estudiante (no se espera respaldo de jefatura)
+        if (tieneCartaRespaldo) puntajeCarta += 1.5; // Bonus alto si adjunta una carta (de un profesor, etc.)
+      } else {
+        // La lógica original solo se aplica a no-estudiantes
+        if (esSi(obtenerValor(fila, "¿Cuentas con el respaldo de tu jefatura directa para participar en este programa?"))) puntajeCarta += 1;
+        if (tieneCartaRespaldo) puntajeCarta += 1;
+        if (esSi(obtenerValor(fila, "¿Tu jefatura está en conocimiento y aprueba tu participación en el horario establecido?"))) puntajeCarta++;
+      }
+
+      const puntajeTotal = puntajeDisponibilidad + puntajeTipo + puntajeUso + puntajeIntl + puntajeNivelIngles + puntajeAnio + puntajeCompromiso + (puntajeCarta * pesoCarta);
       resultados.push([
         apellidos, nombres, correo, rut, fechaPostulacion, tipoPostulante, sede,
         puntajeDisponibilidad, puntajeTipo, puntajeUso.toFixed(2),
@@ -549,27 +609,210 @@ function _columnaALetra(columna) {
 }
 
 /**
- * Se ejecuta automáticamente cuando se abre la hoja de cálculo.
- * Crea un menú personalizado para ejecutar el script de evaluación.
+ * Analiza la composición del ranking de seleccionados y sugiere ajustes
+ * en los pesos de SCORING_PARAMS para mejorar el equilibrio entre perfiles.
  */
-function onOpen() {
-  SpreadsheetApp.getUi()
-      .createMenu('Evaluación PUCV')
-      .addItem('Actualizar Evaluación y Dashboard', 'evaluarPostulacionesPUCV2')
-      .addSeparator()
-      .addItem('Enviar Notificaciones a Seleccionados', 'enviarNotificacionesSeleccionados')
-      .addToUi();
+function getAnalysisReport() {
+  // MEJORA: Envolver toda la lógica en un try...catch para devolver errores claros a la Web App.
+  try {
+    const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
+    const hojaSeleccionados = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
+    const hojaEvaluacion = ss.getSheetByName(CONFIG.SHEETS.OUTPUT);
+
+    if (!hojaSeleccionados || !hojaEvaluacion) {
+      return "Error: Faltan Hojas. Asegúrate de que las hojas 'Seleccionados' y 'Evaluación automatizada' existan antes de ejecutar el análisis.";
+    }
+
+    // 1. Leer todos los datos de la hoja de seleccionados para un análisis completo
+    const datosSeleccionados = hojaSeleccionados.getDataRange().getValues();
+    const encabezadosSeleccionados = datosSeleccionados.shift();
+    const totalSeleccionados = datosSeleccionados.length;
+
+    if (totalSeleccionados === 0) {
+      return "No hay datos. La hoja 'Seleccionados' está vacía.";
+    }
+
+    // --- Mapeo de índices para el análisis ---
+    const getIndiceSeleccionados = (nombre) => encabezadosSeleccionados.indexOf(nombre);
+    const INDICES_SELECCIONADOS = {
+      categoria: getIndiceSeleccionados("Categoría Postulante"),
+      sede: getIndiceSeleccionados("Sede"),
+      puntajeTotal: getIndiceSeleccionados("PUNTAJE TOTAL"),
+      puntajeDisponibilidad: getIndiceSeleccionados("Puntaje Disponibilidad"),
+      puntajeTipo: getIndiceSeleccionados("Puntaje Tipo"),
+      puntajeUsoIngles: getIndiceSeleccionados("Puntaje Uso Inglés"),
+      puntajeIntl: getIndiceSeleccionados("Puntaje Intl."),
+      puntajeNivelIngles: getIndiceSeleccionados("Puntaje Nivel Inglés"),
+      puntajeAnio: getIndiceSeleccionados("Puntaje Año Ingreso"),
+      puntajeCompromiso: getIndiceSeleccionados("Puntaje Compromiso"),
+      puntajeCarta: getIndiceSeleccionados("Puntaje Carta"),
+    };
+
+    // --- Sección 1: Estadísticas Descriptivas de los Seleccionados ---
+    let mensajeAnalisis = `--- ESTADÍSTICAS DESCRIPTIVAS (Top ${totalSeleccionados}) ---\n\n`;
+
+    // a) Puntaje Total
+    const puntajesTotales = datosSeleccionados.map(fila => parseFloat(fila[INDICES_SELECCIONADOS.puntajeTotal] || 0));
+    const puntajePromedio = puntajesTotales.reduce((a, b) => a + b, 0) / totalSeleccionados;
+    mensajeAnalisis += `📊 Puntaje Total:\n`;
+    mensajeAnalisis += `   - Promedio: ${puntajePromedio.toFixed(2)}\n`;
+    mensajeAnalisis += `   - Máximo: ${Math.max(...puntajesTotales).toFixed(2)}\n`;
+    mensajeAnalisis += `   - Mínimo: ${Math.min(...puntajesTotales).toFixed(2)}\n\n`;
+
+    // b) Distribución por Categoría y Sede
+    const distribucionCategoria = {};
+    const distribucionSede = {};
+    datosSeleccionados.forEach(fila => {
+      const categoria = fila[INDICES_SELECCIONADOS.categoria] || "N/A";
+      const sede = fila[INDICES_SELECCIONADOS.sede] || "N/A";
+      distribucionCategoria[categoria] = (distribucionCategoria[categoria] || 0) + 1;
+      distribucionSede[sede] = (distribucionSede[sede] || 0) + 1;
+    });
+
+    // c) Distribución para análisis de equilibrio (Estudiante vs Funcionario)
+    const distribucionEquilibrio = datosSeleccionados.reduce((acc, fila) => {
+      const categoria = fila[INDICES_SELECCIONADOS.categoria];
+      const perfil = esEstudiante(categoria) ? "Estudiantes" : "Funcionarios/Otros";
+      acc[perfil] = (acc[perfil] || 0) + 1;
+      return acc;
+    }, {});
+    
+    // d) Perfil de Puntuación Promedio
+    mensajeAnalisis += `📈 Perfil de Puntuación Promedio del Seleccionado:\n`;
+    for (const key in INDICES_SELECCIONADOS) {
+      if (key.startsWith("puntaje") && key !== "puntajeTotal") {
+        const promedioComponente = datosSeleccionados.reduce((acc, fila) => acc + parseFloat(fila[INDICES_SELECCIONADOS[key]] || 0), 0) / totalSeleccionados;
+        const nombreBonito = key.replace("puntaje", "").replace(/([A-Z])/g, ' $1').trim(); // "puntajeUsoIngles" -> "Uso Ingles"
+        mensajeAnalisis += `   - ${nombreBonito}: ${promedioComponente.toFixed(2)}\n`;
+      }
+    }
+
+    // --- Sección 2: Análisis de Equilibrio y Sugerencias (lógica existente) ---
+    mensajeAnalisis += `\n\n--- ANÁLISIS DE EQUILIBRIO DEL RANKING ---\n\n`;
+    const pctEstudiantes = ((distribucionEquilibrio["Estudiantes"] || 0) / totalSeleccionados) * 100;
+    const pctFuncionarios = ((distribucionEquilibrio["Funcionarios/Otros"] || 0) / totalSeleccionados) * 100;
+
+    mensajeAnalisis += `Composición del Ranking:\n`;
+    mensajeAnalisis += `- Estudiantes: ${distribucionEquilibrio["Estudiantes"] || 0} (${pctEstudiantes.toFixed(1)}%)\n`;
+    mensajeAnalisis += `- Funcionarios/Otros: ${distribucionEquilibrio["Funcionarios/Otros"] || 0} (${pctFuncionarios.toFixed(1)}%)\n\n`;
+
+    // Identificar desequilibrio
+    const UMBRAL_DESEQUILIBRIO = 80; // Si un grupo supera este %
+    let grupoDominante = null;
+    if (pctEstudiantes > UMBRAL_DESEQUILIBRIO) grupoDominante = "Estudiantes";
+    if (pctFuncionarios > UMBRAL_DESEQUILIBRIO) grupoDominante = "Funcionarios/Otros";
+
+    if (!grupoDominante) {
+      mensajeAnalisis += "✅ El ranking parece razonablemente equilibrado. No se requieren ajustes urgentes.";
+      return mensajeAnalisis;
+    }
+
+    mensajeAnalisis += `⚠️ Se ha detectado un desequilibrio. El grupo '${grupoDominante}' domina el ranking.\n\n--- SUGERENCIAS DE AJUSTE DE PESOS ---\n`;
+
+    // Calcular puntajes promedio por categoría para encontrar la causa
+    const datosEvaluacion = hojaEvaluacion.getDataRange().getValues();
+    const encabezados = datosEvaluacion.shift();
+    const indices = {
+      categoria: encabezados.indexOf("Categoría Postulante"),
+      usoIngles: encabezados.indexOf("Puntaje Uso Inglés"),
+      intl: encabezados.indexOf("Puntaje Intl."),
+      anio: encabezados.indexOf("Puntaje Año Ingreso"),
+      carta: encabezados.indexOf("Puntaje Carta")
+    };
+
+    const promedios = {
+      Estudiantes: { usoIngles: 0, intl: 0, anio: 0, carta: 0, count: 0 },
+      "Funcionarios/Otros": { usoIngles: 0, intl: 0, anio: 0, carta: 0, count: 0 }
+    };
+
+    datosEvaluacion.forEach(fila => {
+      const perfil = esEstudiante(fila[indices.categoria]) ? "Estudiantes" : "Funcionarios/Otros";
+      promedios[perfil].count++;
+      promedios[perfil].usoIngles += parseFloat(fila[indices.usoIngles] || 0);
+      promedios[perfil].intl += parseFloat(fila[indices.intl] || 0);
+      promedios[perfil].anio += parseFloat(fila[indices.anio] || 0);
+      promedios[perfil].carta += parseFloat(fila[indices.carta] || 0);
+    });
+
+    // Normalizar promedios
+    for (const perfil in promedios) {
+      if (promedios[perfil].count > 0) {
+        promedios[perfil].usoIngles /= promedios[perfil].count;
+        promedios[perfil].intl /= promedios[perfil].count;
+        promedios[perfil].anio /= promedios[perfil].count;
+        promedios[perfil].carta /= promedios[perfil].count;
+      }
+    }
+
+    // Generar sugerencias basadas en las mayores diferencias
+    const grupoSubrepresentado = grupoDominante === "Estudiantes" ? "Funcionarios/Otros" : "Estudiantes";
+    const categoriasPuntaje = ["usoIngles", "intl", "anio", "carta"];
+    const nombresCategorias = {
+      usoIngles: "Uso Inglés",
+      intl: "Internacionalización",
+      anio: "Año Ingreso",
+      carta: "Carta Respaldo"
+    };
+
+    categoriasPuntaje.forEach(cat => {
+      const promDominante = promedios[grupoDominante][cat];
+      const promSub = promedios[grupoSubrepresentado][cat];
+      const diferencia = promDominante - promSub;
+
+      if (Math.abs(diferencia) > 0.5) { // Solo mostrar diferencias significativas
+        mensajeAnalisis += `\n🔹 Categoría: ${nombresCategorias[cat]}\n`;
+        mensajeAnalisis += `   - Promedio '${grupoDominante}': ${promDominante.toFixed(2)}\n`;
+        mensajeAnalisis += `   - Promedio '${grupoSubrepresentado}': ${promSub.toFixed(2)}\n`;
+        if (diferencia > 0) {
+          mensajeAnalisis += `   - SUGERENCIA: El grupo dominante puntúa mucho más alto aquí. Considera reducir el peso de esta categoría para '${grupoDominante}' en SCORING_PARAMS.\n`;
+        } else {
+          mensajeAnalisis += `   - SUGERENCIA: El grupo subrepresentado puntúa más alto aquí. Considera AUMENTAR el peso de esta categoría para '${grupoSubrepresentado}' para darles más oportunidades.\n`;
+        }
+      }
+    });
+
+    return mensajeAnalisis;
+
+  } catch (e) {
+    console.error(`Error en getAnalysisReport: ${e.toString()}\nStack: ${e.stack}`);
+    return `Se produjo un error al generar el reporte.\n\nCausa: ${e.toString()}\n\nPor favor, revisa los registros de ejecución en el editor de Apps Script para más detalles.`;
+  }
 }
 
 /**
  * Envía un correo de notificación a los postulantes en la hoja "Seleccionados".
  */
-function enviarNotificacionesSeleccionados() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const hojaSeleccionados = ss.getSheetByName(CONFIG.SHEETS.SELECTED); // MEJORA: Usar la constante global
+// =================================================================
+// --- SECCIÓN DE LA APLICACIÓN WEB (SOLUCIÓN PARA SCRIPT INDEPENDIENTE) ---
+// =================================================================
+
+/**
+ * Esta función se ejecuta cuando accedes a la URL de la aplicación web.
+ * Sirve la página HTML que actuará como nuestro menú.
+ */
+function doGet(e) {
+  return HtmlService.createHtmlOutputFromFile('WebAppUI')
+    .setTitle('Panel de Control de Evaluación PUCV')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DEFAULT);
+}
+
+/**
+ * Esta función es llamada desde el HTML para ejecutar la lógica de análisis.
+ * Devuelve los resultados como una cadena de texto para mostrarlos en la web.
+ */
+function ejecutarAnalisisDesdeWebApp() {
+  return getAnalysisReport();
+}
+
+/**
+ * Esta función es llamada desde el HTML para ejecutar el envío de correos.
+ * Devuelve un mensaje de confirmación.
+ */
+function ejecutarEnvioCorreosDesdeWebApp() {
+  const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
+  const hojaSeleccionados = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
   if (!hojaSeleccionados) {
-    SpreadsheetApp.getUi().alert("No se encontró la hoja 'Seleccionados'. Por favor, ejecuta primero la evaluación.");
-    return;
+    return "Error: No se encontró la hoja 'Seleccionados'.";
   }
 
   const datos = hojaSeleccionados.getDataRange().getValues();
@@ -579,18 +822,7 @@ function enviarNotificacionesSeleccionados() {
   const indiceCorreo = encabezados.indexOf("Correo Electrónico");
 
   if (indiceNombre === -1 || indiceCorreo === -1) {
-    SpreadsheetApp.getUi().alert("No se encontraron las columnas 'Nombre(s)' o 'Correo Electrónico' en la hoja 'Seleccionados'.");
-    return;
-  }
-
-  const confirmacion = SpreadsheetApp.getUi().alert(
-    'Confirmación de Envío',
-    `¿Estás seguro de que quieres enviar un correo de notificación a ${datos.length} postulantes seleccionados?`,
-    SpreadsheetApp.getUi().ButtonSet.YES_NO
-  );
-
-  if (confirmacion !== SpreadsheetApp.getUi().Button.YES) {
-    return;
+    return "Error: No se encontraron las columnas 'Nombre(s)' o 'Correo Electrónico' en la hoja 'Seleccionados'.";
   }
 
   datos.forEach(fila => {
@@ -603,5 +835,30 @@ function enviarNotificacionesSeleccionados() {
     console.log(`Correo preparado para ${nombre} a ${correo}`); // Para pruebas
   });
 
-  SpreadsheetApp.getUi().alert(`Se ha completado el proceso de envío de correos a ${datos.length} postulantes.`);
+  const mensajeConfirmacion = `Proceso de envío iniciado para ${datos.length} postulantes. Revisa los registros para ver el progreso.`;
+  console.log(mensajeConfirmacion); // Log para el servidor
+  return mensajeConfirmacion; // Mensaje para el cliente (la web app)
+}
+
+/**
+ * FUNCIÓN DE DEPURACIÓN DE PERMISOS
+ * Ejecuta esta función manualmente desde el editor de scripts para forzar
+ * el diálogo de autorización y asegurar que el script tiene todos los permisos necesarios.
+ */
+function forceReauthorization() {
+  try {
+    // 1. Forzar permiso para acceder a hojas de cálculo por ID
+    const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
+    console.log(`Acceso exitoso a la hoja: ${ss.getName()}`);
+
+    // 2. Forzar permiso para enviar correos
+    MailApp.sendEmail(Session.getActiveUser().getEmail(), "Prueba de Permisos de Script", "Este es un correo de prueba para verificar los permisos. No es necesario responder.");
+    console.log("Permiso para enviar correos verificado.");
+
+    // 3. Forzar permiso para LockService
+    const lock = LockService.getScriptLock();
+    console.log("Permiso para LockService verificado.");
+
+    SpreadsheetApp.getUi().alert("¡Éxito! Todos los permisos necesarios han sido verificados.");
+  } catch (e) { /* Ignoramos el error de getUi() que es esperado en el editor */ }
 }

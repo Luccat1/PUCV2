@@ -44,7 +44,7 @@ Lee postulaciones, calcula puntajes ponderados con base en criterios complejos, 
 
 ### ✉️ **Flujo de Trabajo Integrado**
 -   **Notificaciones por Correo:** Incluye una función para enviar correos de notificación a todos los postulantes que aparecen en la hoja `Seleccionados`, con un cuadro de diálogo de confirmación para evitar envíos accidentales.
--   **Interfaz de Usuario en Google Sheets:** Añade un menú personalizado (`Evaluación PUCV`) para ejecutar manualmente las funciones principales, como la re-evaluación completa o el envío de notificaciones.
+-   **Panel de Control Web:** Proporciona una interfaz de usuario a través de una aplicación web privada para ejecutar manualmente funciones clave como el análisis del ranking y el envío de notificaciones, solucionando problemas de ejecución en entornos con múltiples cuentas de Google.
 
 ---
 
@@ -82,7 +82,7 @@ El código está estructurado para ser modular, mantenible y robusto.
 
 -   **Funciones del Dashboard (`generarYActualizarDashboard`, `calcularEstadisticas`):** Un conjunto de funciones modulares se encarga de calcular todas las métricas y de construir la hoja del dashboard, incluyendo el gráfico.
 
--   **`onOpen()` y `enviarNotificacionesSeleccionados()`:** Funciones que gestionan la interacción con el usuario (menú y envío de correos).
+-   **`doGet()` y Funciones de Web App:** El script implementa una aplicación web simple (`doGet`) que sirve como panel de control para ejecutar manualmente las tareas administrativas.
 
 ---
 
@@ -90,10 +90,11 @@ El código está estructurado para ser modular, mantenible y robusto.
 
 Sigue estos pasos para poner en marcha el sistema.
 
-### **Paso 1: Preparar Google Sheets y Forms**
+### **Paso 1: Crear un Script Independiente**
 1.  **Crear Hoja de Cálculo:** Crea un nuevo **Google Sheet**. Este será tu centro de operaciones.
 2.  **Crear Formulario:** Crea un **Google Form** para recibir las postulaciones.
 3.  **Vincular Formulario:** Dentro del formulario, ve a la pestaña "Respuestas" y haz clic en el icono de Google Sheets para vincularlo a la hoja que creaste. Las respuestas se guardarán en una nueva pestaña, normalmente llamada `Respuestas de formulario 1`.
+4.  **Obtener el ID de la Hoja:** Copia el ID de tu hoja de cálculo desde la URL. Lo necesitarás más adelante. La URL tiene el formato: `https://docs.google.com/spreadsheets/d/`**AQUÍ_VA_EL_ID**`/edit`.
 
 ### **Paso 2: Configurar la Hoja de Respuestas**
 1.  En la hoja `Respuestas de formulario 1`, ve a la primera columna vacía a la derecha.
@@ -102,15 +103,19 @@ Sigue estos pasos para poner en marcha el sistema.
 
 ### **Paso 3: Instalar el Script**
 1.  En tu Google Sheet, ve a `Extensiones` > `Apps Script`. Se abrirá el editor de código.
-2.  Borra cualquier código de ejemplo que aparezca.
-3.  Copia todo el contenido del archivo `PUCV2.js` y pégalo en el editor.
-4.  **Configura el ID de tu Hoja:** Localiza esta línea al inicio del script:
+2.  Ve a la página de inicio de Google Apps Script: script.google.com.
+3.  Haz clic en **Nuevo proyecto**.
+4.  Borra cualquier código de ejemplo que aparezca.
+5.  Copia todo el contenido de los archivos `PUCV2.js` y `WebAppUI.html` de este repositorio y pégalos en los archivos correspondientes de tu nuevo proyecto.
+6.  **Configura el ID de tu Hoja:** En el archivo `PUCV2.js`, localiza esta línea al inicio del script:
     ```javascript
-    const SHEET_ID = "1ohh906fh213G8K0MRhMjlxQFlRXctq97rhw3ply7NQ8";
+    const CONFIG = {
+      SHEET_ID: "ID_DE_TU_HOJA",
+      // ...
+    };
     ```
-    Reemplaza el ID de ejemplo con el ID de tu propia hoja de cálculo. Lo puedes obtener de la URL:
-    `https://docs.google.com/spreadsheets/d/`**AQUÍ_VA_EL_ID**`/edit`
-5.  Guarda el proyecto (icono de disquete 💾).
+    Reemplaza `"ID_DE_TU_HOJA"` con el ID que copiaste en el Paso 1.
+7.  Guarda el proyecto (icono de disquete 💾).
 
 ### **Paso 4: Configurar el Activador (Trigger)**
 Para que el script se ejecute automáticamente con cada nueva postulación, necesitas un activador.
@@ -126,6 +131,20 @@ Para que el script se ejecute automáticamente con cada nueva postulación, nece
 5.  **Autorizar Permisos:** Google te pedirá que autorices los permisos para que el script pueda modificar tus hojas de cálculo y ejecutarse automáticamente. Concede los permisos necesarios.
 
 ---
+### **Paso 5: Implementar el Panel de Control Web**
+Para las tareas manuales, usarás una aplicación web privada.
+
+1.  En el editor de Apps Script, haz clic en el botón azul **Implementar** y selecciona **Nueva implementación**.
+2.  Haz clic en el icono de engranaje (⚙️) y selecciona **Aplicación web**.
+3.  Configura las siguientes opciones:
+    -   **Descripción:** `Panel de Control de Evaluación PUCV`.
+    -   **Ejecutar como:** `Yo (tu.correo@electronico.com)`.
+    -   **Quién tiene acceso:** `Solo yo`.
+4.  Haz clic en **Implementar**.
+5.  **Autoriza los permisos** cuando se te solicite.
+6.  **Copia la URL de la aplicación web** que se te proporciona. Guárdala en tus marcadores. Esta URL es tu panel de control para las tareas manuales.
+
+---
 
 ## 🛠️ Modo de Uso
 
@@ -138,12 +157,15 @@ Una vez configurado el activador, el sistema es **100% autónomo**. Cada vez que
 5.  Marcará la fila en `Respuestas de formulario 1` como procesada.
 
 ### Ejecución Manual
-Puedes forzar una re-evaluación o enviar notificaciones desde el menú personalizado.
+Puedes ejecutar análisis o enviar notificaciones desde tu panel de control web.
 
-1.  **Recarga la página** de tu Google Sheet para que aparezca el nuevo menú.
-2.  Ve al menú **`Evaluación PUCV`**:
-    -   **`Actualizar Evaluación y Dashboard`**: Ejecuta la función principal. Útil si has hecho cambios manuales en las respuestas o para la configuración inicial.
-    -   **`Enviar Notificaciones a Seleccionados`**: Ejecuta la función de envío de correos. **Importante:** Pide una confirmación antes de enviar correos masivos.
+1.  **Abre la URL de la aplicación web** que guardaste durante la implementación. 
+    > **⚠️ ¡Importante si usas múltiples cuentas de Google!**
+    > Debido a un bug conocido de Google, debes abrir esta URL en una **ventana de incógnito** o en un perfil de navegador donde **únicamente** hayas iniciado sesión con la cuenta propietaria del script. De lo contrario, podrías ver un error de "No se puede abrir el archivo".
+
+2.  Usa los botones en la página:
+    -   **`Analizar Equilibrio del Ranking`**: Ejecuta la función de análisis y muestra un reporte detallado directamente en la página.
+    -   **`Enviar Notificaciones a Seleccionados`**: Ejecuta la función de envío de correos. La página te pedirá una confirmación antes de proceder.
 
 ### Gestión de Seleccionados
 1.  Ve a la hoja **`Seleccionados`**.
