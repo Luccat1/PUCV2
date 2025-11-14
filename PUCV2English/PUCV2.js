@@ -6,11 +6,17 @@ const CONFIG = {
     INPUT: "Respuestas de formulario 1",
     OUTPUT: "Evaluación automatizada",
     DASHBOARD: "Dashboard",
+    CONFIG: "Configuración", // Nombre de la nueva hoja de configuración
     SELECTED: "Seleccionados"
   },
   COLUMNS: { // Centraliza los nombres de las columnas para evitar errores de tipeo
     PROCESSING_STATUS: "Estado de Procesamiento"
   }
+};
+
+const esEstudiante = (tipoPostulante) => {
+  const tipoNormalizado = String(tipoPostulante || "").toLowerCase();
+  return /estudiante|alumno/.test(tipoNormalizado) && !/postgrado|posgrado/.test(tipoNormalizado);
 };
 
 
@@ -65,6 +71,7 @@ function evaluarPostulacionesPUCV2() {
     return 1;
   };
 
+
   // --- MEJORA: Agrupar constantes de puntuación para fácil mantenimiento ---
   // Ahora con ponderaciones diferentes por tipo de postulante
   const SCORING_PARAMS = {
@@ -105,10 +112,51 @@ function evaluarPostulacionesPUCV2() {
     }
   };
 
-  const esEstudiante = (tipoPostulante) => {
-    const tipoNormalizado = String(tipoPostulante || "").toLowerCase();
-    return /estudiante|alumno/.test(tipoNormalizado) && !/postgrado|posgrado/.test(tipoNormalizado);
+/**
+ * Lee los pesos de puntuación desde la hoja de configuración y actualiza el objeto SCORING_PARAMS.
+ */
+function cargarConfiguracionDesdeHoja() {
+  const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
+  const hojaConfig = ss.getSheetByName(CONFIG.SHEETS.CONFIG);
+  if (!hojaConfig) {
+    throw new Error(`No se encontró la hoja de configuración: ${CONFIG.SHEETS.CONFIG}`);
   }
+
+  const datosConfig = hojaConfig.getDataRange().getValues();
+  const encabezadosConfig = datosConfig.shift();
+
+  // --- Mapeo de índices de las columnas de configuración ---
+  const getIndiceConfig = (nombre) => encabezadosConfig.indexOf(nombre);
+  const INDICE_CRITERIO = getIndiceConfig("Criterio");
+  const INDICE_PERFIL = getIndiceConfig("Perfil");
+  const INDICE_PESO = getIndiceConfig("Peso");
+
+  if (INDICE_CRITERIO === -1 || INDICE_PERFIL === -1 || INDICE_PESO === -1) {
+    throw new Error("Las columnas 'Criterio', 'Perfil' o 'Peso' no fueron encontradas en la hoja de configuración.");
+  }
+
+  // --- Iterar sobre cada fila de la hoja de configuración ---
+  datosConfig.forEach(filaConfig => {
+    const criterio = filaConfig[INDICE_CRITERIO];
+    const perfil = filaConfig[INDICE_PERFIL];
+    const peso = parseFloat(filaConfig[INDICE_PESO]);
+
+    // --- Validar que los datos sean correctos ---
+    if (!criterio || !perfil || isNaN(peso)) {
+      console.warn(`Fila de configuración inválida: Criterio=${criterio}, Perfil=${perfil}, Peso=${peso}. Omitiendo...`);
+      return; // Saltar a la siguiente iteración
+    }
+
+    // --- Actualizar el objeto SCORING_PARAMS ---
+    if (SCORING_PARAMS[criterio] && SCORING_PARAMS[criterio].peso) {
+      SCORING_PARAMS[criterio].peso[perfil] = peso;
+    } else {
+      console.warn(`Criterio '${criterio}' o perfil '${perfil}' no encontrados en SCORING_PARAMS. Omitiendo...`);
+    }
+  });
+
+  console.log("Configuración de pesos cargada exitosamente desde la hoja.");
+}
 
   // --- NUEVAS FUNCIONES DE PUNTUACIÓN COMPLEJAS ---
 
@@ -118,11 +166,21 @@ function evaluarPostulacionesPUCV2() {
     const peso = SCORING_PARAMS.UsoIngles.peso[esEstudiante(tipoPostulante) ? "estudiante" : "funcionario"] || 1; // Obtener el peso, default 1
 
     if (esEstudiante(tipoPostulante)) {
+      // --- NUEVA LÓGICA PARA ESTUDIANTES ---
+      // Lógica basada únicamente en la pregunta abierta existente:
+      // "¿Cómo contribuiría el mejoramiento de tu nivel de inglés a tu desempeño profesional?"
 
-      // Lógica para Estudiantes: Enfocada en la proyección académica y motivación.
-      // Un estudiante no tiene "funciones actuales", por lo que se evalúa su potencial.
-      const palabrasClaveEstudiante = ["intercambio", "magíster", "doctorado", "investigación", "publicar", "congreso", "competitividad", "oportunidades"];
-      puntaje += contarPalabrasClave(contribucion, palabrasClaveEstudiante) * 0.5; // 0.5 por palabra clave relevante
+      if (contribucion.length > 20) { // Puntaje base por dar una respuesta elaborada.
+        puntaje += 0.5;
+      }
+
+      // Palabras clave de ALTO impacto (objetivos concretos)
+      const palabrasClaveAltoImpacto = ["intercambio", "magíster", "doctorado", "postgrado", "investigación", "publicar", "congreso", "pasantía"];
+      puntaje += contarPalabrasClave(contribucion, palabrasClaveAltoImpacto) * 0.75; // Más puntos por objetivos claros.
+
+      // Palabras clave de intención GENERAL (motivación)
+      const palabrasClaveGenerales = ["oportunidades", "desarrollo", "competitividad", "laboral", "profesional", "herramienta", "bibliografía", "papers", "libros", "comunicarme"];
+      puntaje += contarPalabrasClave(contribucion, palabrasClaveGenerales) * 0.25; // Menos puntos, pero captura más casos.
 
     } else {
       // Lógica Original para Funcionarios/Académicos:
@@ -493,6 +551,9 @@ function evaluarPostulacionesPUCV2() {
     lock.releaseLock();
     return;
   }
+  
+  // --- MEJORA: Cargar la configuración desde la hoja ---
+  cargarConfiguracionDesdeHoja();
 
   let hojaResultados = ss.getSheetByName(CONFIG.SHEETS.OUTPUT);
   if (!hojaResultados) {
@@ -677,13 +738,42 @@ function getAnalysisReport() {
       return acc;
     }, {});
     
-    // d) Perfil de Puntuación Promedio
-    mensajeAnalisis += `📈 Perfil de Puntuación Promedio del Seleccionado:\n`;
-    for (const key in INDICES_SELECCIONADOS) {
-      if (key.startsWith("puntaje") && key !== "puntajeTotal") {
-        const promedioComponente = datosSeleccionados.reduce((acc, fila) => acc + parseFloat(fila[INDICES_SELECCIONADOS[key]] || 0), 0) / totalSeleccionados;
-        const nombreBonito = key.replace("puntaje", "").replace(/([A-Z])/g, ' $1').trim(); // "puntajeUsoIngles" -> "Uso Ingles"
-        mensajeAnalisis += `   - ${nombreBonito}: ${promedioComponente.toFixed(2)}\n`;
+    // d) MEJORA: Perfil de Puntuación Promedio por Grupo
+    mensajeAnalisis += `📈 Perfil de Puntuación Promedio por Grupo:\n\n`;
+    const promediosPorGrupo = {
+      Estudiantes: { count: 0, puntajes: {} },
+      "Funcionarios/Otros": { count: 0, puntajes: {} }
+    };
+
+    // Inicializar sumas de puntajes
+    for (const perfil in promediosPorGrupo) {
+      for (const key in INDICES_SELECCIONADOS) {
+        if (key.startsWith("puntaje") && key !== "puntajeTotal") {
+          promediosPorGrupo[perfil].puntajes[key] = 0;
+        }
+      }
+    }
+
+    // Sumar los puntajes para cada grupo
+    datosSeleccionados.forEach(fila => {
+      const perfil = esEstudiante(fila[INDICES_SELECCIONADOS.categoria]) ? "Estudiantes" : "Funcionarios/Otros";
+      promediosPorGrupo[perfil].count++;
+      for (const key in promediosPorGrupo[perfil].puntajes) {
+        promediosPorGrupo[perfil].puntajes[key] += parseFloat(fila[INDICES_SELECCIONADOS[key]] || 0);
+      }
+    });
+
+    // Calcular y formatear los promedios
+    for (const perfil in promediosPorGrupo) {
+      const grupo = promediosPorGrupo[perfil];
+      if (grupo.count > 0) {
+        mensajeAnalisis += `🔹 ${perfil} (${grupo.count} seleccionados):\n`;
+        for (const key in grupo.puntajes) {
+          const promedio = grupo.puntajes[key] / grupo.count;
+          const nombreBonito = key.replace("puntaje", "").replace(/([A-Z])/g, ' $1').trim();
+          mensajeAnalisis += `   - Promedio ${nombreBonito}: ${promedio.toFixed(2)}\n`;
+        }
+        mensajeAnalisis += `\n`;
       }
     }
 
@@ -861,4 +951,20 @@ function forceReauthorization() {
 
     SpreadsheetApp.getUi().alert("¡Éxito! Todos los permisos necesarios han sido verificados.");
   } catch (e) { /* Ignoramos el error de getUi() que es esperado en el editor */ }
+}
+
+/**
+ * FUNCIÓN DE DEPURACIÓN PARA LA WEB APP
+ * Ejecuta esta función desde un botón en la Web App para forzar el diálogo
+ * de autorización en el contexto correcto de la implementación.
+ */
+function forceWebAppPermissions() {
+  try {
+    const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
+    MailApp.sendEmail(Session.getActiveUser().getEmail(), "Prueba de Permisos de Web App", "Los permisos de la Web App han sido verificados exitosamente.");
+    return `¡Éxito! Se ha verificado el acceso a la hoja de cálculo '${ss.getName()}' y se ha enviado un correo de prueba a tu cuenta. Ahora puedes usar las otras funciones.`;
+  } catch (e) {
+    console.error(`Error en forceWebAppPermissions: ${e.toString()}`);
+    return `FALLO LA VERIFICACIÓN DE PERMISOS.\n\nCausa: ${e.toString()}\n\nEsto usualmente significa que el SHEET_ID en el objeto CONFIG es incorrecto o no tienes acceso a esa hoja. Por favor, verifica el ID y tus permisos de Google Drive.`;
+  }
 }
