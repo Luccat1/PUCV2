@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f4;
+        margin: 0;
+        padding: 0;
+      }
+      .container {
+        width: 100%;
+        max-width: 600px;
+        margin: 0 auto;
+        background-color: #ffffff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+      .header {
+        text-align: center;
+        padding-bottom: 20px;
+        border-bottom: 1px solid #eeeeee;
+      }
+      .header img {
+        max-width: 150px;
+      }
+      .content {
+        padding: 20px 0;
+        line-height: 1.6;
+        color: #333333;
+      }
+      .footer {
+        text-align: center;
+        padding-top: 20px;
+        border-top: 1px solid #eeeeee;
+        font-size: 12px;
+        color: #888888;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <!-- Reemplaza esta URL con el logo de tu institución -->
+        <img src="https://www.pucv.cl/uuaa/vriea/dircom/manual-de-marca-pucv-2022/logo-pucv-color.png" alt="Logo PUCV">
+      </div>
+      <div class="content">
+        <h3>¡Felicitaciones, <?= nombre ?>!</h3>
+        <p>Nos complace informarte que, tras un exitoso proceso de postulación, has sido seleccionado/a para participar en el <strong>Programa de Inglés PUCV</strong>.</p>
+        <p>Tu dedicación y perfil destacan, y estamos seguros de que aprovecharás al máximo esta oportunidad para tu desarrollo profesional y académico.</p>
+        <p>Para formalizar tu participación, por favor, <strong>responde a este correo electrónico a la brevedad</strong> para confirmar si <strong>aceptas o rechazas</strong> tu cupo.</p>
+        <p>¡Esperamos contar contigo!</p>
+        <br>
+        <p>Saludos cordiales,<br>El equipo del Programa de Inglés PUCV</p>
+      </div>
+      <div class="footer">
+        <p>Pontificia Universidad Católica de Valparaíso</p>
+        <p>Este es un correo generado automáticamente, pero tu respuesta será leída por nuestro equipo.</p>
+      </div>
+    </div>
+  </body>
+</html>

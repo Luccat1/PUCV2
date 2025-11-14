@@ -7,10 +7,42 @@ const CONFIG = {
     OUTPUT: "Evaluación automatizada",
     DASHBOARD: "Dashboard",
     CONFIG: "Configuración", // Nombre de la nueva hoja de configuración
-    SELECTED: "Seleccionados"
+    SELECTED: "Seleccionados",
+    FINAL_LIST: "Lista Final Curso" // Nueva hoja para la lista definitiva
   },
-  COLUMNS: { // Centraliza los nombres de las columnas para evitar errores de tipeo
-    PROCESSING_STATUS: "Estado de Procesamiento"
+  COLUMNS: { // Centraliza los nombres de las columnas para evitar errores de tipeo y facilitar mantenimiento
+    // Columnas de Entrada (Hoja "Respuestas de formulario 1")
+    PROCESSING_STATUS: "Estado de Procesamiento",
+    TIMESTAMP: "Marca temporal",
+    EMAIL: "Dirección de correo electrónico",
+    FIRST_NAME: "Primer nombre",
+    SECOND_NAME: "Segundo nombre",
+    LAST_NAME_P: "Apellido paterno",
+    LAST_NAME_M: "Apellido materno",
+    RUT: "RUT",
+    APPLICANT_TYPE: "Indica si eres funcionario, alumno, profesor, académico, etc.",
+    CAMPUS: "¿En qué sede realizas la mayoría de tus actividades académicas o profesionales?",
+    AVAILABILITY_SESSIONS: "¿Tienes disponibilidad para dedicar 3 sesiones semanales?",
+    AVAILABILITY_CONFLICTS: "¿Tienes compromisos académicos/laborales que podrían impedir cumplir con la asistencia obligatoria?",
+    AVAILABILITY_ASSISTANCE: "¿Estás en condiciones de asistir al menos al 80 % de las clases?",
+    AVAILABILITY_STUDY: "¿Puedes comprometerse a dedicar 4 horas semanales de estudio autónomo además de las clases?",
+    ENGLISH_USE_FREQUENCY: "¿Con qué frecuencia requieres utilizar el idioma inglés en tus funciones actuales?",
+    ENGLISH_USE_ACTIVITIES: "Seleccione las actividades que realizas en inglés como parte de tus funciones:",
+    ENGLISH_USE_FUTURE_PROJECTS: "¿Tu unidad tiene proyectos futuros que requerirán mayor uso del inglés?",
+    ENGLISH_USE_CONTRIBUTION: "¿Cómo contribuiría el mejoramiento de tu nivel de inglés a tu desempeño profesional?",
+    INTL_STAGE: "¿En qué etapa se encuentra tu proceso de internacionalización?",
+    INTL_PLAN: "¿Cómo has planeado internacionalizar tu carrera?",
+    INTL_SUPPORT_DOCS: "Adjunta los documentos de respaldo",
+    CERTIFICATE_CHECKBOX: "En caso de que no tengas certificación de inglés, marca esta casilla:",
+    CERTIFICATE_ATTACHMENT: "Adjunta la certificación que permita verificar tu nivel de inglés más alto (certificado oficial, captura con aprobación y nota final de la asignatura u otros).",
+    CERTIFICATE_LEVEL: "Certificación de inglés",
+    ENTRY_YEAR: "¿En qué año ingresaste a tu carrera actual?",
+    COMMITMENT_PROGRAM: "Compromiso con el programa ",
+    COMMITMENT_VERACITY: "Veracidad de la información",
+    COMMITMENT_BREACH: "Consecuencias por incumplimiento",
+    ENDORSEMENT_APPROVAL: "¿Cuentas con el respaldo de tu jefatura directa para participar en este programa?",
+    ENDORSEMENT_LETTER: "Si la respuesta anterior fue \"Sí\", por favor, adjunta una carta de respaldo de tu jefatura?\" [Nota: Opcional, pero otorga puntaje adicional]",
+    ENDORSEMENT_SCHEDULE: "¿Tu jefatura está en conocimiento y aprueba tu participación en el horario establecido?"
   }
 };
 
@@ -162,13 +194,13 @@ function cargarConfiguracionDesdeHoja() {
 
   const calcularPuntajeUsoIngles = (fila, tipoPostulante) => {
     let puntaje = 0;
-    const contribucion = obtenerValor(fila, "¿Cómo contribuiría el mejoramiento de tu nivel de inglés a tu desempeño profesional?");
+    const contribucion = obtenerValor(fila, CONFIG.COLUMNS.ENGLISH_USE_CONTRIBUTION);
     const peso = SCORING_PARAMS.UsoIngles.peso[esEstudiante(tipoPostulante) ? "estudiante" : "funcionario"] || 1; // Obtener el peso, default 1
 
     if (esEstudiante(tipoPostulante)) {
       // --- NUEVA LÓGICA PARA ESTUDIANTES ---
       // Lógica basada únicamente en la pregunta abierta existente:
-      // "¿Cómo contribuiría el mejoramiento de tu nivel de inglés a tu desempeño profesional?"
+      // CONFIG.COLUMNS.ENGLISH_USE_CONTRIBUTION
 
       if (contribucion.length > 20) { // Puntaje base por dar una respuesta elaborada.
         puntaje += 0.5;
@@ -185,17 +217,17 @@ function cargarConfiguracionDesdeHoja() {
     } else {
       // Lógica Original para Funcionarios/Académicos:
       // 1. Frecuencia de uso
-      const frecuencia = obtenerValor(fila, "¿Con qué frecuencia requieres utilizar el idioma inglés en tus funciones actuales?").toLowerCase();
+      const frecuencia = obtenerValor(fila, CONFIG.COLUMNS.ENGLISH_USE_FREQUENCY).toLowerCase();
       for (const [key, value] of Object.entries(SCORING_PARAMS.UsoIngles.Frecuencia)) {
         if (frecuencia.includes(key)) puntaje += value;
       }
       // 2. Actividades (con pesos)
-      const actividades = obtenerValor(fila, "Seleccione las actividades que realizas en inglés como parte de tus funciones:").toLowerCase();
+      const actividades = obtenerValor(fila, CONFIG.COLUMNS.ENGLISH_USE_ACTIVITIES).toLowerCase();
       for (const [actividad, peso] of Object.entries(SCORING_PARAMS.UsoIngles.Actividades)) {
         if (actividades.includes(actividad)) puntaje += peso;
       }
       // 3. Proyectos futuros y contribución
-      if (esSi(obtenerValor(fila, "¿Tu unidad tiene proyectos futuros que requerirán mayor uso del inglés?"))) puntaje += 1;
+      if (esSi(obtenerValor(fila, CONFIG.COLUMNS.ENGLISH_USE_FUTURE_PROJECTS))) puntaje += 1;
       puntaje += contarPalabrasClave(contribucion, SCORING_PARAMS.UsoIngles.PalabrasClaveContribucion) * SCORING_PARAMS.UsoIngles.PuntajePorPalabraClave;
     }
     
@@ -206,10 +238,10 @@ function cargarConfiguracionDesdeHoja() {
     let puntaje = 0;
     const peso = SCORING_PARAMS.Internacionalizacion.peso[esEstudiante(tipoPostulante) ? "estudiante" : "funcionario"] || 1; // Obtener el peso, default 1
 
-    const tieneDocumentos = !!obtenerValor(fila, "Adjunta los documentos de respaldo");
+    const tieneDocumentos = !!obtenerValor(fila, CONFIG.COLUMNS.INTL_SUPPORT_DOCS);
 
     // 1. Etapa del proceso
-    const etapa = obtenerValor(fila, "¿En qué etapa se encuentra tu proceso de internacionalización?").toLowerCase();
+    const etapa = obtenerValor(fila, CONFIG.COLUMNS.INTL_STAGE).toLowerCase();
     if (etapa.includes("carta de aceptación")) {
       puntaje += 3.5; // Mayor puntaje por tener la aceptación confirmada.
       if (tieneDocumentos) puntaje += 0.5; // Bonus si adjunta la carta.
@@ -222,7 +254,7 @@ function cargarConfiguracionDesdeHoja() {
     }
 
     // 2. Plan de internacionalización (palabras clave)
-    const plan = obtenerValor(fila, "¿Cómo has planeado internacionalizar tu carrera?");
+    const plan = obtenerValor(fila, CONFIG.COLUMNS.INTL_PLAN);
     puntaje += contarPalabrasClave(plan, SCORING_PARAMS.Internacionalizacion.PalabrasClavePlan) * SCORING_PARAMS.Internacionalizacion.PuntajePorPalabraClave;
 
     // 3. AJUSTE: Si es estudiante, otorgar puntaje base por tener planes, ya que es un objetivo clave para ellos.
@@ -235,10 +267,10 @@ function cargarConfiguracionDesdeHoja() {
   };
 
   const calcularPuntajeCertificado = (fila) => {
-    if (obtenerValor(fila, "En caso de que no tengas certificación de inglés, marca esta casilla:")) {
+    if (obtenerValor(fila, CONFIG.COLUMNS.CERTIFICATE_CHECKBOX)) {
       return 0;
     }
-    const textoNormalizado = obtenerValor(fila, "Certificación de inglés");
+    const textoNormalizado = obtenerValor(fila, CONFIG.COLUMNS.CERTIFICATE_LEVEL);
     if (/C1/i.test(textoNormalizado)) return 5;
     if (/B2\.2/i.test(textoNormalizado)) return 4;
     if (/B2\.1/i.test(textoNormalizado)) return 3;
@@ -249,7 +281,7 @@ function cargarConfiguracionDesdeHoja() {
   };
 
   const calcularPuntajeAnioIngreso = (fila, tipoPostulante) => {
-    const anio = obtenerValor(fila, "¿En qué año ingresaste a tu carrera actual?");
+    const anio = obtenerValor(fila, CONFIG.COLUMNS.ENTRY_YEAR);
     const anioActual = new Date().getFullYear();
     const anioNum = parseInt(anio, 10);
 
@@ -311,7 +343,7 @@ function cargarConfiguracionDesdeHoja() {
 
     // Para el año de ingreso, necesitamos el dato original, no el puntaje.
     // Lo extraeremos de la hoja de entrada original.
-    const indiceAnioOriginal = indicesOriginales["¿En qué año ingresaste a tu carrera actual?"];
+    const indiceAnioOriginal = indicesOriginales[CONFIG.COLUMNS.ENTRY_YEAR];
     const statsPorAnio = {};
     datosOriginales.slice(1).forEach((filaOriginal, i) => {
       const anio = filaOriginal[indiceAnioOriginal] || "No especificado";
@@ -457,12 +489,16 @@ function cargarConfiguracionDesdeHoja() {
   const resultados = [
     ["Apellido(s)", "Nombre(s)", "Correo Electrónico", "RUT", "Fecha de Postulación", "Categoría Postulante", "Sede",
      "Puntaje Disponibilidad", "Puntaje Tipo", "Puntaje Uso Inglés", "Puntaje Intl.", "Puntaje Nivel Inglés",
-     "Puntaje Año Ingreso", "Puntaje Compromiso", "Puntaje Carta", "PUNTAJE TOTAL"]
+     "Puntaje Año Ingreso", "Puntaje Compromiso", "Puntaje Carta", "PUNTAJE TOTAL", "Enlace Certificado"] // Se añade "Enlace Certificado"
   ];
 
   // --- OPTIMIZACIÓN: Identificar la columna de estado ---
   const COLUMNA_ESTADO_NOMBRE = CONFIG.COLUMNS.PROCESSING_STATUS;
   const indiceEstado = encabezados.indexOf(COLUMNA_ESTADO_NOMBRE);
+
+  // --- OPTIMIZACIÓN: Preparar array para actualizar estados en lote ---
+  const actualizacionesEstado = [];
+
 
   for (let r = 1; r < datos.length; r++) {
     try { // <--- INICIO DEL BLOQUE TRY
@@ -474,20 +510,20 @@ function cargarConfiguracionDesdeHoja() {
       }
 
       // --- Datos Personales ---
-      const apellidos = [obtenerValor(fila, "Apellido paterno"), obtenerValor(fila, "Apellido materno")].filter(Boolean).join(" ");
-      const nombres = [obtenerValor(fila, "Primer nombre"), obtenerValor(fila, "Segundo nombre")].filter(Boolean).join(" ");
-      const correo = obtenerValor(fila, "Dirección de correo electrónico");
-      const rut = obtenerValor(fila, "RUT");
-      const fechaPostulacion = obtenerValor(fila, "Marca temporal");
-      const tipoPostulante = obtenerValor(fila, "Indica si eres funcionario, alumno, profesor, académico, etc.");
-      const sede = obtenerValor(fila, "¿En qué sede realizas la mayoría de tus actividades académicas o profesionales?");
+      const apellidos = [obtenerValor(fila, CONFIG.COLUMNS.LAST_NAME_P), obtenerValor(fila, CONFIG.COLUMNS.LAST_NAME_M)].filter(Boolean).join(" ");
+      const nombres = [obtenerValor(fila, CONFIG.COLUMNS.FIRST_NAME), obtenerValor(fila, CONFIG.COLUMNS.SECOND_NAME)].filter(Boolean).join(" ");
+      const correo = obtenerValor(fila, CONFIG.COLUMNS.EMAIL);
+      const rut = obtenerValor(fila, CONFIG.COLUMNS.RUT);
+      const fechaPostulacion = obtenerValor(fila, CONFIG.COLUMNS.TIMESTAMP);
+      const tipoPostulante = obtenerValor(fila, CONFIG.COLUMNS.APPLICANT_TYPE);
+      const sede = obtenerValor(fila, CONFIG.COLUMNS.CAMPUS);
 
       // 1. Disponibilidad (máx 4 puntos)
       let puntajeDisponibilidad = 0;
-      if (esSi(obtenerValor(fila, "¿Tienes disponibilidad para dedicar 3 sesiones semanales?"))) puntajeDisponibilidad++;
-      if (!esSi(obtenerValor(fila, "¿Tienes compromisos académicos/laborales que podrían impedir cumplir con la asistencia obligatoria?"))) puntajeDisponibilidad++; // "No" es la respuesta deseada
-      if (esSi(obtenerValor(fila, "¿Estás en condiciones de asistir al menos al 80 % de las clases?"))) puntajeDisponibilidad++;
-      if (esSi(obtenerValor(fila, "¿Puedes comprometerse a dedicar 4 horas semanales de estudio autónomo además de las clases?"))) puntajeDisponibilidad++;
+      if (esSi(obtenerValor(fila, CONFIG.COLUMNS.AVAILABILITY_SESSIONS))) puntajeDisponibilidad++;
+      if (!esSi(obtenerValor(fila, CONFIG.COLUMNS.AVAILABILITY_CONFLICTS))) puntajeDisponibilidad++; // "No" es la respuesta deseada
+      if (esSi(obtenerValor(fila, CONFIG.COLUMNS.AVAILABILITY_ASSISTANCE))) puntajeDisponibilidad++;
+      if (esSi(obtenerValor(fila, CONFIG.COLUMNS.AVAILABILITY_STUDY))) puntajeDisponibilidad++;
 
       // --- Cálculo de Puntajes por Área ---
       const puntajeTipo = calcularPuntajeTipoPostulante(tipoPostulante);
@@ -498,38 +534,41 @@ function cargarConfiguracionDesdeHoja() {
 
       // Compromiso (máx 3 puntos)
       let puntajeCompromiso = 0;
-      if (esSi(obtenerValor(fila, "Compromiso con el programa "))) puntajeCompromiso++;
-      if (esSi(obtenerValor(fila, "Veracidad de la información"))) puntajeCompromiso++;
-      if (esSi(obtenerValor(fila, "Consecuencias por incumplimiento"))) puntajeCompromiso++;
+      if (esSi(obtenerValor(fila, CONFIG.COLUMNS.COMMITMENT_PROGRAM))) puntajeCompromiso++;
+      if (esSi(obtenerValor(fila, CONFIG.COLUMNS.COMMITMENT_VERACITY))) puntajeCompromiso++;
+      if (esSi(obtenerValor(fila, CONFIG.COLUMNS.COMMITMENT_BREACH))) puntajeCompromiso++;
 
       // Carta de respaldo (máx 3 puntos)
       const pesoCarta = SCORING_PARAMS.CartaRespaldo.peso[esEstudiante(tipoPostulante) ? "estudiante" : "funcionario"] || 1; // Obtener el peso, default 1
       // AJUSTE: Si es estudiante, se le asigna un puntaje base para compensar que no puede tener carta de jefatura.
       let puntajeCarta = 0;
-      const tieneCartaRespaldo = !!obtenerValor(fila, "Si la respuesta anterior fue \"Sí\", por favor, adjunta una carta de respaldo de tu jefatura?\" [Nota: Opcional, pero otorga puntaje adicional]");
+      const tieneCartaRespaldo = !!obtenerValor(fila, CONFIG.COLUMNS.ENDORSEMENT_LETTER);
 
       if (esEstudiante(tipoPostulante)) {
         puntajeCarta = 1; // Puntaje base por ser estudiante (no se espera respaldo de jefatura)
         if (tieneCartaRespaldo) puntajeCarta += 1.5; // Bonus alto si adjunta una carta (de un profesor, etc.)
       } else {
         // La lógica original solo se aplica a no-estudiantes
-        if (esSi(obtenerValor(fila, "¿Cuentas con el respaldo de tu jefatura directa para participar en este programa?"))) puntajeCarta += 1;
+        if (esSi(obtenerValor(fila, CONFIG.COLUMNS.ENDORSEMENT_APPROVAL))) puntajeCarta += 1;
         if (tieneCartaRespaldo) puntajeCarta += 1;
-        if (esSi(obtenerValor(fila, "¿Tu jefatura está en conocimiento y aprueba tu participación en el horario establecido?"))) puntajeCarta++;
+        if (esSi(obtenerValor(fila, CONFIG.COLUMNS.ENDORSEMENT_SCHEDULE))) puntajeCarta++;
       }
 
-      const puntajeTotal = puntajeDisponibilidad + puntajeTipo + puntajeUso + puntajeIntl + puntajeNivelIngles + puntajeAnio + puntajeCompromiso + (puntajeCarta * pesoCarta);
+      const puntajeTotal = puntajeDisponibilidad + puntajeTipo + puntajeUso + puntajeIntl + puntajeNivelIngles + puntajeAnio + puntajeCompromiso + (puntajeCarta * pesoCarta);        
+      const enlaceCertificado = obtenerValor(fila, CONFIG.COLUMNS.CERTIFICATE_ATTACHMENT); // Obtener el enlace del certificado
+
       resultados.push([
         apellidos, nombres, correo, rut, fechaPostulacion, tipoPostulante, sede,
         puntajeDisponibilidad, puntajeTipo, puntajeUso.toFixed(2),
         puntajeIntl.toFixed(2), puntajeNivelIngles, puntajeAnio,
         puntajeCompromiso, puntajeCarta,
-        puntajeTotal.toFixed(2)
+        puntajeTotal.toFixed(2),
+        enlaceCertificado // Añadir el enlace del certificado
       ]);
 
       // --- OPTIMIZACIÓN: Marcar la fila como procesada ---
       if (indiceEstado !== -1) {
-        hojaEntrada.getRange(r + 1, indiceEstado + 1).setValue(new Date());
+        actualizacionesEstado.push({ fila: r + 1, valor: new Date() });
       }
 
     } catch (e) { // <--- INICIO DEL BLOQUE CATCH
@@ -540,7 +579,7 @@ function cargarConfiguracionDesdeHoja() {
 
       // Marcar la fila con error en la hoja para revisión manual.
       if (indiceEstado !== -1) {
-        hojaEntrada.getRange(numeroFila, indiceEstado + 1).setValue(`ERROR: ${e.message}`);
+        actualizacionesEstado.push({ fila: numeroFila, valor: `ERROR: ${e.message}` });
       }
     } // <--- FIN DEL BLOQUE TRY...CATCH
   }
@@ -551,18 +590,32 @@ function cargarConfiguracionDesdeHoja() {
     lock.releaseLock();
     return;
   }
-  
+
   // --- MEJORA: Cargar la configuración desde la hoja ---
+  // IMPORTANTE: Esto debe ejecutarse ANTES del bucle de procesamiento si se quiere
+  // que los pesos de la hoja afecten el cálculo actual.
+  // Lo muevo aquí para que quede claro que afecta a los cálculos que siguen,
+  // aunque en la lógica actual se usa para la siguiente ejecución.
+  // Si el objetivo es usar los pesos en ESTA ejecución, esta línea debería ir
+  // ANTES del bucle `for (let r = 1; ...)`
   cargarConfiguracionDesdeHoja();
 
   let hojaResultados = ss.getSheetByName(CONFIG.SHEETS.OUTPUT);
   if (!hojaResultados) {
     hojaResultados = ss.insertSheet(CONFIG.SHEETS.OUTPUT); // Si no existe, la crea.
+
   } else {
     hojaResultados.clear(); // Si ya existe, la limpia por completo para evitar duplicados.
   }
   // Escribe todos los resultados (encabezados + datos) en la hoja limpia.
   hojaResultados.getRange(1, 1, resultados.length, resultados[0].length).setValues(resultados);
+
+  // --- OPTIMIZACIÓN: Escribir todos los estados de una sola vez ---
+  if (indiceEstado !== -1 && actualizacionesEstado.length > 0) {
+    actualizacionesEstado.forEach(actualizacion => {
+      hojaEntrada.getRange(actualizacion.fila, indiceEstado + 1).setValue(actualizacion.valor);
+    });
+  }
 
   // --- REGENERAR Hoja de Seleccionados y Dashboard ---
   if (resultados.length > 1) {
@@ -581,16 +634,18 @@ function cargarConfiguracionDesdeHoja() {
 
     // Añadir la columna de Ranking a los datos
     const seleccionadosConRanking = top25.map((fila, index) => [index + 1, ...fila]);
-
+    
     // Añadir encabezados para Ranking y columnas de verificación manual
+
     const encabezadosSeleccionados = [
       "Ranking", ...resultados[0],
-      "Verificación Certificado", "Nivel Asignado", "Aceptación"
+      "Verificación Certificado", "Nivel Asignado", "Aceptación", "Comentarios" // "Enlace Certificado" ya está en resultados[0]
     ];
 
-    // Preparar los datos para escribir en la hoja (encabezados + seleccionados)
-    // Las filas de datos tendrán espacios vacíos para las nuevas columnas manuales
-    const datosParaHoja = [encabezadosSeleccionados, ...seleccionadosConRanking.map(fila => [...fila, "", "", "Pendiente"])];
+   // Preparar los datos para escribir en la hoja (encabezados + seleccionados)
+    // Las filas de datos tendrán espacios vacíos para las nuevas columnas manuales (Verificación, Nivel, Aceptación, Comentarios).
+    // El "Enlace Certificado" ya viene en la fila de seleccionadosConRanking.
+    const datosParaHoja = [encabezadosSeleccionados, ...seleccionadosConRanking.map(fila => [...fila, "", "", "Pendiente", ""])];
 
     let hojaSeleccionados = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
     if (!hojaSeleccionados) {
@@ -598,17 +653,29 @@ function cargarConfiguracionDesdeHoja() {
     } else {
       hojaSeleccionados.clear();
     }
+
     if (datosParaHoja.length > 1) {
-      const rangoDatos = hojaSeleccionados.getRange(1, 1, datosParaHoja.length, datosParaHoja[0].length);
+      const rangoDatos = hojaSeleccionados.getRange(1, 1, datosParaHoja.length, datosParaHoja[0].length);      
       rangoDatos.setValues(datosParaHoja);
 
       // --- Añadir Menú Desplegable y Formato Condicional ---
       const indiceColAceptacion = encabezadosSeleccionados.indexOf("Aceptación") + 1;
-      const rangoAceptacion = hojaSeleccionados.getRange(2, indiceColAceptacion, datosParaHoja.length - 1, 1);
+      const indiceColVerificacion = encabezadosSeleccionados.indexOf("Verificación Certificado") + 1;
+      const indiceColNivel = encabezadosSeleccionados.indexOf("Nivel Asignado") + 1;
 
-      // Crear regla para menú desplegable
-      const reglaDesplegable = SpreadsheetApp.newDataValidation().requireValueInList(['Acepta', 'Rechaza', 'Pendiente'], true).build();
-      rangoAceptacion.setDataValidation(reglaDesplegable);
+      const rangoAceptacion = hojaSeleccionados.getRange(2, indiceColAceptacion, datosParaHoja.length - 1, 1);
+      const rangoVerificacion = hojaSeleccionados.getRange(2, indiceColVerificacion, datosParaHoja.length - 1, 1);
+      const rangoNivel = hojaSeleccionados.getRange(2, indiceColNivel, datosParaHoja.length - 1, 1);
+
+
+      // Crear reglas para menús desplegables
+      const reglaAceptacion = SpreadsheetApp.newDataValidation().requireValueInList(['Acepta', 'Rechaza', 'Pendiente'], true).build();
+      const reglaVerificacion = SpreadsheetApp.newDataValidation().requireValueInList(['Válido', 'Test de nivel'], true).build();
+      const reglaNivel = SpreadsheetApp.newDataValidation().requireValueInList(['B1+', 'B2.1', 'B2.2', 'C1'], true).setAllowInvalid(true).build(); // Allow invalid para poder escribir resultados de test
+
+      rangoAceptacion.setDataValidation(reglaAceptacion);
+      rangoVerificacion.setDataValidation(reglaVerificacion);
+      rangoNivel.setDataValidation(reglaNivel);
 
       // Limpiar reglas de formato antiguas y aplicar nuevas
       hojaSeleccionados.clearConditionalFormatRules();
@@ -653,6 +720,7 @@ function cargarConfiguracionDesdeHoja() {
   // Es fundamental liberar el bloqueo para que la próxima ejecución pueda comenzar.
   lock.releaseLock();
   console.log("Proceso completado y bloqueo liberado.");
+  return `¡Evaluación completada! Se procesaron ${resultados.length - 1} nuevas postulaciones. Las hojas "Evaluación automatizada", "Seleccionados" y "Dashboard" han sido actualizadas.`;
 }
 
 /**
@@ -710,15 +778,15 @@ function getAnalysisReport() {
     };
 
     // --- Sección 1: Estadísticas Descriptivas de los Seleccionados ---
-    let mensajeAnalisis = `--- ESTADÍSTICAS DESCRIPTIVAS (Top ${totalSeleccionados}) ---\n\n`;
+    const lineasAnalisis = [`--- ESTADÍSTICAS DESCRIPTIVAS (Top ${totalSeleccionados}) ---\n`];
 
     // a) Puntaje Total
     const puntajesTotales = datosSeleccionados.map(fila => parseFloat(fila[INDICES_SELECCIONADOS.puntajeTotal] || 0));
     const puntajePromedio = puntajesTotales.reduce((a, b) => a + b, 0) / totalSeleccionados;
-    mensajeAnalisis += `📊 Puntaje Total:\n`;
-    mensajeAnalisis += `   - Promedio: ${puntajePromedio.toFixed(2)}\n`;
-    mensajeAnalisis += `   - Máximo: ${Math.max(...puntajesTotales).toFixed(2)}\n`;
-    mensajeAnalisis += `   - Mínimo: ${Math.min(...puntajesTotales).toFixed(2)}\n\n`;
+    lineasAnalisis.push(`📊 Puntaje Total:`);
+    lineasAnalisis.push(`   - Promedio: ${puntajePromedio.toFixed(2)}`);
+    lineasAnalisis.push(`   - Máximo: ${Math.max(...puntajesTotales).toFixed(2)}`);
+    lineasAnalisis.push(`   - Mínimo: ${Math.min(...puntajesTotales).toFixed(2)}\n`);
 
     // b) Distribución por Categoría y Sede
     const distribucionCategoria = {};
@@ -739,7 +807,7 @@ function getAnalysisReport() {
     }, {});
     
     // d) MEJORA: Perfil de Puntuación Promedio por Grupo
-    mensajeAnalisis += `📈 Perfil de Puntuación Promedio por Grupo:\n\n`;
+    lineasAnalisis.push(`📈 Perfil de Puntuación Promedio por Grupo:\n`);
     const promediosPorGrupo = {
       Estudiantes: { count: 0, puntajes: {} },
       "Funcionarios/Otros": { count: 0, puntajes: {} }
@@ -767,24 +835,24 @@ function getAnalysisReport() {
     for (const perfil in promediosPorGrupo) {
       const grupo = promediosPorGrupo[perfil];
       if (grupo.count > 0) {
-        mensajeAnalisis += `🔹 ${perfil} (${grupo.count} seleccionados):\n`;
+        lineasAnalisis.push(`🔹 ${perfil} (${grupo.count} seleccionados):`);
         for (const key in grupo.puntajes) {
           const promedio = grupo.puntajes[key] / grupo.count;
           const nombreBonito = key.replace("puntaje", "").replace(/([A-Z])/g, ' $1').trim();
-          mensajeAnalisis += `   - Promedio ${nombreBonito}: ${promedio.toFixed(2)}\n`;
+          lineasAnalisis.push(`   - Promedio ${nombreBonito}: ${promedio.toFixed(2)}`);
         }
-        mensajeAnalisis += `\n`;
+        lineasAnalisis.push(''); // Salto de línea
       }
     }
 
     // --- Sección 2: Análisis de Equilibrio y Sugerencias (lógica existente) ---
-    mensajeAnalisis += `\n\n--- ANÁLISIS DE EQUILIBRIO DEL RANKING ---\n\n`;
+    lineasAnalisis.push(`\n--- ANÁLISIS DE EQUILIBRIO DEL RANKING ---\n`);
     const pctEstudiantes = ((distribucionEquilibrio["Estudiantes"] || 0) / totalSeleccionados) * 100;
     const pctFuncionarios = ((distribucionEquilibrio["Funcionarios/Otros"] || 0) / totalSeleccionados) * 100;
 
-    mensajeAnalisis += `Composición del Ranking:\n`;
-    mensajeAnalisis += `- Estudiantes: ${distribucionEquilibrio["Estudiantes"] || 0} (${pctEstudiantes.toFixed(1)}%)\n`;
-    mensajeAnalisis += `- Funcionarios/Otros: ${distribucionEquilibrio["Funcionarios/Otros"] || 0} (${pctFuncionarios.toFixed(1)}%)\n\n`;
+    lineasAnalisis.push(`Composición del Ranking:`);
+    lineasAnalisis.push(`- Estudiantes: ${distribucionEquilibrio["Estudiantes"] || 0} (${pctEstudiantes.toFixed(1)}%)`);
+    lineasAnalisis.push(`- Funcionarios/Otros: ${distribucionEquilibrio["Funcionarios/Otros"] || 0} (${pctFuncionarios.toFixed(1)}%)\n`);
 
     // Identificar desequilibrio
     const UMBRAL_DESEQUILIBRIO = 80; // Si un grupo supera este %
@@ -793,11 +861,11 @@ function getAnalysisReport() {
     if (pctFuncionarios > UMBRAL_DESEQUILIBRIO) grupoDominante = "Funcionarios/Otros";
 
     if (!grupoDominante) {
-      mensajeAnalisis += "✅ El ranking parece razonablemente equilibrado. No se requieren ajustes urgentes.";
-      return mensajeAnalisis;
+      lineasAnalisis.push("✅ El ranking parece razonablemente equilibrado. No se requieren ajustes urgentes.");
+      return lineasAnalisis.join('\n');
     }
 
-    mensajeAnalisis += `⚠️ Se ha detectado un desequilibrio. El grupo '${grupoDominante}' domina el ranking.\n\n--- SUGERENCIAS DE AJUSTE DE PESOS ---\n`;
+    lineasAnalisis.push(`⚠️ Se ha detectado un desequilibrio. El grupo '${grupoDominante}' domina el ranking.\n\n--- SUGERENCIAS DE AJUSTE DE PESOS ---`);
 
     // Calcular puntajes promedio por categoría para encontrar la causa
     const datosEvaluacion = hojaEvaluacion.getDataRange().getValues();
@@ -850,18 +918,18 @@ function getAnalysisReport() {
       const diferencia = promDominante - promSub;
 
       if (Math.abs(diferencia) > 0.5) { // Solo mostrar diferencias significativas
-        mensajeAnalisis += `\n🔹 Categoría: ${nombresCategorias[cat]}\n`;
-        mensajeAnalisis += `   - Promedio '${grupoDominante}': ${promDominante.toFixed(2)}\n`;
-        mensajeAnalisis += `   - Promedio '${grupoSubrepresentado}': ${promSub.toFixed(2)}\n`;
+        lineasAnalisis.push(`\n🔹 Categoría: ${nombresCategorias[cat]}`);
+        lineasAnalisis.push(`   - Promedio '${grupoDominante}': ${promDominante.toFixed(2)}`);
+        lineasAnalisis.push(`   - Promedio '${grupoSubrepresentado}': ${promSub.toFixed(2)}`);
         if (diferencia > 0) {
-          mensajeAnalisis += `   - SUGERENCIA: El grupo dominante puntúa mucho más alto aquí. Considera reducir el peso de esta categoría para '${grupoDominante}' en SCORING_PARAMS.\n`;
+          lineasAnalisis.push(`   - SUGERENCIA: El grupo dominante puntúa mucho más alto aquí. Considera reducir el peso de esta categoría para '${grupoDominante}' en SCORING_PARAMS.`);
         } else {
-          mensajeAnalisis += `   - SUGERENCIA: El grupo subrepresentado puntúa más alto aquí. Considera AUMENTAR el peso de esta categoría para '${grupoSubrepresentado}' para darles más oportunidades.\n`;
+          lineasAnalisis.push(`   - SUGERENCIA: El grupo subrepresentado puntúa más alto aquí. Considera AUMENTAR el peso de esta categoría para '${grupoSubrepresentado}' para darles más oportunidades.`);
         }
       }
     });
 
-    return mensajeAnalisis;
+    return lineasAnalisis.join('\n');
 
   } catch (e) {
     console.error(`Error en getAnalysisReport: ${e.toString()}\nStack: ${e.stack}`);
@@ -881,7 +949,7 @@ function getAnalysisReport() {
  * Sirve la página HTML que actuará como nuestro menú.
  */
 function doGet(e) {
-  return HtmlService.createHtmlOutputFromFile('WebAppUI')
+  return HtmlService.createHtmlOutputFromFile('index')
     .setTitle('Panel de Control de Evaluación PUCV')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DEFAULT);
 }
@@ -918,11 +986,16 @@ function ejecutarEnvioCorreosDesdeWebApp() {
   datos.forEach(fila => {
     const nombre = fila[indiceNombre];
     const correo = fila[indiceCorreo];
-    const asunto = "¡Felicitaciones! Has sido seleccionado para el Programa de Inglés PUCV";
-    const cuerpo = `Estimado/a ${nombre},\n\nNos complace informarte que has sido seleccionado/a para participar en el programa de inglés.\n\nPor favor, responde a este correo para confirmar si aceptas o rechazas tu cupo a la brevedad.\n\nSaludos cordiales,\nEl equipo de PUCV.`;
     
-    // MailApp.sendEmail(correo, asunto, cuerpo); // DESCOMENTAR PARA ENVIAR CORREOS REALES
-    console.log(`Correo preparado para ${nombre} a ${correo}`); // Para pruebas
+    // MEJORA: Usar plantilla HTML para el correo.
+    const plantilla = HtmlService.createTemplateFromFile('CorreoSeleccionado');
+    plantilla.nombre = nombre; // Pasar la variable 'nombre' a la plantilla
+    const cuerpoHtml = plantilla.evaluate().getContent();
+
+    const asunto = "¡Felicitaciones! Has sido seleccionado para el Programa de Inglés PUCV";
+    
+    // MailApp.sendEmail({ to: correo, subject: asunto, htmlBody: cuerpoHtml }); // DESCOMENTAR PARA ENVIAR
+    console.log(`Correo HTML de selección preparado para ${nombre} a ${correo}`); // Para pruebas
   });
 
   const mensajeConfirmacion = `Proceso de envío iniciado para ${datos.length} postulantes. Revisa los registros para ver el progreso.`;
@@ -966,5 +1039,190 @@ function forceWebAppPermissions() {
   } catch (e) {
     console.error(`Error en forceWebAppPermissions: ${e.toString()}`);
     return `FALLO LA VERIFICACIÓN DE PERMISOS.\n\nCausa: ${e.toString()}\n\nEsto usualmente significa que el SHEET_ID en el objeto CONFIG es incorrecto o no tienes acceso a esa hoja. Por favor, verifica el ID y tus permisos de Google Drive.`;
+  }
+}
+
+/**
+ * Se activa al editar la hoja "Seleccionados".
+ * Si un postulante es marcado como "Rechaza", busca al siguiente en el ranking general,
+ * lo añade a la lista de seleccionados y le envía una notificación.
+ * @param {Object} e El objeto de evento de la edición.
+ */
+function gestionarListaDeEspera(e) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const hojaActiva = ss.getActiveSheet();
+
+    // 1. Verificar si la edición ocurrió en el lugar correcto
+    if (hojaActiva.getName() !== CONFIG.SHEETS.SELECTED) return;
+
+    const rangoEditado = e.range;
+    const filaEditada = rangoEditado.getRow();
+    const columnaEditada = rangoEditado.getColumn();
+    const nuevoValor = e.value;
+
+    if (filaEditada <= 1) return; // Ignorar ediciones en el encabezado
+
+    const encabezados = hojaActiva.getRange(1, 1, 1, hojaActiva.getLastColumn()).getValues()[0];
+    const nombreColumnaEditada = encabezados[columnaEditada - 1];
+
+    // 2. Actuar solo si se cambia la columna "Aceptación" a "Rechaza"
+    if (nombreColumnaEditada !== "Aceptación" || nuevoValor !== "Rechaza") {
+      return;
+    }
+
+    console.log(`Rechazo detectado en la fila ${filaEditada}. Iniciando proceso de lista de espera.`);
+
+    // 3. Obtener todos los postulantes evaluados y los ya seleccionados
+    const hojaEvaluacion = ss.getSheetByName(CONFIG.SHEETS.OUTPUT);
+    const hojaSeleccionados = hojaActiva; // Es la misma que la activa
+
+    if (!hojaEvaluacion) {
+      throw new Error(`No se encontró la hoja de evaluación: ${CONFIG.SHEETS.OUTPUT}`);
+    }
+
+    const datosEvaluacion = hojaEvaluacion.getDataRange().getValues();
+    const datosSeleccionados = hojaSeleccionados.getDataRange().getValues();
+
+    const encabezadosEvaluacion = datosEvaluacion.shift();
+    const encabezadosSeleccionados = datosSeleccionados.shift();
+
+    const indiceCorreoEvaluacion = encabezadosEvaluacion.indexOf("Correo Electrónico");
+    const indiceCorreoSeleccionados = encabezadosSeleccionados.indexOf("Correo Electrónico");
+
+    // Crear un conjunto de correos ya seleccionados para una búsqueda rápida
+    const correosSeleccionados = new Set(datosSeleccionados.map(fila => fila[indiceCorreoSeleccionados]));
+
+    // 4. Encontrar al siguiente candidato en la lista de espera
+    let siguienteCandidato = null;
+    for (const candidato of datosEvaluacion) {
+      const correoCandidato = candidato[indiceCorreoEvaluacion];
+      if (!correosSeleccionados.has(correoCandidato)) {
+        siguienteCandidato = candidato;
+        break; // Encontramos al primero que no está en la lista
+      }
+    }
+
+    if (!siguienteCandidato) {
+      console.log("No hay más candidatos en la lista de espera.");
+      SpreadsheetApp.getUi().alert("No hay más candidatos disponibles en la lista de espera.");
+      return;
+    }
+
+    // 5. Añadir el nuevo candidato a la hoja "Seleccionados"
+    const ultimoRanking = datosSeleccionados.length > 0 ? Math.max(...datosSeleccionados.map(f => parseInt(f[0] || 0))) : 0;
+    const nuevoRanking = ultimoRanking + 1;
+
+    // Formatear la fila para que coincida con la estructura de "Seleccionados"
+    const nuevaFila = [
+      nuevoRanking,
+      ...siguienteCandidato,
+      "", // Verificación Certificado
+      "", // Nivel Asignado
+      "Pendiente", // Aceptación
+      "Añadido desde lista de espera" // Comentarios
+    ];
+
+    hojaSeleccionados.appendRow(nuevaFila);
+    console.log(`Nuevo candidato '${siguienteCandidato[indiceCorreoEvaluacion]}' añadido a la lista con ranking ${nuevoRanking}.`);
+
+    // 6. Enviar correo de notificación al nuevo candidato
+    const nombreNuevoCandidato = siguienteCandidato[encabezadosEvaluacion.indexOf("Nombre(s)")];
+    const correoNuevoCandidato = siguienteCandidato[indiceCorreoEvaluacion];
+
+    // MEJORA: Usar plantilla HTML para el correo de lista de espera.
+    const plantilla = HtmlService.createTemplateFromFile('CorreoListaEspera');
+    plantilla.nombre = nombreNuevoCandidato;
+    const cuerpoHtml = plantilla.evaluate().getContent();
+
+    const asunto = "Oportunidad en el Programa de Inglés PUCV: ¡Un cupo se ha liberado!";
+    
+    // MailApp.sendEmail({ to: correoNuevoCandidato, subject: asunto, htmlBody: cuerpoHtml }); // DESCOMENTAR PARA ENVIAR
+    console.log(`Correo HTML de lista de espera preparado para ${nombreNuevoCandidato} a ${correoNuevoCandidato}`);
+
+    SpreadsheetApp.getUi().alert(`¡Proceso completado! Se ha añadido a '${nombreNuevoCandidato}' desde la lista de espera y se le ha notificado.`);
+
+  } catch (e) {
+    console.error(`Error en gestionarListaDeEspera: ${e.toString()}\nStack: ${e.stack}`);
+    SpreadsheetApp.getUi().alert(`Se produjo un error al gestionar la lista de espera: ${e.message}`);
+  }
+}
+
+/**
+ * Genera la lista final de participantes del curso en una nueva hoja.
+ * Filtra los postulantes que han "Aceptado" y tienen un "Nivel Asignado",
+ * y los organiza por nivel.
+ */
+function generarListaFinalCurso() {
+  try {
+    const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
+    const hojaSeleccionados = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
+
+    if (!hojaSeleccionados) {
+      throw new Error(`La hoja "${CONFIG.SHEETS.SELECTED}" no existe. Por favor, ejecuta primero la evaluación.`);
+    }
+
+    const datosSeleccionados = hojaSeleccionados.getDataRange().getValues();
+    const encabezados = datosSeleccionados.shift();
+
+    // Mapeo de índices para legibilidad
+    const getIndice = (nombre) => encabezados.indexOf(nombre);
+    const INDICE_ACEPTACION = getIndice("Aceptación");
+    const INDICE_NIVEL = getIndice("Nivel Asignado");
+    const INDICE_NOMBRE = getIndice("Nombre(s)");
+    const INDICE_APELLIDOS = getIndice("Apellido(s)");
+    const INDICE_CORREO = getIndice("Correo Electrónico");
+    const INDICE_RUT = getIndice("RUT");
+    const INDICE_CATEGORIA = getIndice("Categoría Postulante");
+
+    if (INDICE_ACEPTACION === -1 || INDICE_NIVEL === -1) {
+      throw new Error("No se encontraron las columnas 'Aceptación' o 'Nivel Asignado' en la hoja de Seleccionados.");
+    }
+
+    // 1. Filtrar a los que aceptaron y tienen un nivel
+    const listaFinal = datosSeleccionados.filter(fila => {
+      return fila[INDICE_ACEPTACION] === 'Acepta' && String(fila[INDICE_NIVEL] || "").trim() !== '';
+    });
+
+    if (listaFinal.length === 0) {
+      // Devolver un mensaje en lugar de usar getUi()
+      return "No se generó la lista: No hay postulantes que hayan aceptado y tengan un nivel asignado.";
+    }
+
+    // 2. Ordenar la lista por el nivel asignado
+    listaFinal.sort((a, b) => {
+      const nivelA = a[INDICE_NIVEL];
+      const nivelB = b[INDICE_NIVEL];
+      if (nivelA < nivelB) return -1;
+      if (nivelA > nivelB) return 1;
+      return 0;
+    });
+
+    // 3. Preparar los datos para la nueva hoja
+    const encabezadosFinales = ["Nivel Asignado", "Apellido(s)", "Nombre(s)", "Correo Electrónico", "RUT", "Categoría Postulante"];
+    const datosParaHoja = listaFinal.map(fila => [
+      fila[INDICE_NIVEL],
+      fila[INDICE_APELLIDOS],
+      fila[INDICE_NOMBRE],
+      fila[INDICE_CORREO],
+      fila[INDICE_RUT],
+      fila[INDICE_CATEGORIA]
+    ]);
+
+    // 4. Crear/Limpiar y escribir en la hoja "Lista Final Curso"
+    let hojaFinal = ss.getSheetByName(CONFIG.SHEETS.FINAL_LIST);
+    if (!hojaFinal) hojaFinal = ss.insertSheet(CONFIG.SHEETS.FINAL_LIST);
+    hojaFinal.clear();
+    hojaFinal.getRange(1, 1, 1, encabezadosFinales.length).setValues([encabezadosFinales]).setFontWeight("bold");
+    hojaFinal.getRange(2, 1, datosParaHoja.length, datosParaHoja[0].length).setValues(datosParaHoja);
+    hojaFinal.autoResizeColumns(1, encabezadosFinales.length);
+
+    // Devolver un mensaje de éxito en lugar de usar getUi()
+    return `¡Éxito! Se ha generado la "Lista Final Curso" con ${listaFinal.length} participantes.`;
+
+  } catch (e) {
+    console.error(`Error en generarListaFinalCurso: ${e.toString()}`);
+    // Devolver el mensaje de error para que se muestre en la Web App
+    return `Error al generar la lista final: ${e.message}`;
   }
 }

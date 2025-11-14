@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+
+      body { 
+        font-family: 'Roboto', Arial, sans-serif; 
+        margin: 0; 
+        background-color: #f4f7f9; 
+        color: #333; 
+        display: flex;
+        justify-content: center;
+        padding: 20px;
+      }
+      .container {
+        max-width: 800px;
+        width: 100%;
+        background-color: #ffffff;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      }
+      h1 { color: #003366; text-align: center; border-bottom: 2px solid #0055a2; padding-bottom: 15px; margin-bottom: 25px; }
+      h2 { color: #0055a2; font-size: 1.2em; border-bottom: 1px solid #e0e0e0; padding-bottom: 8px; margin-top: 35px;}
+      p { color: #555; line-height: 1.6; }
+      .button-group {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 15px;
+        margin-top: 15px;
+      }
+      button { 
+        background-color: #0055a2; 
+        color: white; 
+        padding: 12px 20px; 
+        border: none; 
+        border-radius: 5px; 
+        cursor: pointer; 
+        font-size: 15px; 
+        font-weight: 500;
+        transition: background-color 0.2s, transform 0.1s;
+      }
+      button:hover:not(:disabled) { background-color: #003366; transform: translateY(-1px); }
+      button:disabled { background-color: #cccccc; cursor: not-allowed; }
+      #output { margin-top: 25px; white-space: pre-wrap; background-color: #f8f9fa; border: 1px solid #e0e0e0; border-left: 4px solid #0055a2; padding: 15px; font-family: 'Courier New', Courier, monospace; min-height: 100px; line-height: 1.5; border-radius: 4px; }
+      .loader { display: none; margin-top: 20px; text-align: center; font-style: italic; color: #555; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Panel de Control - Evaluación PUCV</h1>
+
+      <h2>Funciones Principales</h2>
+      <div class="button-group">
+        <button id="btnEvaluar" onclick="runEvaluation()">1. Evaluar Nuevas Postulaciones</button>
+        <button id="btnGenerarLista" onclick="runGenerateFinalList()">2. Generar Lista Final del Curso</button>
+        <button id="btnEnviar" onclick="runEmail()">3. Enviar Notificaciones a Seleccionados</button>
+        <button id="btnAnalizar" onclick="runAnalysis()">Analizar Equilibrio del Ranking</button>
+      </div>
+
+      <h2>Configuración y Depuración</h2>
+      <p>Si es la primera vez que usas esta página o encuentras errores, haz clic aquí para asegurar que los permisos estén actualizados.</p>
+      <button id="btnPermisos" onclick="runPermissionCheck()">Verificar Permisos</button>
+      
+      <div class="loader" id="loader">Procesando, por favor espera...</div>
+      <div id="output">Haz clic en un botón para comenzar.</div>
+    </div>
+
+    <script>
+      // Función para controlar el estado de carga y deshabilitar botones
+      function setLoading(isLoading) {
+        document.getElementById('loader').style.display = isLoading ? 'block' : 'none';
+        document.getElementById('btnAnalizar').disabled = isLoading;
+        document.getElementById('btnEnviar').disabled = isLoading;
+        document.getElementById('btnEvaluar').disabled = isLoading;
+        document.getElementById('btnGenerarLista').disabled = isLoading;
+        document.getElementById('btnPermisos').disabled = isLoading;
+        if (isLoading) {
+          document.getElementById('output').textContent = '';
+        }
+      }
+
+      // Función para mostrar el resultado exitoso en el cuadro de salida
+      function showResult(resultText) {
+        document.getElementById('output').textContent = resultText;
+        setLoading(false);
+      }
+
+      // Función para mostrar un error en el cuadro de salida
+      function showError(error) {
+        document.getElementById('output').textContent = "Error de comunicación con el script: " + error.message;
+        setLoading(false);
+      }
+
+      // --- Funciones que llaman al código del servidor ---
+
+      function runPermissionCheck() {
+        setLoading(true);
+        google.script.run
+          .withSuccessHandler(showResult)
+          .withFailureHandler(showError)
+          .forceWebAppPermissions();
+      }
+
+      function runAnalysis() {
+        setLoading(true);
+        google.script.run
+          .withSuccessHandler(showResult)
+          .withFailureHandler(showError)
+          .ejecutarAnalisisDesdeWebApp();
+      }
+
+      function runEmail() {
+        if (!confirm("¿Estás seguro de que quieres enviar correos a los seleccionados?")) {
+          return;
+        }
+        setLoading(true);
+        google.script.run
+          .withSuccessHandler(showResult)
+          .withFailureHandler(showError)
+          .ejecutarEnvioCorreosDesdeWebApp();
+      }
+
+      function runEvaluation() {
+        setLoading(true);
+        google.script.run
+          .withSuccessHandler(showResult)
+          .withFailureHandler(showError)
+          .evaluarPostulacionesPUCV2(); // Llama directamente a la función del servidor
+      }
+
+      function runGenerateFinalList() {
+        setLoading(true);
+        google.script.run
+          .withSuccessHandler(showResult)
+          .withFailureHandler(showError)
+          .generarListaFinalCurso(); // Llama directamente a la función del servidor
+      }
+
+
+    </script>
+  </body>
+</html>
