@@ -51,6 +51,28 @@ const esEstudiante = (tipoPostulante) => {
   return /estudiante|alumno/.test(tipoNormalizado) && !/postgrado|posgrado/.test(tipoNormalizado);
 };
 
+/**
+ * Almacena un mensaje de log en las propiedades de usuario para que la Web App lo recupere.
+ * @param {string} message El mensaje a registrar.
+ */
+function logToWebApp(message) {
+  const userProperties = PropertiesService.getUserProperties();
+  let logs = JSON.parse(userProperties.getProperty('webAppLogs') || '[]');
+  logs.push(`${new Date().toLocaleTimeString()} - ${message}`);
+  userProperties.setProperty('webAppLogs', JSON.stringify(logs));
+  // console.log(message); // Mantener console.log para depuración en el editor
+}
+
+/**
+ * Recupera y borra los mensajes de log almacenados para la Web App.
+ * @returns {Array<string>} Un array de mensajes de log.
+ */
+function getWebAppLogs() {
+  const userProperties = PropertiesService.getUserProperties();
+  const logs = userProperties.getProperty('webAppLogs');
+  userProperties.deleteProperty('webAppLogs'); // Borrar logs después de recuperarlos
+  return logs ? JSON.parse(logs) : [];
+}
 
 function evaluarPostulacionesPUCV2() {
   // --- MEJORA: Usar LockService para evitar ejecuciones simultáneas ---
@@ -58,11 +80,11 @@ function evaluarPostulacionesPUCV2() {
   // Evita que dos ejecuciones del script se pisen entre sí si llegan dos respuestas de formulario muy rápido.
   const lock = LockService.getScriptLock();
   const tuvoExito = lock.tryLock(10000); // Intentar obtener el bloqueo por 10 segundos.
+  logToWebApp("Intentando iniciar evaluación de postulaciones...");
   if (!tuvoExito) {
-    console.log("No se pudo obtener el bloqueo. Otra instancia del script ya se está ejecutando.");
-    return; // Salir si no se puede obtener el bloqueo.
+    logToWebApp("No se pudo obtener el bloqueo. Otra instancia del script ya se está ejecutando. Reintenta en unos segundos.");
+    return "No se pudo iniciar la evaluación. Otra operación está en curso."; // Salir si no se puede obtener el bloqueo.
   }
-
   const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
   const hojaEntrada = ss.getSheetByName(CONFIG.SHEETS.INPUT);
   if (!hojaEntrada) {
@@ -71,7 +93,7 @@ function evaluarPostulacionesPUCV2() {
 
   const ultimaFila = hojaEntrada.getLastRow();
   if (ultimaFila < 2) {
-    console.log("No hay postulaciones para procesar.");
+    logToWebApp("No hay postulaciones para procesar.");
     return; // No hay datos más allá de la fila de encabezado.
   }
 
@@ -195,40 +217,39 @@ function cargarConfiguracionDesdeHoja() {
   const calcularPuntajeUsoIngles = (fila, tipoPostulante) => {
     let puntaje = 0;
     const contribucion = obtenerValor(fila, CONFIG.COLUMNS.ENGLISH_USE_CONTRIBUTION);
-    const peso = SCORING_PARAMS.UsoIngles.peso[esEstudiante(tipoPostulante) ? "estudiante" : "funcionario"] || 1; // Obtener el peso, default 1
+    const tipoNormalizado = String(tipoPostulante || "").toLowerCase();
+    let peso = 1; // Default
 
-    if (esEstudiante(tipoPostulante)) {
-      // --- NUEVA LÓGICA PARA ESTUDIANTES ---
-      // Lógica basada únicamente en la pregunta abierta existente:
-      // CONFIG.COLUMNS.ENGLISH_USE_CONTRIBUTION
+    if (tipoNormalizado.includes("académico") || tipoNormalizado.includes("postgrado")) {
+      // --- LÓGICA PARA ACADÉMICOS Y POSTGRADOS ---
+      peso = SCORING_PARAMS.UsoIngles.peso.academico;
+      const palabrasClaveAcademicas = ["investigación", "publicar", "paper", "revista", "indexada", "congreso", "ponente", "expositor", "colaboración internacional", "clases", "docencia"];
+      puntaje += contarPalabrasClave(contribucion, palabrasClaveAcademicas) * 0.8;
+      puntaje += 1.0; // Puntaje base alto por el simple hecho de ser un perfil académico/investigador.
 
+    } else if (tipoNormalizado.includes("estudiante") && !tipoNormalizado.includes("postgrado")) {
+      // --- LÓGICA PARA ESTUDIANTES DE PREGRADO ---
+      peso = SCORING_PARAMS.UsoIngles.peso.estudiante;
       if (contribucion.length > 20) { // Puntaje base por dar una respuesta elaborada.
         puntaje += 0.5;
       }
-
-      // Palabras clave de ALTO impacto (objetivos concretos)
       const palabrasClaveAltoImpacto = ["intercambio", "magíster", "doctorado", "postgrado", "investigación", "publicar", "congreso", "pasantía"];
       puntaje += contarPalabrasClave(contribucion, palabrasClaveAltoImpacto) * 0.75; // Más puntos por objetivos claros.
-
-      // Palabras clave de intención GENERAL (motivación)
       const palabrasClaveGenerales = ["oportunidades", "desarrollo", "competitividad", "laboral", "profesional", "herramienta", "bibliografía", "papers", "libros", "comunicarme"];
       puntaje += contarPalabrasClave(contribucion, palabrasClaveGenerales) * 0.25; // Menos puntos, pero captura más casos.
 
     } else {
-      // Lógica Original para Funcionarios/Académicos:
-      // 1. Frecuencia de uso
+      // --- LÓGICA PARA FUNCIONARIOS (Y OTROS) ---
+      peso = SCORING_PARAMS.UsoIngles.peso.funcionario;
       const frecuencia = obtenerValor(fila, CONFIG.COLUMNS.ENGLISH_USE_FREQUENCY).toLowerCase();
       for (const [key, value] of Object.entries(SCORING_PARAMS.UsoIngles.Frecuencia)) {
         if (frecuencia.includes(key)) puntaje += value;
       }
-      // 2. Actividades (con pesos)
       const actividades = obtenerValor(fila, CONFIG.COLUMNS.ENGLISH_USE_ACTIVITIES).toLowerCase();
       for (const [actividad, peso] of Object.entries(SCORING_PARAMS.UsoIngles.Actividades)) {
         if (actividades.includes(actividad)) puntaje += peso;
       }
-      // 3. Proyectos futuros y contribución
       if (esSi(obtenerValor(fila, CONFIG.COLUMNS.ENGLISH_USE_FUTURE_PROJECTS))) puntaje += 1;
-      puntaje += contarPalabrasClave(contribucion, SCORING_PARAMS.UsoIngles.PalabrasClaveContribucion) * SCORING_PARAMS.UsoIngles.PuntajePorPalabraClave;
     }
     
     return Math.min(SCORING_PARAMS.UsoIngles.MaxPuntaje, puntaje) * peso; // Aplicar el peso al puntaje final
@@ -500,6 +521,7 @@ function cargarConfiguracionDesdeHoja() {
   const actualizacionesEstado = [];
 
 
+  logToWebApp(`Iniciando procesamiento de ${datos.length - 1} filas en la hoja '${CONFIG.SHEETS.INPUT}'...`);
   for (let r = 1; r < datos.length; r++) {
     try { // <--- INICIO DEL BLOQUE TRY
       const fila = datos[r];
@@ -507,6 +529,7 @@ function cargarConfiguracionDesdeHoja() {
       // --- OPTIMIZACIÓN: Ignorar filas ya procesadas ---
       if (indiceEstado !== -1 && obtenerValor(fila, COLUMNA_ESTADO_NOMBRE) !== "") {
         continue; // Saltar a la siguiente iteración del bucle
+        // logToWebApp(`Fila ${r + 1} ya procesada, saltando.`); // Demasiado verboso, mejor omitir
       }
 
       // --- Datos Personales ---
@@ -574,14 +597,14 @@ function cargarConfiguracionDesdeHoja() {
     } catch (e) { // <--- INICIO DEL BLOQUE CATCH
       // Si ocurre un error en el bloque 'try', el código salta aquí.
       const numeroFila = r + 1;
-      console.error(`Error al procesar la fila ${numeroFila} de la hoja '${CONFIG.SHEETS.INPUT}'. Causa: ${e.message}`);
-      console.error(`Stack del error: ${e.stack}`); // Información muy útil para depurar
+      logToWebApp(`ERROR al procesar la fila ${numeroFila}: ${e.message}`);
+      // console.error(`Stack del error: ${e.stack}`); // Mantener en console.error para depuración profunda
 
       // Marcar la fila con error en la hoja para revisión manual.
       if (indiceEstado !== -1) {
         actualizacionesEstado.push({ fila: numeroFila, valor: `ERROR: ${e.message}` });
       }
-    } // <--- FIN DEL BLOQUE TRY...CATCH
+    } // <--- FIN DEL BLOQUE TRY...CATCH (para cada fila)
   }
 
   // Si no se procesaron nuevas filas, no hay nada más que hacer.
@@ -589,6 +612,7 @@ function cargarConfiguracionDesdeHoja() {
     console.log("No hay nuevas postulaciones para añadir.");
     lock.releaseLock();
     return;
+    // logToWebApp("No hay nuevas postulaciones para añadir."); // No se devuelve a la UI si no hay nada que hacer
   }
 
   // --- MEJORA: Cargar la configuración desde la hoja ---
@@ -596,8 +620,8 @@ function cargarConfiguracionDesdeHoja() {
   // que los pesos de la hoja afecten el cálculo actual.
   // Lo muevo aquí para que quede claro que afecta a los cálculos que siguen,
   // aunque en la lógica actual se usa para la siguiente ejecución.
-  // Si el objetivo es usar los pesos en ESTA ejecución, esta línea debería ir
-  // ANTES del bucle `for (let r = 1; ...)`
+  logToWebApp("Cargando configuración de pesos desde la hoja...");
+  // Se ejecuta ANTES del bucle para que los pesos afecten esta evaluación.
   cargarConfiguracionDesdeHoja();
 
   let hojaResultados = ss.getSheetByName(CONFIG.SHEETS.OUTPUT);
@@ -607,6 +631,7 @@ function cargarConfiguracionDesdeHoja() {
   } else {
     hojaResultados.clear(); // Si ya existe, la limpia por completo para evitar duplicados.
   }
+  logToWebApp("Escribiendo resultados de la evaluación en la hoja 'Evaluación automatizada'...");
   // Escribe todos los resultados (encabezados + datos) en la hoja limpia.
   hojaResultados.getRange(1, 1, resultados.length, resultados[0].length).setValues(resultados);
 
@@ -616,18 +641,31 @@ function cargarConfiguracionDesdeHoja() {
       hojaEntrada.getRange(actualizacion.fila, indiceEstado + 1).setValue(actualizacion.valor);
     });
   }
+  logToWebApp("Actualizando estados de procesamiento en la hoja de entrada.");
 
   // --- REGENERAR Hoja de Seleccionados y Dashboard ---
   if (resultados.length > 1) {
     const datosPostulantes = resultados.slice(1);
     const indicePuntajeTotal = resultados[0].indexOf("PUNTAJE TOTAL");
 
-    // Ordenar postulantes por puntaje total de mayor a menor
+    // MEJORA: Ordenar postulantes con un criterio de desempate explícito.
+    // 1. Criterio primario: Puntaje total (de mayor a menor).
+    // 2. Criterio secundario (para desempate): Fecha de postulación (de más antigua a más reciente).
+    const indiceFechaPostulacion = resultados[0].indexOf("Fecha de Postulación");
     datosPostulantes.sort((a, b) => {
       const puntajeB = parseFloat(b[indicePuntajeTotal] || 0);
       const puntajeA = parseFloat(a[indicePuntajeTotal] || 0);
-      return puntajeB - puntajeA;
+
+      if (puntajeB !== puntajeA) {
+        return puntajeB - puntajeA; // Ordenar por puntaje si son diferentes.
+      } else {
+        // Si los puntajes son iguales, desempata por fecha.
+        const fechaA = new Date(a[indiceFechaPostulacion]);
+        const fechaB = new Date(b[indiceFechaPostulacion]);
+        return fechaA - fechaB; // La fecha más antigua (menor valor) tendrá prioridad.
+      }
     });
+    logToWebApp("Generando lista de seleccionados (Top 25)...");
 
     // Tomar los mejores 25 (o menos si no hay tantos)
     const top25 = datosPostulantes.slice(0, 25);
@@ -653,6 +691,7 @@ function cargarConfiguracionDesdeHoja() {
     } else {
       hojaSeleccionados.clear();
     }
+    logToWebApp("Escribiendo datos en la hoja 'Seleccionados' y aplicando validaciones.");
 
     if (datosParaHoja.length > 1) {
       const rangoDatos = hojaSeleccionados.getRange(1, 1, datosParaHoja.length, datosParaHoja[0].length);      
@@ -712,14 +751,16 @@ function cargarConfiguracionDesdeHoja() {
     hojaResultados.setConditionalFormatRules(reglas);
   }
 
+  logToWebApp("Generando y actualizando el Dashboard...");
   // Para el dashboard y seleccionados, usamos los 'resultados' que acabamos de calcular.
   generarYActualizarDashboard(resultados, ss, datos, indiceColumnas);
   SpreadsheetApp.flush(); // Asegura que todos los cambios se escriban en la hoja.
 
   // --- MEJORA: Liberar el bloqueo al final de la ejecución ---
+  logToWebApp("Evaluación completada. Liberando bloqueo.");
   // Es fundamental liberar el bloqueo para que la próxima ejecución pueda comenzar.
   lock.releaseLock();
-  console.log("Proceso completado y bloqueo liberado.");
+  // El mensaje final se devuelve para showResult en la Web App
   return `¡Evaluación completada! Se procesaron ${resultados.length - 1} nuevas postulaciones. Las hojas "Evaluación automatizada", "Seleccionados" y "Dashboard" han sido actualizadas.`;
 }
 
@@ -742,10 +783,12 @@ function _columnaALetra(columna) {
  * en los pesos de SCORING_PARAMS para mejorar el equilibrio entre perfiles.
  */
 function getAnalysisReport() {
+  logToWebApp("Iniciando análisis de equilibrio del ranking...");
   // MEJORA: Envolver toda la lógica en un try...catch para devolver errores claros a la Web App.
   try {
     const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
     const hojaSeleccionados = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
+    logToWebApp("Accediendo a la hoja 'Seleccionados'...");
     const hojaEvaluacion = ss.getSheetByName(CONFIG.SHEETS.OUTPUT);
 
     if (!hojaSeleccionados || !hojaEvaluacion) {
@@ -758,6 +801,7 @@ function getAnalysisReport() {
     const totalSeleccionados = datosSeleccionados.length;
 
     if (totalSeleccionados === 0) {
+      logToWebApp("No hay datos en la hoja 'Seleccionados' para analizar.");
       return "No hay datos. La hoja 'Seleccionados' está vacía.";
     }
 
@@ -929,6 +973,7 @@ function getAnalysisReport() {
       }
     });
 
+    logToWebApp("Análisis completado.");
     return lineasAnalisis.join('\n');
 
   } catch (e) {
@@ -967,6 +1012,7 @@ function ejecutarAnalisisDesdeWebApp() {
  * Devuelve un mensaje de confirmación.
  */
 function ejecutarEnvioCorreosDesdeWebApp() {
+  logToWebApp("Iniciando proceso de envío de correos a seleccionados...");
   const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
   const hojaSeleccionados = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
   if (!hojaSeleccionados) {
@@ -984,7 +1030,7 @@ function ejecutarEnvioCorreosDesdeWebApp() {
   }
 
   datos.forEach(fila => {
-    const nombre = fila[indiceNombre];
+    const nombre = fila[indiceNombre] || "Postulante";
     const correo = fila[indiceCorreo];
     
     // MEJORA: Usar plantilla HTML para el correo.
@@ -994,10 +1040,10 @@ function ejecutarEnvioCorreosDesdeWebApp() {
 
     const asunto = "¡Felicitaciones! Has sido seleccionado para el Programa de Inglés PUCV";
     
-    // MailApp.sendEmail({ to: correo, subject: asunto, htmlBody: cuerpoHtml }); // DESCOMENTAR PARA ENVIAR
-    console.log(`Correo HTML de selección preparado para ${nombre} a ${correo}`); // Para pruebas
+    // MailApp.sendEmail({ to: correo, subject: asunto, htmlBody: cuerpoHtml }); // DESCOMENTAR PARA ENVIAR CORREOS REALES
+    logToWebApp(`Preparando correo para ${nombre} (${correo})...`); // Para pruebas
   });
-
+  logToWebApp("Todos los correos han sido preparados (o enviados si está descomentado).");
   const mensajeConfirmacion = `Proceso de envío iniciado para ${datos.length} postulantes. Revisa los registros para ver el progreso.`;
   console.log(mensajeConfirmacion); // Log para el servidor
   return mensajeConfirmacion; // Mensaje para el cliente (la web app)
@@ -1010,19 +1056,20 @@ function ejecutarEnvioCorreosDesdeWebApp() {
  */
 function forceReauthorization() {
   try {
+    logToWebApp("Verificando permisos de script...");
     // 1. Forzar permiso para acceder a hojas de cálculo por ID
     const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
-    console.log(`Acceso exitoso a la hoja: ${ss.getName()}`);
+    logToWebApp(`Acceso exitoso a la hoja: ${ss.getName()}`);
 
     // 2. Forzar permiso para enviar correos
     MailApp.sendEmail(Session.getActiveUser().getEmail(), "Prueba de Permisos de Script", "Este es un correo de prueba para verificar los permisos. No es necesario responder.");
-    console.log("Permiso para enviar correos verificado.");
+    logToWebApp("Permiso para enviar correos verificado.");
 
     // 3. Forzar permiso para LockService
     const lock = LockService.getScriptLock();
-    console.log("Permiso para LockService verificado.");
+    logToWebApp("Permiso para LockService verificado.");
 
-    SpreadsheetApp.getUi().alert("¡Éxito! Todos los permisos necesarios han sido verificados.");
+    // SpreadsheetApp.getUi().alert("¡Éxito! Todos los permisos necesarios han sido verificados."); // No usar getUi() en Web App context
   } catch (e) { /* Ignoramos el error de getUi() que es esperado en el editor */ }
 }
 
@@ -1033,11 +1080,12 @@ function forceReauthorization() {
  */
 function forceWebAppPermissions() {
   try {
+    logToWebApp("Verificando permisos de la Web App...");
     const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
     MailApp.sendEmail(Session.getActiveUser().getEmail(), "Prueba de Permisos de Web App", "Los permisos de la Web App han sido verificados exitosamente.");
     return `¡Éxito! Se ha verificado el acceso a la hoja de cálculo '${ss.getName()}' y se ha enviado un correo de prueba a tu cuenta. Ahora puedes usar las otras funciones.`;
   } catch (e) {
-    console.error(`Error en forceWebAppPermissions: ${e.toString()}`);
+    logToWebApp(`ERROR en forceWebAppPermissions: ${e.toString()}`);
     return `FALLO LA VERIFICACIÓN DE PERMISOS.\n\nCausa: ${e.toString()}\n\nEsto usualmente significa que el SHEET_ID en el objeto CONFIG es incorrecto o no tienes acceso a esa hoja. Por favor, verifica el ID y tus permisos de Google Drive.`;
   }
 }
@@ -1049,6 +1097,7 @@ function forceWebAppPermissions() {
  * @param {Object} e El objeto de evento de la edición.
  */
 function gestionarListaDeEspera(e) {
+  // Esta función es un onEdit trigger, no se llama desde la Web App directamente.
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const hojaActiva = ss.getActiveSheet();
@@ -1071,7 +1120,7 @@ function gestionarListaDeEspera(e) {
       return;
     }
 
-    console.log(`Rechazo detectado en la fila ${filaEditada}. Iniciando proceso de lista de espera.`);
+    SpreadsheetApp.getUi().alert(`Rechazo detectado en la fila ${filaEditada}. Iniciando proceso de lista de espera.`);
 
     // 3. Obtener todos los postulantes evaluados y los ya seleccionados
     const hojaEvaluacion = ss.getSheetByName(CONFIG.SHEETS.OUTPUT);
@@ -1104,7 +1153,7 @@ function gestionarListaDeEspera(e) {
     }
 
     if (!siguienteCandidato) {
-      console.log("No hay más candidatos en la lista de espera.");
+      // console.log("No hay más candidatos en la lista de espera."); // Ya se usa alert
       SpreadsheetApp.getUi().alert("No hay más candidatos disponibles en la lista de espera.");
       return;
     }
@@ -1124,7 +1173,7 @@ function gestionarListaDeEspera(e) {
     ];
 
     hojaSeleccionados.appendRow(nuevaFila);
-    console.log(`Nuevo candidato '${siguienteCandidato[indiceCorreoEvaluacion]}' añadido a la lista con ranking ${nuevoRanking}.`);
+    // console.log(`Nuevo candidato '${siguienteCandidato[indiceCorreoEvaluacion]}' añadido a la lista con ranking ${nuevoRanking}.`); // Ya se usa alert
 
     // 6. Enviar correo de notificación al nuevo candidato
     const nombreNuevoCandidato = siguienteCandidato[encabezadosEvaluacion.indexOf("Nombre(s)")];
@@ -1136,9 +1185,8 @@ function gestionarListaDeEspera(e) {
     const cuerpoHtml = plantilla.evaluate().getContent();
 
     const asunto = "Oportunidad en el Programa de Inglés PUCV: ¡Un cupo se ha liberado!";
-    
-    // MailApp.sendEmail({ to: correoNuevoCandidato, subject: asunto, htmlBody: cuerpoHtml }); // DESCOMENTAR PARA ENVIAR
-    console.log(`Correo HTML de lista de espera preparado para ${nombreNuevoCandidato} a ${correoNuevoCandidato}`);
+    // MailApp.sendEmail({ to: correoNuevoCandidato, subject: asunto, htmlBody: cuerpoHtml }); // DESCOMENTAR PARA ENVIAR CORREOS REALES
+    // console.log(`Correo HTML de lista de espera preparado para ${nombreNuevoCandidato} a ${correoNuevoCandidato}`); // Ya se usa alert
 
     SpreadsheetApp.getUi().alert(`¡Proceso completado! Se ha añadido a '${nombreNuevoCandidato}' desde la lista de espera y se le ha notificado.`);
 
@@ -1155,6 +1203,7 @@ function gestionarListaDeEspera(e) {
  */
 function generarListaFinalCurso() {
   try {
+    logToWebApp("Iniciando generación de la lista final del curso...");
     const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
     const hojaSeleccionados = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
 
@@ -1185,6 +1234,7 @@ function generarListaFinalCurso() {
     });
 
     if (listaFinal.length === 0) {
+      logToWebApp("No hay postulantes que hayan aceptado y tengan un nivel asignado para generar la lista final.");
       // Devolver un mensaje en lugar de usar getUi()
       return "No se generó la lista: No hay postulantes que hayan aceptado y tengan un nivel asignado.";
     }
@@ -1197,6 +1247,7 @@ function generarListaFinalCurso() {
       if (nivelA > nivelB) return 1;
       return 0;
     });
+    logToWebApp(`Se encontraron ${listaFinal.length} participantes confirmados.`);
 
     // 3. Preparar los datos para la nueva hoja
     const encabezadosFinales = ["Nivel Asignado", "Apellido(s)", "Nombre(s)", "Correo Electrónico", "RUT", "Categoría Postulante"];
@@ -1210,13 +1261,14 @@ function generarListaFinalCurso() {
     ]);
 
     // 4. Crear/Limpiar y escribir en la hoja "Lista Final Curso"
+    logToWebApp("Creando/actualizando la hoja 'Lista Final Curso'...");
     let hojaFinal = ss.getSheetByName(CONFIG.SHEETS.FINAL_LIST);
     if (!hojaFinal) hojaFinal = ss.insertSheet(CONFIG.SHEETS.FINAL_LIST);
     hojaFinal.clear();
     hojaFinal.getRange(1, 1, 1, encabezadosFinales.length).setValues([encabezadosFinales]).setFontWeight("bold");
     hojaFinal.getRange(2, 1, datosParaHoja.length, datosParaHoja[0].length).setValues(datosParaHoja);
     hojaFinal.autoResizeColumns(1, encabezadosFinales.length);
-
+    logToWebApp("Lista final del curso generada exitosamente.");
     // Devolver un mensaje de éxito en lugar de usar getUi()
     return `¡Éxito! Se ha generado la "Lista Final Curso" con ${listaFinal.length} participantes.`;
 
@@ -1224,5 +1276,203 @@ function generarListaFinalCurso() {
     console.error(`Error en generarListaFinalCurso: ${e.toString()}`);
     // Devolver el mensaje de error para que se muestre en la Web App
     return `Error al generar la lista final: ${e.message}`;
+  }
+}
+
+/**
+ * Obtiene los datos de los postulantes seleccionados y la lista de espera.
+ * @returns {object} Un objeto con dos arrays: 'seleccionados' y 'listaDeEspera'.
+ */
+function getSelectionData() {
+  try {
+    const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
+    const hojaSeleccionados = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
+    const hojaEvaluacion = ss.getSheetByName(CONFIG.SHEETS.OUTPUT);
+
+    if (!hojaSeleccionados || !hojaEvaluacion) {
+      throw new Error("No se encontraron las hojas 'Seleccionados' o 'Evaluación automatizada'.");
+    }
+
+    // --- Obtener Seleccionados ---
+    const datosSeleccionados = hojaSeleccionados.getDataRange().getValues();
+    const encabezadosSeleccionados = datosSeleccionados.shift();
+    const getIndiceSel = (nombre) => encabezadosSeleccionados.indexOf(nombre);
+    
+    const seleccionados = datosSeleccionados.map(fila => ({
+      ranking: fila[getIndiceSel("Ranking")],
+      nombre: fila[getIndiceSel("Nombre(s)")],
+      apellidos: fila[getIndiceSel("Apellido(s)")],
+      correo: fila[getIndiceSel("Correo Electrónico")],
+      puntaje: fila[getIndiceSel("PUNTAJE TOTAL")],
+      enlaceCertificado: fila[getIndiceSel("Enlace Certificado")],
+      verificacion: fila[getIndiceSel("Verificación Certificado")],
+      nivel: fila[getIndiceSel("Nivel Asignado")]
+    }));
+
+    const correosSeleccionados = new Set(seleccionados.map(s => s.correo));
+
+    // --- Obtener Lista de Espera ---
+    const datosEvaluacion = hojaEvaluacion.getDataRange().getValues();
+    const encabezadosEvaluacion = datosEvaluacion.shift();
+    const getIndiceEval = (nombre) => encabezadosEvaluacion.indexOf(nombre);
+
+    const todosLosPostulantes = datosEvaluacion.map(fila => ({
+      nombre: fila[getIndiceEval("Nombre(s)")],
+      apellidos: fila[getIndiceEval("Apellido(s)")],
+      correo: fila[getIndiceEval("Correo Electrónico")],
+
+      puntaje: fila[getIndiceEval("PUNTAJE TOTAL")]
+    })).sort((a, b) => b.puntaje - a.puntaje); // Ordenar por puntaje descendente
+
+    const listaDeEspera = todosLosPostulantes
+      .filter(p => !correosSeleccionados.has(p.correo))
+      .slice(0, 15); // Tomar los siguientes 15 como lista de espera
+
+    // --- Calcular Estadísticas ---
+    const totalSeleccionados = seleccionados.length;
+    // CORRECCIÓN: Convertir los puntajes a números (float) antes de sumarlos.
+    const puntajesSeleccionados = seleccionados.map(s => parseFloat(s.puntaje || 0));
+    const sumaPuntajes = puntajesSeleccionados.reduce((a, b) => a + b, 0);
+    const puntajePromedioSeleccionados = totalSeleccionados > 0 ? sumaPuntajes / totalSeleccionados : 0;
+
+    // Agrupar por tipo de postulante y calcular puntaje promedio
+    const tiposPostulantes = {};
+    datosEvaluacion.forEach(fila => {
+      const tipo = fila[getIndiceEval("Categoría Postulante")] || "No especificado";
+      const puntaje = fila[getIndiceEval("PUNTAJE TOTAL")];
+      if (!tiposPostulantes[tipo]) {
+        tiposPostulantes[tipo] = {
+          sumaPuntajes: 0,
+          cantidad: 0
+        };
+      }
+      tiposPostulantes[tipo].sumaPuntajes += parseFloat(puntaje || 0); // Asegurarse de sumar números
+      tiposPostulantes[tipo].cantidad++;
+    });
+
+    const promediosPorTipo = {};
+    for (const tipo in tiposPostulantes) {
+      promediosPorTipo[tipo] = tiposPostulantes[tipo].sumaPuntajes / tiposPostulantes[tipo].cantidad;
+    }
+
+    // Calcular total de postulantes
+    const totalPostulantes = datosEvaluacion.length;
+
+    // --- MEJORA: Calcular puntajes promedio por categoría y perfil ---
+    const promediosPorPerfilYCategoria = {
+      "Estudiante de pregrado": {},
+      "Funcionario": {},
+      "Académico": {},
+      "Estudiante de postgrado": {}
+    };
+
+    // Inicializar contadores y sumas
+    for (const perfil in promediosPorPerfilYCategoria) {
+      promediosPorPerfilYCategoria[perfil].count = 0;
+      promediosPorPerfilYCategoria[perfil].puntajes = {
+        "Uso Inglés": 0,
+        "Internacionalización": 0,
+        "Año Ingreso": 0,
+        "Nivel Inglés": 0
+      };
+    }
+
+    datosEvaluacion.forEach(fila => {
+      const tipo = fila[getIndiceEval("Categoría Postulante")] || "No especificado";
+      // Usamos una lógica simplificada para agrupar en los perfiles principales
+      // CORRECCIÓN: La lógica estaba invertida. Ahora busca si el tipo de postulante incluye la primera palabra de la clave del perfil.
+      // CORRECCIÓN 2: Se busca por la palabra clave completa del perfil para diferenciar "Estudiante de pregrado" de "Estudiante de postgrado".
+      const tipoLower = tipo.toLowerCase();
+      let perfil = Object.keys(promediosPorPerfilYCategoria).find(p => tipoLower.includes(p.toLowerCase()));
+      if (!perfil) return; // Ignorar otros perfiles como Alumni, etc.
+
+      promediosPorPerfilYCategoria[perfil].count++;
+      promediosPorPerfilYCategoria[perfil].puntajes["Uso Inglés"] += parseFloat(fila[getIndiceEval("Puntaje Uso Inglés")] || 0);
+      promediosPorPerfilYCategoria[perfil].puntajes["Internacionalización"] += parseFloat(fila[getIndiceEval("Puntaje Intl.")] || 0);
+      promediosPorPerfilYCategoria[perfil].puntajes["Año Ingreso"] += parseFloat(fila[getIndiceEval("Puntaje Año Ingreso")] || 0);
+      promediosPorPerfilYCategoria[perfil].puntajes["Nivel Inglés"] += parseFloat(fila[getIndiceEval("Puntaje Nivel Inglés")] || 0);
+    });
+
+    for (const perfil in promediosPorPerfilYCategoria) {
+      if (promediosPorPerfilYCategoria[perfil].count > 0) {
+        for (const cat in promediosPorPerfilYCategoria[perfil].puntajes) {
+          promediosPorPerfilYCategoria[perfil].puntajes[cat] /= promediosPorPerfilYCategoria[perfil].count;
+        }
+      }
+    }
+
+    return {
+      seleccionados,
+      listaDeEspera,
+      estadisticas: {
+        totalSeleccionados,
+        puntajePromedioSeleccionados,
+        promediosPorTipo,
+        totalPostulantes,
+        analisisDetallado: promediosPorPerfilYCategoria
+      }
+    };
+
+
+
+  } catch (e) {
+    console.error(`Error en getSelectionData: ${e.toString()}`);
+    // Devolver un objeto de error que el cliente pueda interpretar
+    return { error: `Error al obtener los datos: ${e.message}` };
+  }
+}
+
+/**
+ * Actualiza el estado de un postulante en la hoja "Seleccionados".
+ * @param {string} correo El correo del postulante a actualizar.
+ * @param {string} verificacion El nuevo estado de "Verificación Certificado".
+ * @param {string} nivel El nuevo "Nivel Asignado".
+ * @returns {string} Un mensaje de éxito o error.
+ */
+function updateApplicantStatus(correo, verificacion, nivel) {
+  try {
+    if (!correo) {
+      throw new Error("El correo del postulante es requerido.");
+    }
+
+    const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
+    const hojaSeleccionados = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
+    if (!hojaSeleccionados) {
+      throw new Error(`La hoja "${CONFIG.SHEETS.SELECTED}" no fue encontrada.`);
+    }
+
+    const datos = hojaSeleccionados.getDataRange().getValues();
+    const encabezados = datos[0];
+    const indiceCorreo = encabezados.indexOf("Correo Electrónico");
+    const indiceVerificacion = encabezados.indexOf("Verificación Certificado");
+    const indiceNivel = encabezados.indexOf("Nivel Asignado");
+
+    if (indiceCorreo === -1 || indiceVerificacion === -1 || indiceNivel === -1) {
+      throw new Error("Una o más columnas requeridas no se encontraron en la hoja 'Seleccionados'.");
+    }
+
+    // Encontrar la fila del postulante
+    let filaEncontrada = -1;
+    for (let i = 1; i < datos.length; i++) {
+      if (datos[i][indiceCorreo] === correo) {
+        filaEncontrada = i + 1; // Las filas en Sheets son base 1
+        break;
+      }
+    }
+
+    if (filaEncontrada === -1) {
+      throw new Error(`No se encontró al postulante con el correo: ${correo}`);
+    }
+
+    // Actualizar los valores en la hoja
+    hojaSeleccionados.getRange(filaEncontrada, indiceVerificacion + 1).setValue(verificacion);
+    hojaSeleccionados.getRange(filaEncontrada, indiceNivel + 1).setValue(nivel);
+
+    logToWebApp(`Estado actualizado para ${correo}: Verificación='${verificacion}', Nivel='${nivel}'`);
+    return `Estado actualizado exitosamente para ${correo}.`;
+
+  } catch (e) {
+    console.error(`Error en updateApplicantStatus: ${e.toString()}`);
+    return `Error al actualizar: ${e.message}`;
   }
 }

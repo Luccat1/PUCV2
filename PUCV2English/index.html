@@ -2,6 +2,8 @@
 <html>
   <head>
     <base target="_top">
+    <!-- CORRECCIÓN: Mover la importación de Chart.js fuera de la etiqueta <style> y dentro del <head> -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
 
@@ -15,7 +17,8 @@
         padding: 20px;
       }
       .container {
-        max-width: 800px;
+        /* MEJORA: Aumentar el ancho máximo para dar más espacio a las tablas y el gráfico */
+        max-width: 1200px;
         width: 100%;
         background-color: #ffffff;
         padding: 30px;
@@ -45,12 +48,54 @@
       button:hover:not(:disabled) { background-color: #003366; transform: translateY(-1px); }
       button:disabled { background-color: #cccccc; cursor: not-allowed; }
       #output { margin-top: 25px; white-space: pre-wrap; background-color: #f8f9fa; border: 1px solid #e0e0e0; border-left: 4px solid #0055a2; padding: 15px; font-family: 'Courier New', Courier, monospace; min-height: 100px; line-height: 1.5; border-radius: 4px; }
+      
+      /* Estilos para las nuevas tablas */
+      table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+      th, td { padding: 10px 12px; border: 1px solid #ddd; text-align: left; font-size: 14px; }
+      th { background-color: #e9f2fa; color: #003366; font-weight: 500; }
+      tr:nth-child(even) { background-color: #f9f9f9; }
+      td a { color: #0055a2; text-decoration: none; }
+      td a:hover { text-decoration: underline; }
+      select { padding: 5px; border-radius: 4px; border: 1px solid #ccc; width: 100%; }
+      .save-btn {
+        background-color: #28a745;
+        font-size: 12px;
+        padding: 6px 12px;
+        width: 100%;
+      }
+      .save-btn:hover:not(:disabled) { background-color: #218838; }
+      .status-indicator {
+        display: inline-block;
+        margin-left: 8px;
+        color: green;
+      }
+      .stats-container {
+        margin-top: 20px;
+        padding: 15px;
+        border: 1px solid #ddd;
+      }
       .loader { display: none; margin-top: 20px; text-align: center; font-style: italic; color: #555; }
     </style>
   </head>
   <body>
     <div class="container">
-      <h1>Panel de Control - Evaluación PUCV</h1>
+      <h1>Panel de Control - Evaluación PUCV2English</h1>
+
+      <!-- Nueva sección para la gestión de postulantes -->
+      <h2>Estadísticas</h2>
+      <div id="stats-container">
+        Cargando estadísticas...
+      </div>
+      <h2>Gestión de Postulantes</h2>
+      <div id="applicant-loader">Cargando datos de postulantes...</div>
+      <h3>Postulantes Seleccionados</h3>
+      <div id="seleccionados-table-container"></div>
+      <h3>Lista de Espera</h3>
+      <div id="espera-table-container"></div>
+      <h3>Análisis Detallado de Puntajes</h3>
+      <div id="analisis-detallado-container"></div>
+      <h3>Gráfico Comparativo de Puntajes</h3>
+      <canvas id="grafico-perfiles" style="margin-top: 20px;"></canvas>
 
       <h2>Funciones Principales</h2>
       <div class="button-group">
@@ -69,6 +114,11 @@
     </div>
 
     <script>
+      // --- Carga inicial de datos ---
+      document.addEventListener('DOMContentLoaded', function() {
+        loadApplicantData();
+      });
+
       // Función para controlar el estado de carga y deshabilitar botones
       function setLoading(isLoading) {
         document.getElementById('loader').style.display = isLoading ? 'block' : 'none';
@@ -83,15 +133,200 @@
       }
 
       // Función para mostrar el resultado exitoso en el cuadro de salida
-      function showResult(resultText) {
-        document.getElementById('output').textContent = resultText;
-        setLoading(false);
+      function showResult(resultText) { // resultText es el mensaje final de la función del servidor
+        clearInterval(logIntervalId); // Detener el polling de logs
+        google.script.run.withSuccessHandler(function(finalLogs) { // Obtener logs restantes y mostrar el resultado final
+          appendLogs(finalLogs);
+          appendLogs([resultText]); // Añadir el mensaje final
+          setLoading(false);
+        }).getWebAppLogs();
       }
 
       // Función para mostrar un error en el cuadro de salida
-      function showError(error) {
-        document.getElementById('output').textContent = "Error de comunicación con el script: " + error.message;
+      function showError(error) { // error es el objeto de error de google.script.run
+        clearInterval(logIntervalId); // Detener el polling de logs
+        google.script.run.withSuccessHandler(function(finalLogs) { // Obtener logs restantes y mostrar el error
+          appendLogs(finalLogs);
+          appendLogs(["ERROR: " + error.message]); // Añadir el mensaje de error
+          setLoading(false);
+        }).getWebAppLogs();
+      }
+
+      // Función para añadir logs al div de salida
+      function appendLogs(logs) {
+        const outputDiv = document.getElementById('output');
+        logs.forEach(log => {
+          outputDiv.textContent += '\n' + log;
+        });
+        outputDiv.scrollTop = outputDiv.scrollHeight; // Desplazar al final
         setLoading(false);
+      }
+
+      // Variable para almacenar el ID del intervalo de logs
+      let logIntervalId;
+
+      // Función para obtener logs del servidor
+      function fetchLogs() {
+        google.script.run.withSuccessHandler(appendLogs).getWebAppLogs();
+      }
+
+      // --- Nuevas funciones para la gestión interactiva ---
+
+      function loadApplicantData() {
+        document.getElementById('applicant-loader').style.display = 'block';
+
+        google.script.run.withSuccessHandler(renderTables).withFailureHandler(showError).getSelectionData();
+      }
+
+      function renderTables(data) {
+        if (data.error) {
+          document.getElementById('seleccionados-table-container').innerHTML = `<p style="color: red;">${data.error}</p>`;
+          document.getElementById('applicant-loader').style.display = 'none';
+
+          return;
+        }
+
+        // Renderizar tabla de seleccionados
+        const selContainer = document.getElementById('seleccionados-table-container');
+        let selTable = '<table><tr><th>Ranking</th><th>Postulante</th><th>Puntaje</th><th>Certificado</th><th>Verificación</th><th>Nivel Asignado</th><th>Acción</th></tr>';
+        data.seleccionados.forEach(p => {
+          selTable += `
+            <tr id="row-${p.correo.replace(/[@.]/g, '')}">
+              <td>${p.ranking}</td>
+              <td>${p.nombre} ${p.apellidos}</td>
+              <td>${p.puntaje}</td>
+              <td><a href="${p.enlaceCertificado}" target="_blank">Revisar Doc</a></td>
+              <td>
+                <select id="verif-${p.correo.replace(/[@.]/g, '')}">
+                  <option value="" ${p.verificacion === '' ? 'selected' : ''}>- Seleccionar -</option>
+                  <option value="Válido" ${p.verificacion === 'Válido' ? 'selected' : ''}>Válido</option>
+                  <option value="Test de nivel" ${p.verificacion === 'Test de nivel' ? 'selected' : ''}>Test de nivel</option>
+                </select>
+              </td>
+              <td>
+                <select id="nivel-${p.correo.replace(/[@.]/g, '')}">
+                  <option value="" ${p.nivel === '' ? 'selected' : ''}>- Asignar -</option>
+                  <option value="B1+" ${p.nivel === 'B1+' ? 'selected' : ''}>B1+</option>
+                  <option value="B2.1" ${p.nivel === 'B2.1' ? 'selected' : ''}>B2.1</option>
+                  <option value="B2.2" ${p.nivel === 'B2.2' ? 'selected' : ''}>B2.2</option>
+                  <option value="C1" ${p.nivel === 'C1' ? 'selected' : ''}>C1</option>
+                </select>
+              </td>
+              <td>
+                <button class="save-btn" onclick="saveStatus('${p.correo}')">Guardar</button>
+                <span class="status-indicator" id="status-${p.correo.replace(/[@.]/g, '')}"></span>
+              </td>
+            </tr>
+          `;
+        });
+        selContainer.innerHTML = selTable + '</table>';
+
+        // Renderizar tabla de lista de espera
+        const esperaContainer = document.getElementById('espera-table-container');
+        let esperaTable = '<table><tr><th>#</th><th>Postulante</th><th>Puntaje</th></tr>';
+        data.listaDeEspera.forEach((p, index) => {
+          esperaTable += `
+            <tr>
+              <td>${index + 1}</td>
+              <td>${p.nombre} ${p.apellidos}</td>
+              <td>${p.puntaje}</td>
+            </tr>
+          `;
+        });
+        esperaContainer.innerHTML = esperaTable + '</table>';
+
+
+        // Renderizar estadísticas
+        const statsContainer = document.getElementById('stats-container');
+        if (data.estadisticas) {
+          let statsHTML = `<p><b>Total de postulantes evaluados:</b> ${data.estadisticas.totalPostulantes}</p>`;
+          statsHTML += `<p><b>Total de seleccionados (Top 25):</b> ${data.estadisticas.totalSeleccionados}</p>`;
+          statsHTML += `<p><b>Puntaje promedio de seleccionados:</b> ${data.estadisticas.puntajePromedioSeleccionados.toFixed(2)}</p>`;
+          statsHTML += `<p><b>Promedio de puntaje por tipo de postulante (sobre el total):</b></p><ul>`;
+
+          for (const tipo in data.estadisticas.promediosPorTipo) {
+            statsHTML += `<li>${tipo}: ${data.estadisticas.promediosPorTipo[tipo].toFixed(2)}</li>`;
+          }
+          statsHTML += `</ul>`;
+          statsContainer.innerHTML = statsHTML;
+        }
+
+        // Renderizar tabla de análisis detallado
+        const analisisContainer = document.getElementById('analisis-detallado-container');
+        if (data.estadisticas && data.estadisticas.analisisDetallado) {
+          const analisis = data.estadisticas.analisisDetallado;
+          let analisisTable = '<table><tr><th>Perfil</th><th>Puntaje Prom. Uso Inglés</th><th>Puntaje Prom. Intl.</th><th>Puntaje Prom. Año Ingreso</th><th>Puntaje Prom. Nivel Inglés</th></tr>';
+          
+          for (const perfil in analisis) {
+            if (analisis[perfil].count > 0) {
+              analisisTable += `
+                <tr>
+                  <td><b>${perfil}</b> (${analisis[perfil].count} postulantes)</td>
+                  <td>${analisis[perfil].puntajes['Uso Inglés'].toFixed(2)}</td>
+                  <td>${analisis[perfil].puntajes['Internacionalización'].toFixed(2)}</td>
+                  <td>${analisis[perfil].puntajes['Año Ingreso'].toFixed(2)}</td>
+                  <td>${analisis[perfil].puntajes['Nivel Inglés'].toFixed(2)}</td>
+                </tr>`;
+            }
+          }
+          analisisContainer.innerHTML = analisisTable + '</table>';
+        }
+
+        // Renderizar gráfico de barras
+        const ctx = document.getElementById('grafico-perfiles').getContext('2d');
+        if (window.myChart) {
+          window.myChart.destroy(); // Destruir gráfico anterior si existe
+        }
+        if (data.estadisticas && data.estadisticas.analisisDetallado) {
+          const analisis = data.estadisticas.analisisDetallado;
+          const labels = Object.keys(analisis).filter(p => analisis[p].count > 0);
+          const dataPoints = labels.map(p => {
+            const puntajes = analisis[p].puntajes;
+            // Sumar todos los puntajes promedio para obtener un total comparable
+            return Object.values(puntajes).reduce((sum, val) => sum + val, 0);
+          });
+
+          window.myChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: labels,
+              datasets: [{
+                label: 'Suma de Puntajes Promedio por Categoría',
+                data: dataPoints,
+                backgroundColor: 'rgba(0, 85, 162, 0.7)',
+                borderColor: 'rgba(0, 51, 102, 1)',
+                borderWidth: 1
+              }]
+            }
+          });
+        }
+
+        // Ocultar el loader una vez que todo se ha renderizado
+        document.getElementById('applicant-loader').style.display = 'none';
+      }
+
+
+      function saveStatus(correo) {
+        const cleanCorreoId = correo.replace(/[@.]/g, '');
+        const verificacion = document.getElementById(`verif-${cleanCorreoId}`).value;
+        const nivel = document.getElementById(`nivel-${cleanCorreoId}`).value;
+        const statusIndicator = document.getElementById(`status-${cleanCorreoId}`);
+
+        statusIndicator.textContent = 'Guardando...';
+
+        google.script.run
+          .withSuccessHandler(function(response) {
+            statusIndicator.textContent = '✔';
+            // Opcional: mostrar el mensaje de respuesta en el log principal
+            appendLogs([response]);
+            setTimeout(() => { statusIndicator.textContent = ''; }, 2000);
+          })
+          .withFailureHandler(function(error) {
+            statusIndicator.textContent = '✖';
+            showError(error);
+            setTimeout(() => { statusIndicator.textContent = ''; }, 3000);
+          })
+          .updateApplicantStatus(correo, verificacion, nivel);
       }
 
       // --- Funciones que llaman al código del servidor ---
@@ -99,6 +334,7 @@
       function runPermissionCheck() {
         setLoading(true);
         google.script.run
+          .withSuccessHandler(showResult) // showResult ahora maneja el mensaje final
           .withSuccessHandler(showResult)
           .withFailureHandler(showError)
           .forceWebAppPermissions();
@@ -107,6 +343,7 @@
       function runAnalysis() {
         setLoading(true);
         google.script.run
+          .withSuccessHandler(showResult) // showResult ahora maneja el mensaje final
           .withSuccessHandler(showResult)
           .withFailureHandler(showError)
           .ejecutarAnalisisDesdeWebApp();
@@ -117,6 +354,7 @@
           return;
         }
         setLoading(true);
+        logIntervalId = setInterval(fetchLogs, 1500); // Iniciar polling cada 1.5 segundos
         google.script.run
           .withSuccessHandler(showResult)
           .withFailureHandler(showError)
@@ -125,14 +363,26 @@
 
       function runEvaluation() {
         setLoading(true);
+        // Limpiar tablas antes de re-evaluar
+        document.getElementById('seleccionados-table-container').innerHTML = '';
+        document.getElementById('espera-table-container').innerHTML = '';
+
+        logIntervalId = setInterval(fetchLogs, 1500); // Iniciar polling cada 1.5 segundos
         google.script.run
-          .withSuccessHandler(showResult)
+          .withSuccessHandler(function(resultText) {
+            // Primero, muestra el resultado final de la evaluación.
+            showResult(resultText);
+            // Luego, una vez que se muestran los logs, recarga automáticamente los datos de los postulantes.
+            appendLogs(["\nActualizando listas de postulantes..."]);
+            loadApplicantData();
+          })
           .withFailureHandler(showError)
-          .evaluarPostulacionesPUCV2(); // Llama directamente a la función del servidor
+          .evaluarPostulacionesPUCV2();
       }
 
       function runGenerateFinalList() {
         setLoading(true);
+        logIntervalId = setInterval(fetchLogs, 1500); // Iniciar polling cada 1.5 segundos
         google.script.run
           .withSuccessHandler(showResult)
           .withFailureHandler(showError)
