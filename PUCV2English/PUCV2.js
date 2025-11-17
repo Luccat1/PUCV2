@@ -1007,6 +1007,20 @@ function ejecutarAnalisisDesdeWebApp() {
   return getAnalysisReport();
 }
 
+const PROGRAM_DATA = {
+  FECHA_LIMITE: "domingo 3 de agosto a las 23:59 h",
+  FECHA_INICIO: "18 de agosto de 2025",
+  FECHA_TERMINO: "12 de diciembre de 2025",
+  HORARIOS: {
+    "B1+": { catedra: "Lunes y Miércoles 14:00-15:30", ayudantia: "Viernes 14:00-15:00" },
+    "B2.1": { catedra: "Martes y Jueves 10:00-11:30", ayudantia: "Viernes 10:00-11:00" },
+    "B2.2": { catedra: "Martes y Jueves 14:00-15:30", ayudantia: "Viernes 15:00-16:00" },
+    "C1": { catedra: "Lunes y Miércoles 16:00-17:30", ayudantia: "Viernes 16:00-17:00" },
+    "Default": { catedra: "[Horario por confirmar]", ayudantia: "[Horario por confirmar]" }
+  }
+};
+
+
 /**
  * Esta función es llamada desde el HTML para ejecutar el envío de correos.
  * Devuelve un mensaje de confirmación.
@@ -1024,21 +1038,33 @@ function ejecutarEnvioCorreosDesdeWebApp() {
 
   const indiceNombre = encabezados.indexOf("Nombre(s)");
   const indiceCorreo = encabezados.indexOf("Correo Electrónico");
+  const indiceNivel = encabezados.indexOf("Nivel Asignado");
 
-  if (indiceNombre === -1 || indiceCorreo === -1) {
-    return "Error: No se encontraron las columnas 'Nombre(s)' o 'Correo Electrónico' en la hoja 'Seleccionados'.";
+  if (indiceNombre === -1 || indiceCorreo === -1 || indiceNivel === -1) {
+    return "Error: No se encontraron las columnas 'Nombre(s)', 'Correo Electrónico' o 'Nivel Asignado' en la hoja 'Seleccionados'.";
   }
 
   datos.forEach(fila => {
     const nombre = fila[indiceNombre] || "Postulante";
     const correo = fila[indiceCorreo];
-    
-    // MEJORA: Usar plantilla HTML para el correo.
-    const plantilla = HtmlService.createTemplateFromFile('CorreoSeleccionado');
-    plantilla.nombre = nombre; // Pasar la variable 'nombre' a la plantilla
-    const cuerpoHtml = plantilla.evaluate().getContent();
+    const nivelAsignado = fila[indiceNivel] || "Default";
 
-    const asunto = "¡Felicitaciones! Has sido seleccionado para el Programa de Inglés PUCV";
+    if (!correo) return; // No enviar correo si no hay dirección
+    
+    // Obtener los datos del programa según el nivel
+    const horarios = PROGRAM_DATA.HORARIOS[nivelAsignado] || PROGRAM_DATA.HORARIOS["Default"];
+
+    const plantilla = HtmlService.createTemplateFromFile('CorreoSeleccionado');
+    plantilla.nombre = nombre;
+    plantilla.nivelAsignado = nivelAsignado;
+    plantilla.fechaLimite = PROGRAM_DATA.FECHA_LIMITE;
+    plantilla.fechaInicio = PROGRAM_DATA.FECHA_INICIO;
+    plantilla.fechaTermino = PROGRAM_DATA.FECHA_TERMINO;
+    plantilla.horarioCatedra = horarios.catedra;
+    plantilla.horarioAyudantia = horarios.ayudantia;
+
+    const cuerpoHtml = plantilla.evaluate().getContent();
+    const asunto = "¡Has sido seleccionado/a para el programa PUCV2English!";
     
     // MailApp.sendEmail({ to: correo, subject: asunto, htmlBody: cuerpoHtml }); // DESCOMENTAR PARA ENVIAR CORREOS REALES
     logToWebApp(`Preparando correo para ${nombre} (${correo})...`); // Para pruebas
