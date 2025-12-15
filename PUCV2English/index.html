@@ -1,196 +1,317 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <base target="_top">
-    <!-- CORRECCIÓN: Mover la importación de Chart.js fuera de la etiqueta <style> y dentro del <head> -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-      @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
 
-      body { 
-        font-family: 'Roboto', Arial, sans-serif; 
-        margin: 0; 
-        background-color: #f4f7f9; 
-        color: #333; 
-        display: flex;
-        justify-content: center;
-        padding: 20px;
-      }
-      .container {
-        /* MEJORA: Aumentar el ancho máximo para dar más espacio a las tablas y el gráfico */
-        max-width: 1200px;
-        width: 100%;
-        background-color: #ffffff;
-        padding: 30px;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-      }
-      h1 { color: #003366; text-align: center; border-bottom: 2px solid #0055a2; padding-bottom: 15px; margin-bottom: 25px; }
-      h2 { color: #0055a2; font-size: 1.2em; border-bottom: 1px solid #e0e0e0; padding-bottom: 8px; margin-top: 35px;}
-      p { color: #555; line-height: 1.6; }
-      .button-group {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 15px;
-        margin-top: 15px;
-      }
-      button { 
-        background-color: #0055a2; 
-        color: white; 
-        padding: 12px 20px; 
-        border: none; 
-        border-radius: 5px; 
-        cursor: pointer; 
-        font-size: 15px; 
-        font-weight: 500;
-        transition: background-color 0.2s, transform 0.1s;
-      }
-      button:hover:not(:disabled) { background-color: #003366; transform: translateY(-1px); }
-      button:disabled { background-color: #cccccc; cursor: not-allowed; }
-      #output { margin-top: 25px; white-space: pre-wrap; background-color: #f8f9fa; border: 1px solid #e0e0e0; border-left: 4px solid #0055a2; padding: 15px; font-family: 'Courier New', Courier, monospace; min-height: 100px; line-height: 1.5; border-radius: 4px; }
-      
-      /* Estilos para las nuevas tablas */
-      table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-      th, td { padding: 10px 12px; border: 1px solid #ddd; text-align: left; font-size: 14px; }
-      th { background-color: #e9f2fa; color: #003366; font-weight: 500; }
-      tr:nth-child(even) { background-color: #f9f9f9; }
-      td a { color: #0055a2; text-decoration: none; }
-      td a:hover { text-decoration: underline; }
-      select { padding: 5px; border-radius: 4px; border: 1px solid #ccc; width: 100%; }
-      .save-btn {
-        background-color: #28a745;
-        font-size: 12px;
-        padding: 6px 12px;
-        width: 100%;
-      }
-      .save-btn:hover:not(:disabled) { background-color: #218838; }
-      .status-indicator {
-        display: inline-block;
-        margin-left: 8px;
-        color: green;
-      }
-      .stats-container {
-        margin-top: 20px;
-        padding: 15px;
-        border: 1px solid #ddd;
-      }
-      .loader { display: none; margin-top: 20px; text-align: center; font-style: italic; color: #555; }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <h1>Panel de Control - Evaluación PUCV2English</h1>
+<head>
+  <base target="_top">
+  <!-- CORRECCIÓN: Mover la importación de Chart.js fuera de la etiqueta <style> y dentro del <head> -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
 
-      <!-- Nueva sección para la gestión de postulantes -->
-      <h2>Estadísticas</h2>
-      <div id="stats-container">
-        Cargando estadísticas...
-      </div>
+    body {
+      font-family: 'Roboto', Arial, sans-serif;
+      margin: 0;
+      background-color: #f4f7f9;
+      color: #333;
+      display: flex;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      /* MEJORA: Aumentar el ancho máximo para dar más espacio a las tablas y el gráfico */
+      max-width: 1200px;
+      width: 100%;
+      background-color: #ffffff;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    h1 {
+      color: #003366;
+      text-align: center;
+      border-bottom: 2px solid #0055a2;
+      padding-bottom: 15px;
+      margin-bottom: 25px;
+    }
+
+    h2 {
+      color: #0055a2;
+      font-size: 1.2em;
+      border-bottom: 1px solid #e0e0e0;
+      padding-bottom: 8px;
+      margin-top: 35px;
+    }
+
+    p {
+      color: #555;
+      line-height: 1.6;
+    }
+
+    .button-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-top: 15px;
+    }
+
+    button {
+      background-color: #0055a2;
+      color: white;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 500;
+      transition: background-color 0.2s, transform 0.1s;
+    }
+
+    button:hover:not(:disabled) {
+      background-color: #003366;
+      transform: translateY(-1px);
+    }
+
+    button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+
+    #output {
+      margin-top: 25px;
+      white-space: pre-wrap;
+      background-color: #f8f9fa;
+      border: 1px solid #e0e0e0;
+      border-left: 4px solid #0055a2;
+      padding: 15px;
+      font-family: 'Courier New', Courier, monospace;
+      min-height: 100px;
+      line-height: 1.5;
+      border-radius: 4px;
+    }
+
+    /* Estilos para las nuevas tablas */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+
+    th,
+    td {
+      padding: 10px 12px;
+      border: 1px solid #ddd;
+      text-align: left;
+      font-size: 14px;
+    }
+
+    th {
+      background-color: #e9f2fa;
+      color: #003366;
+      font-weight: 500;
+    }
+
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+
+    td a {
+      color: #0055a2;
+      text-decoration: none;
+    }
+
+    td a:hover {
+      text-decoration: underline;
+    }
+
+    select {
+      padding: 5px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      width: 100%;
+    }
+
+    .save-btn {
+      background-color: #28a745;
+      font-size: 12px;
+      padding: 6px 12px;
+      width: 100%;
+    }
+
+    .save-btn:hover:not(:disabled) {
+      background-color: #218838;
+    }
+
+    .status-indicator {
+      display: inline-block;
+      margin-left: 8px;
+      color: green;
+    }
+
+    .stats-container {
+      margin-top: 20px;
+      padding: 15px;
+      border: 1px solid #ddd;
+    }
+
+    .loader {
+      display: none;
+      margin-top: 20px;
+      text-align: center;
+      font-style: italic;
+      color: #555;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>Panel de Control - Evaluación PUCV2English</h1>
+
+    <!-- Nueva sección para la gestión de postulantes -->
+    <h2>Estadísticas</h2>
+    <div id="stats-container">
+      Cargando estadísticas...
+    </div>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
       <h2>Gestión de Postulantes</h2>
-      <div id="applicant-loader">Cargando datos de postulantes...</div>
-      <h3>Postulantes Seleccionados</h3>
-      <div id="seleccionados-table-container"></div>
-      <h3>Lista de Espera</h3>
-      <div id="espera-table-container"></div>
-      <h3>Análisis Detallado de Puntajes</h3>
-      <div id="analisis-detallado-container"></div>
-      <h3>Gráfico Comparativo de Puntajes</h3>
-      <canvas id="grafico-perfiles" style="margin-top: 20px;"></canvas>
+      <button onclick="loadApplicantData()" style="padding: 5px 10px; font-size: 14px;">🔄 Refrescar Datos</button>
+    </div>
+    <div id="applicant-loader">Cargando datos de postulantes...</div>
+    <h3>Postulantes Seleccionados</h3>
+    <div id="seleccionados-table-container"></div>
+    <h3>Lista de Espera</h3>
+    <div id="espera-table-container"></div>
+    <h3>Análisis Detallado de Puntajes</h3>
+    <div id="analisis-detallado-container"></div>
+    <h3>Gráfico Comparativo de Puntajes</h3>
+    <canvas id="grafico-perfiles" style="margin-top: 20px;"></canvas>
 
-      <h2>Funciones Principales</h2>
-      <div class="button-group">
-        <button id="btnEvaluar" onclick="runEvaluation()">1. Evaluar Nuevas Postulaciones</button>
-        <button id="btnGenerarLista" onclick="runGenerateFinalList()">2. Generar Lista Final del Curso</button>
-        <button id="btnEnviar" onclick="runEmail()">3. Enviar Notificaciones a Seleccionados</button>
-        <button id="btnAnalizar" onclick="runAnalysis()">Analizar Equilibrio del Ranking</button>
-      </div>
+    <h2>Funciones Principales</h2>
+    <button id="btnEvaluar" onclick="runEvaluation()">1. Evaluar Nuevas Postulaciones</button>
+    <button id="btnGenerarLista" onclick="runGenerateFinalList()">2. Generar Lista Final del Curso</button>
+    <button id="btnAnalizar" onclick="runAnalysis()">Analizar Equilibrio del Ranking</button>
 
-      <h2>Configuración y Depuración</h2>
-      <p>Si es la primera vez que usas esta página o encuentras errores, haz clic aquí para asegurar que los permisos estén actualizados.</p>
-      <button id="btnPermisos" onclick="runPermissionCheck()">Verificar Permisos</button>
-      
-      <div class="loader" id="loader">Procesando, por favor espera...</div>
-      <div id="output">Haz clic en un botón para comenzar.</div>
+
+    <h3>Envío de Notificaciones</h3>
+    <div class="button-group">
+      <button id="btnEnviarSel" onclick="handleEmailAction('SELECTED')">3. Enviar a Seleccionados</button>
+      <button id="btnEnviarTestNivel" onclick="handleEmailAction('TEST_LEVEL_ONLY')">3b. Enviar Instrucciones Test
+        Nivel</button>
+      <button id="btnEnviarEspera" onclick="handleEmailAction('WAITLIST')">4. Enviar a Lista de Espera</button>
+      <button id="btnEnviarNoSel" onclick="handleEmailAction('NOT_SELECTED')">5. Enviar a No Seleccionados</button>
     </div>
 
-    <script>
-      // --- Carga inicial de datos ---
-      document.addEventListener('DOMContentLoaded', function() {
-        loadApplicantData();
-      });
+    <h3>Pruebas de Correo</h3>
+    <div
+      style="margin-top: 15px; padding: 15px; background-color: #e9f2fa; border-radius: 5px; border: 1px dashed #0055a2;">
+      <p style="margin-top: 0; font-size: 14px; color: #003366;"><b>Enviar correo de prueba (simulado)</b></p>
+      <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+        <input type="email" id="testEmailInput" placeholder="tu.correo@ejemplo.com"
+          style="padding: 8px; border: 1px solid #ccc; border-radius: 4px; flex-grow: 1;">
+        <select id="testEmailType" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px; width: auto;">
+          <option value="SELECTED">1. Seleccionado</option>
+          <option value="TEST_LEVEL_ONLY">1b. Solo Test Nivel</option>
+          <option value="WAITLIST">2. Lista de Espera</option>
+          <option value="NOT_SELECTED">3. No Seleccionado</option>
+        </select>
+        <button onclick="sendTestEmailAction()" style="padding: 8px 15px; background-color: #6c757d;">Enviar
+          Prueba</button>
+      </div>
+    </div>
 
-      // Función para controlar el estado de carga y deshabilitar botones
-      function setLoading(isLoading) {
-        document.getElementById('loader').style.display = isLoading ? 'block' : 'none';
-        document.getElementById('btnAnalizar').disabled = isLoading;
-        document.getElementById('btnEnviar').disabled = isLoading;
-        document.getElementById('btnEvaluar').disabled = isLoading;
-        document.getElementById('btnGenerarLista').disabled = isLoading;
-        document.getElementById('btnPermisos').disabled = isLoading;
-        if (isLoading) {
-          document.getElementById('output').textContent = '';
-        }
+    <h2>Configuración y Depuración</h2>
+    <p>Si es la primera vez que usas esta página o encuentras errores, haz clic aquí para asegurar que los permisos
+      estén
+      actualizados.</p>
+    <button id="btnPermisos" onclick="runPermissionCheck()">Verificar Permisos</button>
+
+    <div class="loader" id="loader">Procesando, por favor espera...</div>
+    <div id="output">Haz clic en un botón para comenzar.</div>
+  </div>
+
+  <script>
+    // --- Carga inicial de datos ---
+    document.addEventListener('DOMContentLoaded', function () {
+      loadApplicantData();
+    });
+
+    // Función para controlar el estado de carga y deshabilitar botones
+    function setLoading(isLoading) {
+      document.getElementById('loader').style.display = isLoading ? 'block' : 'none';
+      document.getElementById('btnAnalizar').disabled = isLoading;
+      document.getElementById('btnEvaluar').disabled = isLoading;
+      document.getElementById('btnGenerarLista').disabled = isLoading;
+      document.getElementById('btnEnviarSel').disabled = isLoading;
+      document.getElementById('btnEnviarTestNivel').disabled = isLoading;
+      document.getElementById('btnEnviarEspera').disabled = isLoading;
+      document.getElementById('btnEnviarNoSel').disabled = isLoading;
+      document.getElementById('btnPermisos').disabled = isLoading;
+      if (isLoading) {
+        document.getElementById('output').textContent = '';
       }
+    }
 
-      // Función para mostrar el resultado exitoso en el cuadro de salida
-      function showResult(resultText) { // resultText es el mensaje final de la función del servidor
-        clearInterval(logIntervalId); // Detener el polling de logs
-        google.script.run.withSuccessHandler(function(finalLogs) { // Obtener logs restantes y mostrar el resultado final
-          appendLogs(finalLogs);
-          appendLogs([resultText]); // Añadir el mensaje final
-          setLoading(false);
-        }).getWebAppLogs();
-      }
-
-      // Función para mostrar un error en el cuadro de salida
-      function showError(error) { // error es el objeto de error de google.script.run
-        clearInterval(logIntervalId); // Detener el polling de logs
-        google.script.run.withSuccessHandler(function(finalLogs) { // Obtener logs restantes y mostrar el error
-          appendLogs(finalLogs);
-          appendLogs(["ERROR: " + error.message]); // Añadir el mensaje de error
-          setLoading(false);
-        }).getWebAppLogs();
-      }
-
-      // Función para añadir logs al div de salida
-      function appendLogs(logs) {
-        const outputDiv = document.getElementById('output');
-        logs.forEach(log => {
-          outputDiv.textContent += '\n' + log;
-        });
-        outputDiv.scrollTop = outputDiv.scrollHeight; // Desplazar al final
+    // Función para mostrar el resultado exitoso en el cuadro de salida
+    function showResult(resultText) { // resultText es el mensaje final de la función del servidor
+      clearInterval(logIntervalId); // Detener el polling de logs
+      google.script.run.withSuccessHandler(function (finalLogs) { // Obtener logs restantes y mostrar el resultado final
+        appendLogs(finalLogs);
+        appendLogs([resultText]); // Añadir el mensaje final
         setLoading(false);
+      }).getWebAppLogs();
+    }
+
+    // Función para mostrar un error en el cuadro de salida
+    function showError(error) { // error es el objeto de error de google.script.run
+      clearInterval(logIntervalId); // Detener el polling de logs
+      google.script.run.withSuccessHandler(function (finalLogs) { // Obtener logs restantes y mostrar el error
+        appendLogs(finalLogs);
+        appendLogs(["ERROR: " + error.message]); // Añadir el mensaje de error
+        setLoading(false);
+      }).getWebAppLogs();
+    }
+
+    // Función para añadir logs al div de salida
+    function appendLogs(logs) {
+      const outputDiv = document.getElementById('output');
+      logs.forEach(log => {
+        outputDiv.textContent += '\n' + log;
+      });
+      outputDiv.scrollTop = outputDiv.scrollHeight; // Desplazar al final
+      setLoading(false);
+    }
+
+    // Variable para almacenar el ID del intervalo de logs
+    let logIntervalId;
+
+    // Función para obtener logs del servidor
+    function fetchLogs() {
+      google.script.run.withSuccessHandler(appendLogs).getWebAppLogs();
+    }
+
+    // --- Nuevas funciones para la gestión interactiva ---
+
+    function loadApplicantData() {
+      document.getElementById('applicant-loader').style.display = 'block';
+
+      google.script.run.withSuccessHandler(renderTables).withFailureHandler(showError).getSelectionData();
+    }
+
+    function renderTables(data) {
+      if (data.error) {
+        document.getElementById('seleccionados-table-container').innerHTML = `<p style="color: red;">${data.error}</p>`;
+        document.getElementById('applicant-loader').style.display = 'none';
+
+        return;
       }
 
-      // Variable para almacenar el ID del intervalo de logs
-      let logIntervalId;
-
-      // Función para obtener logs del servidor
-      function fetchLogs() {
-        google.script.run.withSuccessHandler(appendLogs).getWebAppLogs();
-      }
-
-      // --- Nuevas funciones para la gestión interactiva ---
-
-      function loadApplicantData() {
-        document.getElementById('applicant-loader').style.display = 'block';
-
-        google.script.run.withSuccessHandler(renderTables).withFailureHandler(showError).getSelectionData();
-      }
-
-      function renderTables(data) {
-        if (data.error) {
-          document.getElementById('seleccionados-table-container').innerHTML = `<p style="color: red;">${data.error}</p>`;
-          document.getElementById('applicant-loader').style.display = 'none';
-
-          return;
-        }
-
-        // Renderizar tabla de seleccionados
-        const selContainer = document.getElementById('seleccionados-table-container');
-        let selTable = '<table><tr><th>Ranking</th><th>Postulante</th><th>Puntaje</th><th>Certificado</th><th>Verificación</th><th>Nivel Asignado</th><th>Acción</th></tr>';
-        data.seleccionados.forEach(p => {
-          selTable += `
+      // Renderizar tabla de seleccionados
+      const selContainer = document.getElementById('seleccionados-table-container');
+      let selTable = '<table><tr><th>Ranking</th><th>Postulante</th><th>Puntaje</th><th>Certificado</th><th>Verificación</th><th>Nivel Asignado</th><th>Acción</th></tr>';
+      data.seleccionados.forEach(p => {
+        selTable += `
             <tr id="row-${p.correo.replace(/[@.]/g, '')}">
               <td>${p.ranking}</td>
               <td>${p.nombre} ${p.apellidos}</td>
@@ -218,48 +339,48 @@
               </td>
             </tr>
           `;
-        });
-        selContainer.innerHTML = selTable + '</table>';
+      });
+      selContainer.innerHTML = selTable + '</table>';
 
-        // Renderizar tabla de lista de espera
-        const esperaContainer = document.getElementById('espera-table-container');
-        let esperaTable = '<table><tr><th>#</th><th>Postulante</th><th>Puntaje</th></tr>';
-        data.listaDeEspera.forEach((p, index) => {
-          esperaTable += `
+      // Renderizar tabla de lista de espera
+      const esperaContainer = document.getElementById('espera-table-container');
+      let esperaTable = '<table><tr><th>#</th><th>Postulante</th><th>Puntaje</th></tr>';
+      data.listaDeEspera.forEach((p, index) => {
+        esperaTable += `
             <tr>
               <td>${index + 1}</td>
               <td>${p.nombre} ${p.apellidos}</td>
               <td>${p.puntaje}</td>
             </tr>
           `;
-        });
-        esperaContainer.innerHTML = esperaTable + '</table>';
+      });
+      esperaContainer.innerHTML = esperaTable + '</table>';
 
 
-        // Renderizar estadísticas
-        const statsContainer = document.getElementById('stats-container');
-        if (data.estadisticas) {
-          let statsHTML = `<p><b>Total de postulantes evaluados:</b> ${data.estadisticas.totalPostulantes}</p>`;
-          statsHTML += `<p><b>Total de seleccionados (Top 25):</b> ${data.estadisticas.totalSeleccionados}</p>`;
-          statsHTML += `<p><b>Puntaje promedio de seleccionados:</b> ${data.estadisticas.puntajePromedioSeleccionados.toFixed(2)}</p>`;
-          statsHTML += `<p><b>Promedio de puntaje por tipo de postulante (sobre el total):</b></p><ul>`;
+      // Renderizar estadísticas
+      const statsContainer = document.getElementById('stats-container');
+      if (data.estadisticas) {
+        let statsHTML = `<p><b>Total de postulantes evaluados:</b> ${data.estadisticas.totalPostulantes}</p>`;
+        statsHTML += `<p><b>Total de seleccionados (Top 25):</b> ${data.estadisticas.totalSeleccionados}</p>`;
+        statsHTML += `<p><b>Puntaje promedio de seleccionados:</b> ${data.estadisticas.puntajePromedioSeleccionados.toFixed(2)}</p>`;
+        statsHTML += `<p><b>Promedio de puntaje por tipo de postulante (sobre el total):</b></p><ul>`;
 
-          for (const tipo in data.estadisticas.promediosPorTipo) {
-            statsHTML += `<li>${tipo}: ${data.estadisticas.promediosPorTipo[tipo].toFixed(2)}</li>`;
-          }
-          statsHTML += `</ul>`;
-          statsContainer.innerHTML = statsHTML;
+        for (const tipo in data.estadisticas.promediosPorTipo) {
+          statsHTML += `<li>${tipo}: ${data.estadisticas.promediosPorTipo[tipo].toFixed(2)}</li>`;
         }
+        statsHTML += `</ul>`;
+        statsContainer.innerHTML = statsHTML;
+      }
 
-        // Renderizar tabla de análisis detallado
-        const analisisContainer = document.getElementById('analisis-detallado-container');
-        if (data.estadisticas && data.estadisticas.analisisDetallado) {
-          const analisis = data.estadisticas.analisisDetallado;
-          let analisisTable = '<table><tr><th>Perfil</th><th>Puntaje Prom. Uso Inglés</th><th>Puntaje Prom. Intl.</th><th>Puntaje Prom. Año Ingreso</th><th>Puntaje Prom. Nivel Inglés</th></tr>';
-          
-          for (const perfil in analisis) {
-            if (analisis[perfil].count > 0) {
-              analisisTable += `
+      // Renderizar tabla de análisis detallado
+      const analisisContainer = document.getElementById('analisis-detallado-container');
+      if (data.estadisticas && data.estadisticas.analisisDetallado) {
+        const analisis = data.estadisticas.analisisDetallado;
+        let analisisTable = '<table><tr><th>Perfil</th><th>Puntaje Prom. Uso Inglés</th><th>Puntaje Prom. Intl.</th><th>Puntaje Prom. Año Ingreso</th><th>Puntaje Prom. Nivel Inglés</th></tr>';
+
+        for (const perfil in analisis) {
+          if (analisis[perfil].count > 0) {
+            analisisTable += `
                 <tr>
                   <td><b>${perfil}</b> (${analisis[perfil].count} postulantes)</td>
                   <td>${analisis[perfil].puntajes['Uso Inglés'].toFixed(2)}</td>
@@ -267,129 +388,171 @@
                   <td>${analisis[perfil].puntajes['Año Ingreso'].toFixed(2)}</td>
                   <td>${analisis[perfil].puntajes['Nivel Inglés'].toFixed(2)}</td>
                 </tr>`;
-            }
           }
-          analisisContainer.innerHTML = analisisTable + '</table>';
         }
+        analisisContainer.innerHTML = analisisTable + '</table>';
+      }
 
-        // Renderizar gráfico de barras
-        const ctx = document.getElementById('grafico-perfiles').getContext('2d');
-        if (window.myChart) {
-          window.myChart.destroy(); // Destruir gráfico anterior si existe
-        }
-        if (data.estadisticas && data.estadisticas.analisisDetallado) {
-          const analisis = data.estadisticas.analisisDetallado;
-          const labels = Object.keys(analisis).filter(p => analisis[p].count > 0);
-          const dataPoints = labels.map(p => {
-            const puntajes = analisis[p].puntajes;
-            // Sumar todos los puntajes promedio para obtener un total comparable
-            return Object.values(puntajes).reduce((sum, val) => sum + val, 0);
-          });
+      // Renderizar gráfico de barras
+      const ctx = document.getElementById('grafico-perfiles').getContext('2d');
+      if (window.myChart) {
+        window.myChart.destroy(); // Destruir gráfico anterior si existe
+      }
+      if (data.estadisticas && data.estadisticas.analisisDetallado) {
+        const analisis = data.estadisticas.analisisDetallado;
+        const labels = Object.keys(analisis).filter(p => analisis[p].count > 0);
+        const dataPoints = labels.map(p => {
+          const puntajes = analisis[p].puntajes;
+          // Sumar todos los puntajes promedio para obtener un total comparable
+          return Object.values(puntajes).reduce((sum, val) => sum + val, 0);
+        });
 
-          window.myChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-              labels: labels,
-              datasets: [{
-                label: 'Suma de Puntajes Promedio por Categoría',
-                data: dataPoints,
-                backgroundColor: 'rgba(0, 85, 162, 0.7)',
-                borderColor: 'rgba(0, 51, 102, 1)',
-                borderWidth: 1
-              }]
+        window.myChart = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Suma de Puntajes Promedio por Categoría',
+              data: dataPoints,
+              backgroundColor: 'rgba(0, 85, 162, 0.7)',
+              borderColor: 'rgba(0, 51, 102, 1)',
+              borderWidth: 1
+            }]
+          }
+        });
+      }
+
+      // Ocultar el loader una vez que todo se ha renderizado
+      document.getElementById('applicant-loader').style.display = 'none';
+    }
+
+
+    function saveStatus(correo) {
+      const cleanCorreoId = correo.replace(/[@.]/g, '');
+      const verificacion = document.getElementById(`verif-${cleanCorreoId}`).value;
+      const nivel = document.getElementById(`nivel-${cleanCorreoId}`).value;
+      const statusIndicator = document.getElementById(`status-${cleanCorreoId}`);
+
+      statusIndicator.textContent = 'Guardando...';
+
+      google.script.run
+        .withSuccessHandler(function (response) {
+          statusIndicator.textContent = '✔';
+          // Opcional: mostrar el mensaje de respuesta en el log principal
+          appendLogs([response]);
+          setTimeout(() => { statusIndicator.textContent = ''; }, 2000);
+        })
+        .withFailureHandler(function (error) {
+          statusIndicator.textContent = '✖';
+          showError(error);
+          setTimeout(() => { statusIndicator.textContent = ''; }, 3000);
+        })
+        .updateApplicantStatus(correo, verificacion, nivel);
+    }
+
+    // --- Funciones que llaman al código del servidor ---
+
+    function runPermissionCheck() {
+      setLoading(true);
+      google.script.run
+        .withSuccessHandler(showResult) // showResult ahora maneja el mensaje final
+        .withSuccessHandler(showResult)
+        .withFailureHandler(showError)
+        .forceWebAppPermissions();
+    }
+
+    function runAnalysis() {
+      setLoading(true);
+      google.script.run
+        .withSuccessHandler(showResult) // showResult ahora maneja el mensaje final
+        .withSuccessHandler(showResult)
+        .withFailureHandler(showError)
+        .ejecutarAnalisisDesdeWebApp();
+    }
+
+    function handleEmailAction(type) {
+      setLoading(true);
+      document.getElementById('output').textContent = "Solicitando vista previa de correos (Dry Run)...";
+
+      google.script.run
+        .withSuccessHandler(function (previewMsg) {
+          setLoading(false); // Stop loading to show alert
+          // Show the dry run result and ask for confirmation
+          // We use a timeout to let UI update/repaint if needed, though alert blocks.
+          setTimeout(() => {
+            if (confirm(previewMsg + "\n\n--------------------------------\n¿Estás SEGURO de que deseas enviar estos correos REALMENTE?")) {
+              runSendEmail(type);
+            } else {
+              document.getElementById('output').textContent = "Envío cancelado por el usuario.";
             }
-          });
-        }
+          }, 100);
+        })
+        .withFailureHandler(showError)
+        .previewEmailBatch(type);
+    }
 
-        // Ocultar el loader una vez que todo se ha renderizado
-        document.getElementById('applicant-loader').style.display = 'none';
+    function runSendEmail(type) {
+      setLoading(true);
+      document.getElementById('output').textContent = "Iniciando envío de correos...";
+      logIntervalId = setInterval(fetchLogs, 1500); // Iniciar polling cada 1.5 segundos
+      google.script.run
+        .withSuccessHandler(showResult)
+        .withFailureHandler(showError)
+        .sendEmailBatch(type);
+    }
+
+    function sendTestEmailAction() {
+      const email = document.getElementById('testEmailInput').value;
+      const type = document.getElementById('testEmailType').value;
+
+      if (!email || !email.includes('@')) {
+        alert("Por favor, ingresa un correo válido.");
+        return;
       }
 
+      setLoading(true);
+      document.getElementById('output').textContent = `Enviando correo de prueba a ${email}...`;
 
-      function saveStatus(correo) {
-        const cleanCorreoId = correo.replace(/[@.]/g, '');
-        const verificacion = document.getElementById(`verif-${cleanCorreoId}`).value;
-        const nivel = document.getElementById(`nivel-${cleanCorreoId}`).value;
-        const statusIndicator = document.getElementById(`status-${cleanCorreoId}`);
+      google.script.run
+        .withSuccessHandler(function (res) {
+          setLoading(false);
+          alert(res);
+          document.getElementById('output').textContent = res;
+        })
+        .withFailureHandler(showError)
+        .sendTestEmail(email, type);
+    }
 
-        statusIndicator.textContent = 'Guardando...';
+    function runEvaluation() {
+      setLoading(true);
+      // Limpiar tablas antes de re-evaluar
+      document.getElementById('seleccionados-table-container').innerHTML = '';
+      document.getElementById('espera-table-container').innerHTML = '';
 
-        google.script.run
-          .withSuccessHandler(function(response) {
-            statusIndicator.textContent = '✔';
-            // Opcional: mostrar el mensaje de respuesta en el log principal
-            appendLogs([response]);
-            setTimeout(() => { statusIndicator.textContent = ''; }, 2000);
-          })
-          .withFailureHandler(function(error) {
-            statusIndicator.textContent = '✖';
-            showError(error);
-            setTimeout(() => { statusIndicator.textContent = ''; }, 3000);
-          })
-          .updateApplicantStatus(correo, verificacion, nivel);
-      }
+      logIntervalId = setInterval(fetchLogs, 1500); // Iniciar polling cada 1.5 segundos
+      google.script.run
+        .withSuccessHandler(function (resultText) {
+          // Primero, muestra el resultado final de la evaluación.
+          showResult(resultText);
+          // Luego, una vez que se muestran los logs, recarga automáticamente los datos de los postulantes.
+          appendLogs(["\nActualizando listas de postulantes..."]);
+          loadApplicantData();
+        })
+        .withFailureHandler(showError)
+        .evaluarPostulacionesPUCV2();
+    }
 
-      // --- Funciones que llaman al código del servidor ---
-
-      function runPermissionCheck() {
-        setLoading(true);
-        google.script.run
-          .withSuccessHandler(showResult) // showResult ahora maneja el mensaje final
-          .withSuccessHandler(showResult)
-          .withFailureHandler(showError)
-          .forceWebAppPermissions();
-      }
-
-      function runAnalysis() {
-        setLoading(true);
-        google.script.run
-          .withSuccessHandler(showResult) // showResult ahora maneja el mensaje final
-          .withSuccessHandler(showResult)
-          .withFailureHandler(showError)
-          .ejecutarAnalisisDesdeWebApp();
-      }
-
-      function runEmail() {
-        if (!confirm("¿Estás seguro de que quieres enviar correos a los seleccionados?")) {
-          return;
-        }
-        setLoading(true);
-        logIntervalId = setInterval(fetchLogs, 1500); // Iniciar polling cada 1.5 segundos
-        google.script.run
-          .withSuccessHandler(showResult)
-          .withFailureHandler(showError)
-          .ejecutarEnvioCorreosDesdeWebApp();
-      }
-
-      function runEvaluation() {
-        setLoading(true);
-        // Limpiar tablas antes de re-evaluar
-        document.getElementById('seleccionados-table-container').innerHTML = '';
-        document.getElementById('espera-table-container').innerHTML = '';
-
-        logIntervalId = setInterval(fetchLogs, 1500); // Iniciar polling cada 1.5 segundos
-        google.script.run
-          .withSuccessHandler(function(resultText) {
-            // Primero, muestra el resultado final de la evaluación.
-            showResult(resultText);
-            // Luego, una vez que se muestran los logs, recarga automáticamente los datos de los postulantes.
-            appendLogs(["\nActualizando listas de postulantes..."]);
-            loadApplicantData();
-          })
-          .withFailureHandler(showError)
-          .evaluarPostulacionesPUCV2();
-      }
-
-      function runGenerateFinalList() {
-        setLoading(true);
-        logIntervalId = setInterval(fetchLogs, 1500); // Iniciar polling cada 1.5 segundos
-        google.script.run
-          .withSuccessHandler(showResult)
-          .withFailureHandler(showError)
-          .generarListaFinalCurso(); // Llama directamente a la función del servidor
-      }
+    function runGenerateFinalList() {
+      setLoading(true);
+      logIntervalId = setInterval(fetchLogs, 1500); // Iniciar polling cada 1.5 segundos
+      google.script.run
+        .withSuccessHandler(showResult)
+        .withFailureHandler(showError)
+        .generarListaFinalCurso(); // Llama directamente a la función del servidor
+    }
 
 
-    </script>
-  </body>
+  </script>
+</body>
+
 </html>

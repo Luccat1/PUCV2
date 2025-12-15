@@ -166,51 +166,51 @@ function evaluarPostulacionesPUCV2() {
     }
   };
 
-/**
- * Lee los pesos de puntuación desde la hoja de configuración y actualiza el objeto SCORING_PARAMS.
- */
-function cargarConfiguracionDesdeHoja() {
-  const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
-  const hojaConfig = ss.getSheetByName(CONFIG.SHEETS.CONFIG);
-  if (!hojaConfig) {
-    throw new Error(`No se encontró la hoja de configuración: ${CONFIG.SHEETS.CONFIG}`);
-  }
-
-  const datosConfig = hojaConfig.getDataRange().getValues();
-  const encabezadosConfig = datosConfig.shift();
-
-  // --- Mapeo de índices de las columnas de configuración ---
-  const getIndiceConfig = (nombre) => encabezadosConfig.indexOf(nombre);
-  const INDICE_CRITERIO = getIndiceConfig("Criterio");
-  const INDICE_PERFIL = getIndiceConfig("Perfil");
-  const INDICE_PESO = getIndiceConfig("Peso");
-
-  if (INDICE_CRITERIO === -1 || INDICE_PERFIL === -1 || INDICE_PESO === -1) {
-    throw new Error("Las columnas 'Criterio', 'Perfil' o 'Peso' no fueron encontradas en la hoja de configuración.");
-  }
-
-  // --- Iterar sobre cada fila de la hoja de configuración ---
-  datosConfig.forEach(filaConfig => {
-    const criterio = filaConfig[INDICE_CRITERIO];
-    const perfil = filaConfig[INDICE_PERFIL];
-    const peso = parseFloat(filaConfig[INDICE_PESO]);
-
-    // --- Validar que los datos sean correctos ---
-    if (!criterio || !perfil || isNaN(peso)) {
-      console.warn(`Fila de configuración inválida: Criterio=${criterio}, Perfil=${perfil}, Peso=${peso}. Omitiendo...`);
-      return; // Saltar a la siguiente iteración
+  /**
+   * Lee los pesos de puntuación desde la hoja de configuración y actualiza el objeto SCORING_PARAMS.
+   */
+  function cargarConfiguracionDesdeHoja() {
+    const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
+    const hojaConfig = ss.getSheetByName(CONFIG.SHEETS.CONFIG);
+    if (!hojaConfig) {
+      throw new Error(`No se encontró la hoja de configuración: ${CONFIG.SHEETS.CONFIG}`);
     }
 
-    // --- Actualizar el objeto SCORING_PARAMS ---
-    if (SCORING_PARAMS[criterio] && SCORING_PARAMS[criterio].peso) {
-      SCORING_PARAMS[criterio].peso[perfil] = peso;
-    } else {
-      console.warn(`Criterio '${criterio}' o perfil '${perfil}' no encontrados en SCORING_PARAMS. Omitiendo...`);
-    }
-  });
+    const datosConfig = hojaConfig.getDataRange().getValues();
+    const encabezadosConfig = datosConfig.shift();
 
-  console.log("Configuración de pesos cargada exitosamente desde la hoja.");
-}
+    // --- Mapeo de índices de las columnas de configuración ---
+    const getIndiceConfig = (nombre) => encabezadosConfig.indexOf(nombre);
+    const INDICE_CRITERIO = getIndiceConfig("Criterio");
+    const INDICE_PERFIL = getIndiceConfig("Perfil");
+    const INDICE_PESO = getIndiceConfig("Peso");
+
+    if (INDICE_CRITERIO === -1 || INDICE_PERFIL === -1 || INDICE_PESO === -1) {
+      throw new Error("Las columnas 'Criterio', 'Perfil' o 'Peso' no fueron encontradas en la hoja de configuración.");
+    }
+
+    // --- Iterar sobre cada fila de la hoja de configuración ---
+    datosConfig.forEach(filaConfig => {
+      const criterio = filaConfig[INDICE_CRITERIO];
+      const perfil = filaConfig[INDICE_PERFIL];
+      const peso = parseFloat(filaConfig[INDICE_PESO]);
+
+      // --- Validar que los datos sean correctos ---
+      if (!criterio || !perfil || isNaN(peso)) {
+        console.warn(`Fila de configuración inválida: Criterio=${criterio}, Perfil=${perfil}, Peso=${peso}. Omitiendo...`);
+        return; // Saltar a la siguiente iteración
+      }
+
+      // --- Actualizar el objeto SCORING_PARAMS ---
+      if (SCORING_PARAMS[criterio] && SCORING_PARAMS[criterio].peso) {
+        SCORING_PARAMS[criterio].peso[perfil] = peso;
+      } else {
+        console.warn(`Criterio '${criterio}' o perfil '${perfil}' no encontrados en SCORING_PARAMS. Omitiendo...`);
+      }
+    });
+
+    console.log("Configuración de pesos cargada exitosamente desde la hoja.");
+  }
 
   // --- NUEVAS FUNCIONES DE PUNTUACIÓN COMPLEJAS ---
 
@@ -251,7 +251,7 @@ function cargarConfiguracionDesdeHoja() {
       }
       if (esSi(obtenerValor(fila, CONFIG.COLUMNS.ENGLISH_USE_FUTURE_PROJECTS))) puntaje += 1;
     }
-    
+
     return Math.min(SCORING_PARAMS.UsoIngles.MaxPuntaje, puntaje) * peso; // Aplicar el peso al puntaje final
   };
 
@@ -472,7 +472,7 @@ function cargarConfiguracionDesdeHoja() {
     const estadisticas = calcularEstadisticas(resultadosCompletos, datosOriginales, indicesOriginales);
     // 2. Formatear los datos para la hoja
     const datosDashboard = formatearDatosDashboard(estadisticas);
-    
+
     // --- 3. Escribir en la Hoja ---
     let hojaDashboard = spreadsheet.getSheetByName(CONFIG.SHEETS.DASHBOARD);
     if (!hojaDashboard) hojaDashboard = spreadsheet.insertSheet(CONFIG.SHEETS.DASHBOARD);
@@ -506,11 +506,11 @@ function cargarConfiguracionDesdeHoja() {
     // 4. Crear el gráfico
     crearGraficoSede(hojaDashboard, estadisticas.statsPorSede);
   };
-  
+
   const resultados = [
     ["Apellido(s)", "Nombre(s)", "Correo Electrónico", "RUT", "Fecha de Postulación", "Categoría Postulante", "Sede",
-     "Puntaje Disponibilidad", "Puntaje Tipo", "Puntaje Uso Inglés", "Puntaje Intl.", "Puntaje Nivel Inglés",
-     "Puntaje Año Ingreso", "Puntaje Compromiso", "Puntaje Carta", "PUNTAJE TOTAL", "Enlace Certificado"] // Se añade "Enlace Certificado"
+      "Puntaje Disponibilidad", "Puntaje Tipo", "Puntaje Uso Inglés", "Puntaje Intl.", "Puntaje Nivel Inglés",
+      "Puntaje Año Ingreso", "Puntaje Compromiso", "Puntaje Carta", "PUNTAJE TOTAL", "Enlace Certificado"] // Se añade "Enlace Certificado"
   ];
 
   // --- OPTIMIZACIÓN: Identificar la columna de estado ---
@@ -577,7 +577,7 @@ function cargarConfiguracionDesdeHoja() {
         if (esSi(obtenerValor(fila, CONFIG.COLUMNS.ENDORSEMENT_SCHEDULE))) puntajeCarta++;
       }
 
-      const puntajeTotal = puntajeDisponibilidad + puntajeTipo + puntajeUso + puntajeIntl + puntajeNivelIngles + puntajeAnio + puntajeCompromiso + (puntajeCarta * pesoCarta);        
+      const puntajeTotal = puntajeDisponibilidad + puntajeTipo + puntajeUso + puntajeIntl + puntajeNivelIngles + puntajeAnio + puntajeCompromiso + (puntajeCarta * pesoCarta);
       const enlaceCertificado = obtenerValor(fila, CONFIG.COLUMNS.CERTIFICATE_ATTACHMENT); // Obtener el enlace del certificado
 
       resultados.push([
@@ -672,7 +672,7 @@ function cargarConfiguracionDesdeHoja() {
 
     // Añadir la columna de Ranking a los datos
     const seleccionadosConRanking = top25.map((fila, index) => [index + 1, ...fila]);
-    
+
     // Añadir encabezados para Ranking y columnas de verificación manual
 
     const encabezadosSeleccionados = [
@@ -680,7 +680,7 @@ function cargarConfiguracionDesdeHoja() {
       "Verificación Certificado", "Nivel Asignado", "Aceptación", "Comentarios" // "Enlace Certificado" ya está en resultados[0]
     ];
 
-   // Preparar los datos para escribir en la hoja (encabezados + seleccionados)
+    // Preparar los datos para escribir en la hoja (encabezados + seleccionados)
     // Las filas de datos tendrán espacios vacíos para las nuevas columnas manuales (Verificación, Nivel, Aceptación, Comentarios).
     // El "Enlace Certificado" ya viene en la fila de seleccionadosConRanking.
     const datosParaHoja = [encabezadosSeleccionados, ...seleccionadosConRanking.map(fila => [...fila, "", "", "Pendiente", ""])];
@@ -694,7 +694,7 @@ function cargarConfiguracionDesdeHoja() {
     logToWebApp("Escribiendo datos en la hoja 'Seleccionados' y aplicando validaciones.");
 
     if (datosParaHoja.length > 1) {
-      const rangoDatos = hojaSeleccionados.getRange(1, 1, datosParaHoja.length, datosParaHoja[0].length);      
+      const rangoDatos = hojaSeleccionados.getRange(1, 1, datosParaHoja.length, datosParaHoja[0].length);
       rangoDatos.setValues(datosParaHoja);
 
       // --- Añadir Menú Desplegable y Formato Condicional ---
@@ -722,7 +722,7 @@ function cargarConfiguracionDesdeHoja() {
 
       const reglaVerde = SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied(`=$${_columnaALetra(indiceColAceptacion)}2="Acepta"`).setBackground("#D9EAD3").setRanges([rangoCompletoFila]).build();
       const reglaRojo = SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied(`=$${_columnaALetra(indiceColAceptacion)}2="Rechaza"`).setBackground("#F4CCCC").setRanges([rangoCompletoFila]).build();
-      
+
       const reglas = hojaSeleccionados.getConditionalFormatRules();
       reglas.push(reglaVerde, reglaRojo);
       hojaSeleccionados.setConditionalFormatRules(reglas);
@@ -849,7 +849,7 @@ function getAnalysisReport() {
       acc[perfil] = (acc[perfil] || 0) + 1;
       return acc;
     }, {});
-    
+
     // d) MEJORA: Perfil de Puntuación Promedio por Grupo
     lineasAnalisis.push(`📈 Perfil de Puntuación Promedio por Grupo:\n`);
     const promediosPorGrupo = {
@@ -1008,14 +1008,14 @@ function ejecutarAnalisisDesdeWebApp() {
 }
 
 const PROGRAM_DATA = {
-  FECHA_LIMITE: "domingo 3 de agosto a las 23:59 h",
-  FECHA_INICIO: "18 de agosto de 2025",
-  FECHA_TERMINO: "12 de diciembre de 2025",
+  FECHA_LIMITE: "jueves 11 de diciembre",
+  FECHA_INICIO: "23 de marzo de 2026",
+  FECHA_TERMINO: "2 de julio de 2026",
   HORARIOS: {
-    "B1+": { catedra: "Lunes y Miércoles 14:00-15:30", ayudantia: "Viernes 14:00-15:00" },
-    "B2.1": { catedra: "Martes y Jueves 10:00-11:30", ayudantia: "Viernes 10:00-11:00" },
-    "B2.2": { catedra: "Martes y Jueves 14:00-15:30", ayudantia: "Viernes 15:00-16:00" },
-    "C1": { catedra: "Lunes y Miércoles 16:00-17:30", ayudantia: "Viernes 16:00-17:00" },
+    "B1+": { catedra: "Lunes y Miércoles 17:45-18:55", ayudantia: "Jueves 17:45-18:55" },
+    "B2.1": { catedra: "Lunes y Miércoles 17:45-18:55", ayudantia: "Jueves 17:45-18:55" },
+    "B2.2": { catedra: "Lunes y Miércoles 17:45-18:55", ayudantia: "Jueves 17:45-18:55" },
+    "C1": { catedra: "Lunes y Miércoles 17:45-18:55", ayudantia: "Jueves 17:45-18:55" },
     "Default": { catedra: "[Horario por confirmar]", ayudantia: "[Horario por confirmar]" }
   }
 };
@@ -1025,54 +1025,230 @@ const PROGRAM_DATA = {
  * Esta función es llamada desde el HTML para ejecutar el envío de correos.
  * Devuelve un mensaje de confirmación.
  */
+// Esta función es llamada desde el HTML para ejecutar el envío de correos.
+// Devuelve un mensaje de confirmación.
 function ejecutarEnvioCorreosDesdeWebApp() {
-  logToWebApp("Iniciando proceso de envío de correos a seleccionados...");
+  return sendEmailBatch('SELECTED');
+}
+
+/**
+ * Obtiene los destinatarios según el tipo.
+ */
+function getRecipients(type) {
   const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
-  const hojaSeleccionados = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
-  if (!hojaSeleccionados) {
-    return "Error: No se encontró la hoja 'Seleccionados'.";
+
+  if (type === 'SELECTED' || type === 'TEST_LEVEL_ONLY') {
+    const hoja = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
+    if (!hoja) throw new Error(`Hoja ${CONFIG.SHEETS.SELECTED} no encontrada.`);
+    const datos = hoja.getDataRange().getValues();
+    const headers = datos.shift();
+    const idxCorreo = headers.indexOf("Correo Electrónico");
+    const idxNombre = headers.indexOf("Nombre(s)");
+    const idxNivel = headers.indexOf("Nivel Asignado");
+
+    let resultados = datos.map(row => ({
+      nombre: row[idxNombre],
+      correo: row[idxCorreo],
+      nivel: row[idxNivel],
+      verificacion: row[headers.indexOf("Verificación Certificado")],
+      fila: row
+    })).filter(p => p.correo);
+
+    if (type === 'TEST_LEVEL_ONLY') {
+      return resultados.filter(r => r.verificacion === 'Test de nivel');
+    }
+    return resultados;
   }
 
-  const datos = hojaSeleccionados.getDataRange().getValues();
-  const encabezados = datos.shift(); // Quita y guarda los encabezados
+  // Logic for WAITLIST and NOT_SELECTED (based on Evaluation sheet)
+  const hojaEval = ss.getSheetByName(CONFIG.SHEETS.OUTPUT);
+  if (!hojaEval) throw new Error(`Hoja ${CONFIG.SHEETS.OUTPUT} no encontrada.`);
+  const datosEval = hojaEval.getDataRange().getValues();
+  const headersEval = datosEval.shift();
+  const idxCorreoEval = headersEval.indexOf("Correo Electrónico");
+  const idxNombreEval = headersEval.indexOf("Nombre(s)");
+  const idxPuntaje = headersEval.indexOf("PUNTAJE TOTAL");
 
-  const indiceNombre = encabezados.indexOf("Nombre(s)");
-  const indiceCorreo = encabezados.indexOf("Correo Electrónico");
-  const indiceNivel = encabezados.indexOf("Nivel Asignado");
+  // Get already selected emails to exclude them
+  const hojaSel = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
+  const datosSel = hojaSel ? hojaSel.getDataRange().getValues() : [];
+  const headersSel = datosSel.length ? datosSel.shift() : [];
+  const idxCorreoSel = headersSel.indexOf("Correo Electrónico");
+  const correosSeleccionados = new Set(datosSel.map(r => r[idxCorreoSel]).filter(Boolean));
 
-  if (indiceNombre === -1 || indiceCorreo === -1 || indiceNivel === -1) {
-    return "Error: No se encontraron las columnas 'Nombre(s)', 'Correo Electrónico' o 'Nivel Asignado' en la hoja 'Seleccionados'.";
+  const candidatos = datosEval.map(row => ({
+    nombre: row[idxNombreEval],
+    correo: row[idxCorreoEval],
+    puntaje: parseFloat(row[idxPuntaje] || 0)
+  })).filter(p => p.correo && !correosSeleccionados.has(p.correo))
+    .sort((a, b) => b.puntaje - a.puntaje);
+
+  if (type === 'WAITLIST') {
+    return candidatos.slice(0, 15);
+  } else if (type === 'NOT_SELECTED') {
+    return candidatos.slice(15);
   }
 
-  datos.forEach(fila => {
-    const nombre = fila[indiceNombre] || "Postulante";
-    const correo = fila[indiceCorreo];
-    const nivelAsignado = fila[indiceNivel] || "Default";
+  throw new Error("Tipo de correo desconocido: " + type);
+}
 
-    if (!correo) return; // No enviar correo si no hay dirección
-    
-    // Obtener los datos del programa según el nivel
-    const horarios = PROGRAM_DATA.HORARIOS[nivelAsignado] || PROGRAM_DATA.HORARIOS["Default"];
+function previewEmailBatch(type) {
+  const recipients = getRecipients(type);
+  if (recipients.length === 0) return "No hay destinatarios encontrados para " + type;
 
-    const plantilla = HtmlService.createTemplateFromFile('CorreoSeleccionado');
-    plantilla.nombre = nombre;
-    plantilla.nivelAsignado = nivelAsignado;
-    plantilla.fechaLimite = PROGRAM_DATA.FECHA_LIMITE;
-    plantilla.fechaInicio = PROGRAM_DATA.FECHA_INICIO;
-    plantilla.fechaTermino = PROGRAM_DATA.FECHA_TERMINO;
-    plantilla.horarioCatedra = horarios.catedra;
-    plantilla.horarioAyudantia = horarios.ayudantia;
+  let msg = `SIMULACIÓN (Dry Run) - ${type}\n`;
+  msg += `Se enviaría a ${recipients.length} personas:\n`;
 
-    const cuerpoHtml = plantilla.evaluate().getContent();
-    const asunto = "¡Has sido seleccionado/a para el programa PUCV2English!";
-    
-    // MailApp.sendEmail({ to: correo, subject: asunto, htmlBody: cuerpoHtml }); // DESCOMENTAR PARA ENVIAR CORREOS REALES
-    logToWebApp(`Preparando correo para ${nombre} (${correo})...`); // Para pruebas
+  recipients.slice(0, 10).forEach(r => {
+    let extraInfo = "";
+    if (type === 'SELECTED' && r.verificacion === 'Test de nivel') {
+      extraInfo = " [TEST DE NIVEL]";
+    }
+    msg += `- ${r.nombre} (${r.correo})${extraInfo}\n`;
   });
-  logToWebApp("Todos los correos han sido preparados (o enviados si está descomentado).");
-  const mensajeConfirmacion = `Proceso de envío iniciado para ${datos.length} postulantes. Revisa los registros para ver el progreso.`;
-  console.log(mensajeConfirmacion); // Log para el servidor
-  return mensajeConfirmacion; // Mensaje para el cliente (la web app)
+
+  if (recipients.length > 10) msg += `... y ${recipients.length - 10} más.\n`;
+
+  return msg;
+}
+
+function sendEmailBatch(type) {
+  const recipients = getRecipients(type);
+  if (recipients.length === 0) return "No hay destinatarios.";
+
+  logToWebApp(`Iniciando envío masivo a ${recipients.length} destinatarios (${type})...`);
+
+  let templateName;
+  let subject;
+
+  if (type === 'SELECTED') {
+    templateName = 'CorreoSeleccionado';
+    subject = "¡Has sido seleccionado/a para el programa PUCV2English!";
+  } else if (type === 'WAITLIST') {
+    templateName = 'CorreoListaEspera';
+    subject = "Resultado Postulación PUCV2English: Lista de Espera";
+  } else if (type === 'NOT_SELECTED') {
+    templateName = 'CorreoNoSeleccionado';
+    subject = "Resultados Postulación PUCV2English";
+  } else if (type === 'TEST_LEVEL_ONLY') {
+    templateName = 'CorreoTestNivel';
+    subject = "Pre-selección PUCV2English: Rendición Test de Nivel";
+  } else {
+    return "Error: Tipo inválido";
+  }
+
+  let count = 0;
+  recipients.forEach(r => {
+    try {
+      if (type === 'SELECTED') {
+        const isTestNivel = r.verificacion === 'Test de nivel';
+        const currentTemplateName = isTestNivel ? 'CorreoTestNivel' : 'CorreoSeleccionado';
+        const currentSubject = isTestNivel ? "Pre-selección PUCV2English: Rendición Test de Nivel" : subject;
+
+        const template = HtmlService.createTemplateFromFile(currentTemplateName);
+        template.nombre = r.nombre;
+        template.fechaLimite = PROGRAM_DATA.FECHA_LIMITE;
+        template.fechaInicio = PROGRAM_DATA.FECHA_INICIO;
+        template.fechaTermino = PROGRAM_DATA.FECHA_TERMINO;
+
+        if (!isTestNivel) {
+          const nivelAsignado = r.nivel || "Default";
+          const horarios = PROGRAM_DATA.HORARIOS[nivelAsignado] || PROGRAM_DATA.HORARIOS["Default"];
+          template.nivelAsignado = nivelAsignado;
+          template.horarioCatedra = horarios.catedra;
+          template.horarioAyudantia = horarios.ayudantia;
+        }
+
+        const htmlBody = template.evaluate().getContent();
+        MailApp.sendEmail({ to: r.correo, subject: currentSubject, htmlBody: htmlBody });
+      } else if (type === 'TEST_LEVEL_ONLY') {
+        const template = HtmlService.createTemplateFromFile('CorreoTestNivel');
+        template.nombre = r.nombre;
+        template.fechaLimite = PROGRAM_DATA.FECHA_LIMITE;
+        template.fechaInicio = PROGRAM_DATA.FECHA_INICIO;
+        template.fechaTermino = PROGRAM_DATA.FECHA_TERMINO;
+
+        const htmlBody = template.evaluate().getContent();
+        MailApp.sendEmail({ to: r.correo, subject: subject, htmlBody: htmlBody });
+      } else {
+        const template = HtmlService.createTemplateFromFile(templateName);
+        template.nombre = r.nombre;
+        const htmlBody = template.evaluate().getContent();
+        MailApp.sendEmail({ to: r.correo, subject: subject, htmlBody: htmlBody });
+      }
+      count++;
+      if (count % 5 === 0) logToWebApp(`Enviados ${count}/${recipients.length}...`);
+    } catch (e) {
+      console.error(`Error enviando a ${r.correo}: ${e.message}`);
+      logToWebApp(`Error con ${r.correo}: ${e.message}`);
+    }
+  });
+
+  return `Proceso finalizado. Se enviaron ${count} correos.`;
+}
+
+/**
+ * Envía un correo de prueba a una dirección específica.
+ */
+function sendTestEmail(targetEmail, type) {
+  if (!targetEmail || !type) return "Error: Faltan datos (correo o tipo).";
+
+  logToWebApp(`Enviando correo de prueba (${type}) a ${targetEmail}...`);
+
+  let templateName;
+  let subject;
+
+  // Datos simulados
+  const mockData = {
+    nombre: "Juan Pérez (Test)",
+    nivel: "B1+",
+    fechaLimite: PROGRAM_DATA.FECHA_LIMITE,
+    fechaInicio: PROGRAM_DATA.FECHA_INICIO,
+    fechaTermino: PROGRAM_DATA.FECHA_TERMINO
+  };
+
+  if (type === 'SELECTED') {
+    templateName = 'CorreoSeleccionado';
+    subject = "[TEST] ¡Has sido seleccionado/a para el programa PUCV2English!";
+  } else if (type === 'WAITLIST') {
+    templateName = 'CorreoListaEspera';
+    subject = "[TEST] Resultado Postulación PUCV2English: Lista de Espera";
+  } else if (type === 'NOT_SELECTED') {
+    templateName = 'CorreoNoSeleccionado';
+    subject = "[TEST] Resultados Postulación PUCV2English";
+  } else if (type === 'TEST_LEVEL_ONLY') {
+    templateName = 'CorreoTestNivel';
+    subject = "[TEST] Pre-selección PUCV2English: Rendición Test de Nivel";
+  } else {
+    return "Error: Tipo inválido";
+  }
+
+  try {
+    const template = HtmlService.createTemplateFromFile(templateName);
+    template.nombre = mockData.nombre;
+
+    if (type === 'SELECTED' || type === 'TEST_LEVEL_ONLY') {
+      template.fechaLimite = mockData.fechaLimite;
+      template.fechaInicio = mockData.fechaInicio;
+      template.fechaTermino = mockData.fechaTermino;
+
+      if (type === 'SELECTED') {
+        const horarios = PROGRAM_DATA.HORARIOS[mockData.nivel];
+        template.nivelAsignado = mockData.nivel;
+        template.horarioCatedra = horarios.catedra;
+        template.horarioAyudantia = horarios.ayudantia;
+      }
+    }
+
+    const htmlBody = template.evaluate().getContent();
+    MailApp.sendEmail({ to: targetEmail, subject: subject, htmlBody: htmlBody });
+
+    logToWebApp("Correo de prueba enviado exitosamente.");
+    return `Correo de prueba (${type}) enviado a ${targetEmail}`;
+  } catch (e) {
+    console.error(e);
+    return `Error al enviar correo de prueba: ${e.message}`;
+  }
 }
 
 /**
@@ -1323,7 +1499,7 @@ function getSelectionData() {
     const datosSeleccionados = hojaSeleccionados.getDataRange().getValues();
     const encabezadosSeleccionados = datosSeleccionados.shift();
     const getIndiceSel = (nombre) => encabezadosSeleccionados.indexOf(nombre);
-    
+
     const seleccionados = datosSeleccionados.map(fila => ({
       ranking: fila[getIndiceSel("Ranking")],
       nombre: fila[getIndiceSel("Nombre(s)")],
