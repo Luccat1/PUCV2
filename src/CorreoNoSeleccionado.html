@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <base target="_top">
+    <style>
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            color: #333333;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            text-align: center;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #0055a2;
+        }
+
+        .header img {
+            max-width: 150px;
+        }
+
+        .content {
+            padding: 20px 0;
+            line-height: 1.7;
+        }
+
+        .content h3 {
+            color: #003366;
+        }
+
+        .footer {
+            text-align: center;
+            padding-top: 20px;
+            border-top: 1px solid #eeeeee;
+            font-size: 12px;
+            color: #777777;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="https://www.pucv.cl/uuaa/vriea/dircom/manual-de-marca-pucv-2022/logo-pucv-color.png"
+                alt="Logo PUCV">
+        </div>
+        <div class="content">
+            <h3>Resultados Postulación PUCV2English</h3>
+            <p>Estimado/a
+                <?= nombre ?>,
+            </p>
+            <p>Junto con saludar, agradecemos tu interés en participar de la cuarta versión del programa
+                <strong>PUCV2English</strong>.
+            </p>
+
+            <p>Lamentablemente, te informamos que debido a la alta convocatoria y a los cupos limitados, no has sido
+                seleccionado/a en esta oportunidad.</p>
+
+            <p>Te animamos a seguir interesado/a en perfeccionar tu nivel de inglés y te invitamos a volver a postular
+                en nuestras próximas convocatorias.</p>
+            <br>
+            <p>Saludos cordiales,<br>Coordinación PUCV2English</p>
+        </div>
+        <div class="footer">
+            <p>Pontificia Universidad Católica de Valparaíso</p>
+        </div>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <base target="_top">
+  <style>
+    body {
+      font-family: 'Roboto', Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+      color: #333333;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #ffffff;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .header {
+      text-align: center;
+      padding-bottom: 20px;
+      border-bottom: 2px solid #0055a2;
+    }
+
+    .header img {
+      max-width: 150px;
+    }
+
+    .content {
+      padding: 20px 0;
+      line-height: 1.7;
+    }
+
+    .content h3 {
+      color: #003366;
+    }
+
+    .highlight {
+      background-color: #e9f2fa;
+      padding: 15px;
+      border-left: 4px solid #0055a2;
+      margin: 20px 0;
+      border-radius: 4px;
+    }
+
+    .highlight strong {
+      color: #003366;
+    }
+
+    ul {
+      list-style-type: none;
+      padding-left: 0;
+    }
+
+    ul li {
+      margin-bottom: 8px;
+    }
+
+    ul li strong {
+      display: inline-block;
+      width: 130px;
+    }
+
+    .footer {
+      text-align: center;
+      padding-top: 20px;
+      border-top: 1px solid #eeeeee;
+      font-size: 12px;
+      color: #777777;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="header">
+      <img src="https://www.pucv.cl/uuaa/vriea/dircom/manual-de-marca-pucv-2022/logo-pucv-color.png" alt="Logo PUCV">
+    </div>
+    <div class="content">
+      <h3>¡Felicitaciones,
+        <?= nombre ?>!
+      </h3>
+      <p>Junto con saludar, te informamos que has sido seleccionado/a para participar en la cuarta versión del programa
+        <strong>PUCV2English</strong>, iniciativa becada impulsada por la Dirección General de Asuntos Internacionales
+        (DGAI) y el Programa de Inglés como Lengua Extranjera (PILE), con el objetivo de fortalecer el dominio del
+        inglés en nuestra comunidad universitaria.
+      </p>
+
+      <div class="highlight">
+        <p>Para confirmar tu participación, responde a este correo con un «<b>Confirmo</b>» a más tardar el <b>
+            <?= fechaLimite ?>
+          </b>. De no recibir confirmación antes de esa fecha, tu cupo será reasignado.</p>
+      </div>
+
+      <p>Has sido asignado/a al nivel <strong>
+          <?= nivelAsignado ?>
+        </strong>, según la documentación aportada y verificada por el Programa PILE. En tu caso, no será necesario
+        rendir prueba de nivel.</p>
+      <p><i><b>Importante:</b> No todos los participantes fueron asignados al nivel al que postularon. En particular,
+          quienes se eximieron de los cursos obligatorios de inglés mediante el Placement Test institucional fueron
+          ubicados en el nivel B1+, ya que dicha prueba solo evalúa comprensión auditiva y lectora (listening y
+          reading), sin medir producción oral ni escrita.</i></p>
+
+      <h3>Datos generales del programa:</h3>
+      <ul>
+        <li><strong>Inicio de clases:</strong>
+          <?= fechaInicio ?>
+        </li>
+        <li><strong>Término de clases:</strong>
+          <?= fechaTermino ?>
+        </li>
+        <li><strong>Modalidad:</strong> Presencial</li>
+      </ul>
+
+      <h3>Horario del curso asignado (
+        <?= nivelAsignado ?>):
+      </h3>
+      <ul>
+        <li><strong>Cátedras:</strong>
+          <?= horarioCatedra ?>
+        </li>
+        <li><strong>Ayudantía:</strong>
+          <?= horarioAyudantia ?>
+        </li>
+      </ul>
+      <p>Si no puedes comprometerte con el horario asignado a tu curso, debes renunciar a tu cupo y avisar a la
+        brevedad.</p>
+      <br>
+      <p>Saludos cordiales,<br>Coordinación PUCV2English</p>
+    </div>
+    <div class="footer">
+      <p>Pontificia Universidad Católica de Valparaíso</p>
+    </div>
+  </div>
+</body>
+
+</html>
