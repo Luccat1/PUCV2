@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "lib": ["esnext"],
+    "target": "ESNext",
+    "module": "None",
+    "strict": true,
+    "noImplicitAny": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "moduleResolution": "node",
+    "typeRoots": [
+      "../node_modules/@types"
+    ],
+    "types": [
+      "google-apps-script"
+    ]
+  },
+  "include": [
+    "**/*.ts"
+  ]
+}
