@@ -147,7 +147,7 @@ const CONFIG: IConfig = {
 /**
  * These parameters can be modified by the 'cargarConfiguracionDesdeHoja' function.
  */
-let SCORING_PARAMS: IScoringParams = {
+const DEFAULT_SCORING_PARAMS: IScoringParams = {
   UsoIngles: {
     Frecuencia: { "diariamente": 1.5, "semanalmente": 1, "mensualmente": 0.5 },
     Actividades: { "visitas internacionales": 1, "presentaciones": 1, "reuniones": 0.75, "clases": 0.5, "papers": 0.5, "correos": 0.25, "leer documentación": 0.25 },
@@ -181,6 +181,11 @@ let SCORING_PARAMS: IScoringParams = {
     }
   }
 };
+
+/**
+ * These parameters can be modified by the 'cargarConfiguracionDesdeHoja' function.
+ */
+let SCORING_PARAMS: IScoringParams = JSON.parse(JSON.stringify(DEFAULT_SCORING_PARAMS));
 
 const PROGRAM_DATA: IProgramData = {
   FECHA_LIMITE: "jueves 11 de diciembre",

@@ -9,8 +9,11 @@
 function onOpen(): void {
   const ui = SpreadsheetApp.getUi();
   ui.createMenu('PUCV2English')
-    .addItem('📊 Evaluar Postulaciones', 'evaluarPostulacionesPUCV2')
+    .addItem('📊 Evaluar Postulaciones', 'abrirDialogoEvaluacion')
     .addItem('📋 Generar Lista Final', 'generarListaFinalCurso')
+    .addSeparator()
+    .addItem('⚙️ Configurar Pesos', 'abrirSidebarConfig')
+    .addItem('👁️ Revisar Postulaciones', 'abrirSidebarRevision')
     .addSeparator()
     .addSubMenu(ui.createMenu('📧 Enviar Correos')
       .addItem('✅ Seleccionados', 'enviarCorreosSeleccionados')
@@ -25,6 +28,30 @@ function onOpen(): void {
     .addSeparator()
     .addItem('⚙️ Forzar Autorización', 'forceWebAppPermissions')
     .addToUi();
+}
+
+/**
+ * Sidebar and Dialog launchers
+ */
+function abrirDialogoEvaluacion(): void {
+  const html = HtmlService.createHtmlOutputFromFile('DialogConfirmEval')
+    .setWidth(600)
+    .setHeight(450);
+  SpreadsheetApp.getUi().showModalDialog(html, 'Confirmar Evaluación');
+}
+
+function abrirSidebarConfig(): void {
+  const html = HtmlService.createHtmlOutputFromFile('SidebarConfig')
+    .setTitle('Configuración de Pesos')
+    .setWidth(300);
+  SpreadsheetApp.getUi().showSidebar(html);
+}
+
+function abrirSidebarRevision(): void {
+  const html = HtmlService.createHtmlOutputFromFile('SidebarRevision')
+    .setTitle('Revisión de Postulaciones')
+    .setWidth(300);
+  SpreadsheetApp.getUi().showSidebar(html);
 }
 
 /**

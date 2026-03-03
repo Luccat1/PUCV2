@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      padding: 15px;
+      margin: 0;
+      background-color: #f8f9fa;
+      color: #333;
+      font-size: 13px;
+    }
+    h1 {
+      color: #003366;
+      font-size: 16px;
+      margin-top: 0;
+      border-bottom: 2px solid #0055a2;
+      padding-bottom: 8px;
+    }
+    .nav-group {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    .nav-btn {
+      padding: 5px 10px;
+      background: #eee;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .nav-btn:hover { background: #ddd; }
+    .card {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .card-title {
+      font-weight: 700;
+      font-size: 14px;
+      color: #003366;
+      margin-bottom: 5px;
+    }
+    .card-subtitle {
+      color: #666;
+      font-size: 11px;
+      margin-bottom: 10px;
+    }
+    .score-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+      font-size: 11px;
+    }
+    .score-table td {
+      border: 1px solid #eee;
+      padding: 4px;
+    }
+    .score-label { background: #f9f9f9; color: #555; }
+    .score-value { text-align: right; font-weight: 500; }
+    .score-total { background: #e9f2fa; font-weight: 700; color: #003366; }
+    
+    .form-group { margin-bottom: 10px; }
+    label { display: block; margin-bottom: 3px; font-weight: 500; color: #555; }
+    select, textarea {
+      width: 100%;
+      padding: 6px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+      font-family: inherit;
+      font-size: 12px;
+    }
+    textarea { height: 60px; resize: vertical; }
+    
+    .status-badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 10px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      margin-top: 5px;
+    }
+    .badge-pendiente { background: #fff3cd; color: #856404; }
+    .badge-acepta { background: #d4edda; color: #155724; }
+    .badge-rechaza { background: #f8d7da; color: #721c24; }
+
+    .btn-save {
+      width: 100%;
+      padding: 10px;
+      background: #28a745;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    .btn-save:hover { background: #218838; }
+    
+    #status-msg {
+      margin-top: 10px;
+      text-align: center;
+      font-size: 11px;
+      display: none;
+    }
+    .loader { display: none; text-align: center; padding: 20px; }
+  </style>
+</head>
+<body>
+  <h1>👁️ Revisión de Postulantes</h1>
+  
+  <div class="nav-group">
+    <button class="nav-btn" onclick="prev()">◀</button>
+    <span id="nav-info">0 de 0</span>
+    <button class="nav-btn" onclick="next()">▶</button>
+  </div>
+
+  <div id="loader" class="loader">Cargando postulantes...</div>
+
+  <div id="content" style="display:none">
+    <div class="card">
+      <div id="p-name" class="card-title">Cargando...</div>
+      <div id="p-meta" class="card-subtitle">Cargando...</div>
+      <div id="p-badge-container"></div>
+      
+      <table class="score-table">
+        <tr>
+          <td class="score-label">Disp.</td><td id="s-disp" class="score-value">0</td>
+          <td class="score-label">Tipo</td><td id="s-tipo" class="score-value">0</td>
+        </tr>
+        <tr>
+          <td class="score-label">Uso Ing.</td><td id="s-uso" class="score-value">0</td>
+          <td class="score-label">Intl.</td><td id="s-intl" class="score-value">0</td>
+        </tr>
+        <tr>
+          <td class="score-label">Cert.</td><td id="s-cert" class="score-value">0</td>
+          <td class="score-label">Año</td><td id="s-anio" class="score-value">0</td>
+        </tr>
+        <tr>
+          <td class="score-label">Comp.</td><td id="s-comp" class="score-value">0</td>
+          <td class="score-label">Carta</td><td id="s-carta" class="score-value">0</td>
+        </tr>
+        <tr class="score-total">
+          <td colspan="3">TOTAL</td>
+          <td id="s-total" class="score-value">0</td>
+        </tr>
+      </table>
+      
+      <div style="margin-top: 10px;">
+        <a id="p-link" href="#" target="_blank" style="color: #0055a2; font-weight: 500;">📂 Ver Certificado Adjunto</a>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Verificación de Certificado</label>
+      <select id="f-verif">
+        <option value="">- Seleccionar -</option>
+        <option value="Válido">Válido</option>
+        <option value="Test de nivel">Test de nivel (Invitar)</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Nivel Asignado</label>
+      <select id="f-nivel">
+        <option value="">- Asignar -</option>
+        <option value="B1+">B1+</option>
+        <option value="B2.1">B2.1</option>
+        <option value="B2.2">B2.2</option>
+        <option value="C1">C1</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Comentarios Internos</label>
+      <textarea id="f-coments" placeholder="Notas sobre el certificado o perfil..."></textarea>
+    </div>
+
+    <button class="btn-save" onclick="save()">Guardar Revisión</button>
+    <div id="status-msg"></div>
+  </div>
+
+  <script>
+    let applicants = [];
+    let currentIndex = 0;
+
+    function showLoader(show) {
+      document.getElementById('loader').style.display = show ? 'block' : 'none';
+      document.getElementById('content').style.display = show ? 'none' : 'block';
+    }
+
+    function update() {
+      if (applicants.length === 0) return;
+      
+      const p = applicants[currentIndex];
+      document.getElementById('nav-info').textContent = `${currentIndex + 1} de ${applicants.length}`;
+      
+      document.getElementById('p-name').textContent = `${p.nombre} ${p.apellidos}`;
+      document.getElementById('p-meta').textContent = `${p.categoria} | ${p.sede} | RUT: ${p.rut}`;
+      
+      // Scores
+      document.getElementById('s-disp').textContent = p.puntajes.disponibilidad;
+      document.getElementById('s-tipo').textContent = p.puntajes.tipo;
+      document.getElementById('s-uso').textContent = p.puntajes.usoIngles;
+      document.getElementById('s-intl').textContent = p.puntajes.intl;
+      document.getElementById('s-cert').textContent = p.puntajes.nivelIngles;
+      document.getElementById('s-anio').textContent = p.puntajes.anioIngreso;
+      document.getElementById('s-comp').textContent = p.puntajes.compromiso;
+      document.getElementById('s-carta').textContent = p.puntajes.carta;
+      document.getElementById('s-total').textContent = p.puntajes.total;
+      
+      document.getElementById('p-link').href = p.enlaceCertificado;
+      
+      // Badge
+      const container = document.getElementById('p-badge-container');
+      container.innerHTML = `<span class="status-badge badge-${p.aceptacion.toLowerCase()}">${p.aceptacion}</span>`;
+      
+      // Form
+      document.getElementById('f-verif').value = p.verificacion || '';
+      document.getElementById('f-nivel').value = p.nivel || '';
+      document.getElementById('f-coments').value = p.comentarios || '';
+    }
+
+    function next() {
+      if (currentIndex < applicants.length - 1) {
+        currentIndex++;
+        update();
+      }
+    }
+
+    function prev() {
+      if (currentIndex > 0) {
+        currentIndex--;
+        update();
+      }
+    }
+
+    function save() {
+      const p = applicants[currentIndex];
+      const data = {
+        correo: p.correo,
+        verificacion: document.getElementById('f-verif').value,
+        nivel: document.getElementById('f-nivel').value,
+        comentarios: document.getElementById('f-coments').value
+      };
+
+      const msgDiv = document.getElementById('status-msg');
+      msgDiv.textContent = 'Guardando...';
+      msgDiv.style.display = 'block';
+      msgDiv.style.color = '#666';
+
+      google.script.run
+        .withSuccessHandler((msg) => {
+          msgDiv.textContent = '✔ ' + msg;
+          msgDiv.style.color = 'green';
+          // Update local data
+          p.verificacion = data.verificacion;
+          p.nivel = data.nivel;
+          p.comentarios = data.comentarios;
+          setTimeout(() => { msgDiv.style.display = 'none'; }, 3000);
+        })
+        .withFailureHandler((err) => {
+          msgDiv.textContent = '✖ Error: ' + err.message;
+          msgDiv.style.color = 'red';
+        })
+        .guardarRevisionPostulante(data);
+    }
+
+    window.onload = () => {
+      showLoader(true);
+      google.script.run
+        .withSuccessHandler((data) => {
+          applicants = data;
+          showLoader(false);
+          if (applicants.length > 0) update();
+        })
+        .withFailureHandler((err) => {
+          document.getElementById('loader').textContent = 'Error: ' + err.message;
+        })
+        .getPostulantesParaRevision();
+    };
+  </script>
+</body>
+</html>

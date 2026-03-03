@@ -164,7 +164,7 @@ function cargarConfiguracionDesdeHoja(): void {
 
   const datosConfig = hojaConfig.getDataRange().getValues();
   const headers = datosConfig.shift();
-  if (!headers) return;
+  if (!headers || headers.length < 3) return;
 
   const idxCriterio = headers.indexOf("Criterio");
   const idxPerfil = headers.indexOf("Perfil");
@@ -173,16 +173,75 @@ function cargarConfiguracionDesdeHoja(): void {
   if (idxCriterio === -1 || idxPerfil === -1 || idxPeso === -1) return;
 
   datosConfig.forEach(fila => {
-    const criterio = String(fila[idxCriterio]);
-    const perfil = String(fila[idxPerfil]);
-    const peso = parseFloat(fila[idxPeso]);
+    const criterio = String(fila[idxCriterio]).trim();
+    const perfil = String(fila[idxPerfil]).trim();
+    const pesoValue = fila[idxPeso];
+    const peso = parseFloat(pesoValue);
 
     if (!criterio || !perfil || isNaN(peso)) return;
 
-    if (SCORING_PARAMS[criterio as keyof IScoringParams] && (SCORING_PARAMS[criterio as keyof IScoringParams] as any).peso) {
-      (SCORING_PARAMS[criterio as keyof IScoringParams] as any).peso[perfil] = peso;
+    if (SCORING_PARAMS[criterio as keyof IScoringParams]) {
+      const criteriaObj = SCORING_PARAMS[criterio as keyof IScoringParams] as any;
+      if (perfil === "MaxPuntaje") {
+        criteriaObj.MaxPuntaje = peso;
+      } else if (criteriaObj.peso) {
+        criteriaObj.peso[perfil] = peso;
+      }
     }
   });
+}
+
+/**
+ * Returns current configuration for the UI.
+ */
+function getConfiguracion(): object {
+  cargarConfiguracionDesdeHoja();
+  return SCORING_PARAMS;
+}
+
+/**
+ * Saves configuration from the UI to the spreadsheet.
+ */
+function saveConfiguracion(data: any): string {
+  const ss = getSpreadsheet();
+  let sheet = ss.getSheetByName(CONFIG.SHEETS.CONFIG);
+  if (!sheet) sheet = ss.insertSheet(CONFIG.SHEETS.CONFIG);
+
+  sheet.clear();
+  const rows = [["Criterio", "Perfil", "Peso"]];
+
+  // Map JSON to Rows
+  for (const [criterio, obj] of Object.entries(data)) {
+    const c = obj as any;
+    if (c.peso) {
+      for (const [perfil, peso] of Object.entries(c.peso)) {
+        rows.push([criterio, perfil, peso as any]);
+      }
+    }
+    if (c.MaxPuntaje !== undefined) {
+      rows.push([criterio, "MaxPuntaje", c.MaxPuntaje]);
+    }
+  }
+
+  sheet.getRange(1, 1, rows.length, 3).setValues(rows);
+  sheet.getRange(1, 1, 1, 3).setFontWeight("bold").setBackground("#e9f2fa");
+  
+  // Update in-memory
+  SCORING_PARAMS = data;
+  
+  return "Configuración guardada correctamente.";
+}
+
+/**
+ * Resets configuration to code defaults.
+ */
+function resetConfiguracion(): object {
+  const ss = getSpreadsheet();
+  const sheet = ss.getSheetByName(CONFIG.SHEETS.CONFIG);
+  if (sheet) sheet.clear();
+  
+  SCORING_PARAMS = JSON.parse(JSON.stringify(DEFAULT_SCORING_PARAMS));
+  return SCORING_PARAMS;
 }
 
 function calcularPuntajeTipoPostulante(texto: string): number {
