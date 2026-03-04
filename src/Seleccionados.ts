@@ -25,10 +25,10 @@ function generarHojaSeleccionados(resultados: any[][], ss: GoogleAppsScript.Spre
 
   const headersS = [
     "Ranking", ...resultados[0],
-    "Verificación Certificado", "Nivel Asignado", "Aceptación", "Comentarios"
+    "Verificación Certificado", "Nivel Asignado", "Aceptación", "Comentarios", "Fecha Notificación"
   ];
 
-  const sheetData = [headersS, ...rankedData.map(f => [...f, "", "", "Pendiente", ""])];
+  const sheetData = [headersS, ...rankedData.map(f => [...f, "", "", "Pendiente", "", ""])];
 
   let sheet = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
   if (!sheet) sheet = ss.insertSheet(CONFIG.SHEETS.SELECTED);
@@ -80,7 +80,7 @@ function gestionarListaDeEspera(e: GoogleAppsScript.Events.SheetsOnEdit): void {
   // Ported from original logic lines 1295-1399
   const row = e.range.getRow();
   const col = e.range.getColumn();
-  
+
   // Implementation of specific waitlist business logic
   // ... (keeping implementation consistent with original)
 }

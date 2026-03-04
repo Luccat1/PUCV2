@@ -141,6 +141,7 @@ const CONFIG: IConfig = {
     ENDORSEMENT_APPROVAL: "¿Cuentas con el respaldo de tu jefatura directa para participar en este programa?",
     ENDORSEMENT_LETTER: "Si la respuesta anterior fue \"Sí\", por favor, adjunta una carta de respaldo de tu jefatura?\" [Nota: Opcional, pero otorga puntaje adicional]",
     ENDORSEMENT_SCHEDULE: "¿Tu jefatura está en conocimiento y aprueba tu participación en el horario establecido?"
+    // Note: The "Seleccionados" sheet also includes: "Ranking", "Verificación Certificado", "Nivel Asignado", "Aceptación", "Comentarios", "Fecha Notificación"
   }
 };
 
