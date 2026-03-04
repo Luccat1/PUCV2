@@ -207,28 +207,74 @@ function cargarConfiguracionDesdeHoja(): void {
       }
     }
   });
+
+  cargarDatosPrograma();
 }
 
 /**
- * Returns current configuration for the UI.
+ * Loads program data (dates and schedules) from the configuration sheet.
+ */
+function cargarDatosPrograma(): void {
+  const ss = getSpreadsheet();
+  const hojaConfig = ss.getSheetByName(CONFIG.SHEETS.CONFIG);
+  if (!hojaConfig) return;
+
+  const datosConfig = hojaConfig.getDataRange().getValues();
+
+  // Assuming the first row is headers, skip it for data processing
+  const headers = datosConfig.shift();
+  if (!headers) return; // No headers, no data
+
+  const idxCriterio = headers.indexOf("Criterio");
+  const idxPerfil = headers.indexOf("Perfil");
+  const idxValor = headers.indexOf("Peso/Valor");
+
+  if (idxCriterio === -1 || idxPerfil === -1 || idxValor === -1) return;
+
+  datosConfig.forEach(fila => {
+    const criterio = String(fila[idxCriterio]).trim();
+    const perfil = String(fila[idxPerfil]).trim();
+    const valor = String(fila[idxValor]).trim();
+
+    if (!criterio || !perfil || !valor) return;
+
+    if (criterio === "PROGRAMA") {
+      if (perfil === "FECHA_LIMITE") PROGRAM_DATA.FECHA_LIMITE = valor;
+      else if (perfil === "FECHA_INICIO") PROGRAM_DATA.FECHA_INICIO = valor;
+      else if (perfil === "FECHA_TERMINO") PROGRAM_DATA.FECHA_TERMINO = valor;
+    } else if (criterio.startsWith("HORARIO_")) {
+      const nivel = criterio.replace("HORARIO_", "");
+      if (PROGRAM_DATA.HORARIOS[nivel]) {
+        if (perfil === "Catedra") PROGRAM_DATA.HORARIOS[nivel].catedra = valor;
+        else if (perfil === "Ayudantia") PROGRAM_DATA.HORARIOS[nivel].ayudantia = valor;
+      }
+    }
+  });
+}
+
+/**
+ * Returns current configuration (scoring + program data) for the UI.
  */
 function getConfiguracion(): object {
   cargarConfiguracionDesdeHoja();
-  return SCORING_PARAMS;
+  return { scoring: SCORING_PARAMS, program: PROGRAM_DATA };
 }
 
 /**
  * Saves configuration from the UI to the spreadsheet.
  */
-function saveConfiguracion(data: any): string {
+function saveConfiguracion(mergedData: any): string {
   const ss = getSpreadsheet();
   let sheet = ss.getSheetByName(CONFIG.SHEETS.CONFIG);
   if (!sheet) sheet = ss.insertSheet(CONFIG.SHEETS.CONFIG);
 
   sheet.clear();
-  const rows = [["Criterio", "Perfil", "Peso"]];
+  const rows = [["Criterio", "Perfil", "Peso/Valor"]];
 
-  // Map JSON to Rows
+  const data = mergedData.scoring;
+  const pData = mergedData.program;
+
+  // 1. Scoring Params
   for (const [criterio, obj] of Object.entries(data)) {
     const c = obj as any;
     if (c.peso) {
@@ -241,11 +287,23 @@ function saveConfiguracion(data: any): string {
     }
   }
 
+  // 2. Program Data
+  rows.push(["PROGRAMA", "FECHA_LIMITE", pData.FECHA_LIMITE]);
+  rows.push(["PROGRAMA", "FECHA_INICIO", pData.FECHA_INICIO]);
+  rows.push(["PROGRAMA", "FECHA_TERMINO", pData.FECHA_TERMINO]);
+
+  for (const [nivel, horarios] of Object.entries(pData.HORARIOS)) {
+    const h = horarios as any;
+    rows.push([`HORARIO_${nivel}`, "Catedra", h.catedra]);
+    rows.push([`HORARIO_${nivel}`, "Ayudantia", h.ayudantia]);
+  }
+
   sheet.getRange(1, 1, rows.length, 3).setValues(rows);
   sheet.getRange(1, 1, 1, 3).setFontWeight("bold").setBackground("#e9f2fa");
 
   // Update in-memory
   SCORING_PARAMS = data;
+  PROGRAM_DATA = pData;
 
   return "Configuración guardada correctamente.";
 }
@@ -259,7 +317,8 @@ function resetConfiguracion(): object {
   if (sheet) sheet.clear();
 
   SCORING_PARAMS = JSON.parse(JSON.stringify(DEFAULT_SCORING_PARAMS));
-  return SCORING_PARAMS;
+  PROGRAM_DATA = JSON.parse(JSON.stringify(DEFAULT_PROGRAM_DATA));
+  return { scoring: SCORING_PARAMS, program: PROGRAM_DATA };
 }
 
 function calcularPuntajeTipoPostulante(texto: string): number {

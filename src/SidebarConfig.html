@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <base target="_top">
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
@@ -12,6 +13,7 @@
       color: #333;
       font-size: 14px;
     }
+
     h1 {
       color: #003366;
       font-size: 18px;
@@ -19,6 +21,7 @@
       border-bottom: 2px solid #0055a2;
       padding-bottom: 8px;
     }
+
     .section {
       background: #fff;
       border: 1px solid #ddd;
@@ -26,6 +29,7 @@
       margin-bottom: 15px;
       overflow: hidden;
     }
+
     .section-header {
       background: #e9f2fa;
       padding: 10px;
@@ -35,12 +39,15 @@
       justify-content: space-between;
       color: #003366;
     }
+
     .section-content {
       padding: 10px;
     }
+
     .form-group {
       margin-bottom: 12px;
     }
+
     label {
       display: block;
       margin-bottom: 4px;
@@ -48,6 +55,7 @@
       font-size: 12px;
       color: #666;
     }
+
     input[type="number"] {
       width: 100%;
       padding: 6px;
@@ -55,12 +63,14 @@
       border-radius: 4px;
       box-sizing: border-box;
     }
+
     .button-group {
       display: flex;
       flex-direction: column;
       gap: 10px;
       margin-top: 20px;
     }
+
     button {
       padding: 10px;
       border: none;
@@ -69,20 +79,25 @@
       font-weight: 500;
       transition: background 0.2s;
     }
+
     .btn-primary {
       background-color: #0055a2;
       color: white;
     }
+
     .btn-primary:hover {
       background-color: #003366;
     }
+
     .btn-secondary {
       background-color: #6c757d;
       color: white;
     }
+
     .btn-secondary:hover {
       background-color: #5a6268;
     }
+
     #status {
       margin-top: 10px;
       padding: 8px;
@@ -91,25 +106,29 @@
       font-size: 12px;
       text-align: center;
     }
+
     .status-success {
       background-color: #d4edda;
       color: #155724;
       display: block !important;
     }
+
     .status-error {
       background-color: #f8d7da;
       color: #721c24;
       display: block !important;
     }
+
     .loading {
       opacity: 0.5;
       pointer-events: none;
     }
   </style>
 </head>
+
 <body>
   <h1>⚙️ Configuración de Pesos</h1>
-  
+
   <div id="config-form">
     <!-- Uso de Inglés -->
     <div class="section">
@@ -181,6 +200,34 @@
         </div>
       </div>
     </div>
+
+    <!-- Datos del Programa -->
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        Datos del Programa <span>▶</span>
+      </div>
+      <div class="section-content" style="display: none;">
+        <div class="form-group">
+          <label>Fecha Límite</label>
+          <input type="text" id="prog-FECHA_LIMITE" placeholder="ej: viernes 12 de diciembre"
+            style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+        </div>
+        <div class="form-group">
+          <label>Fecha Inicio</label>
+          <input type="text" id="prog-FECHA_INICIO" placeholder="ej: 23 de marzo"
+            style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+        </div>
+        <div class="form-group">
+          <label>Horarios (Ejemplo B1+)</label>
+          <input type="text" id="prog-HORARIO_B1p_cat" placeholder="Cátedra"
+            style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; margin-bottom: 4px;">
+          <input type="text" id="prog-HORARIO_B1p_ayu" placeholder="Ayudantía"
+            style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+        </div>
+        <p style="font-size: 10px; color: #888;">* Los horarios de otros niveles se pueden editar directamente en la
+          pestaña 'Configuración'.</p>
+      </div>
+    </div>
   </div>
 
   <div class="button-group">
@@ -210,55 +257,59 @@
       setTimeout(() => { status.style.display = 'none'; }, 4000);
     }
 
-    function populate(config) {
-      document.body.classList.remove('loading');
-      if (!config) {
-        showStatus('Error al cargar configuración', true);
-        return;
-      }
-      
-      // Uso Inglés
-      document.getElementById('UsoIngles-estudiante').value = config.UsoIngles.peso.estudiante;
-      document.getElementById('UsoIngles-funcionario').value = config.UsoIngles.peso.funcionario;
-      document.getElementById('UsoIngles-academico').value = config.UsoIngles.peso.academico;
-      document.getElementById('UsoIngles-MaxPuntaje').value = config.UsoIngles.MaxPuntaje;
+    // Carta
+    document.getElementById('CartaRespaldo-estudiante').value = config.scoring.CartaRespaldo.peso.estudiante;
+    document.getElementById('CartaRespaldo-funcionario').value = config.scoring.CartaRespaldo.peso.funcionario;
+    document.getElementById('CartaRespaldo-academico').value = config.scoring.CartaRespaldo.peso.academico;
 
-      // Internacionalizacion
-      document.getElementById('Internacionalizacion-estudiante').value = config.Internacionalizacion.peso.estudiante;
-      document.getElementById('Internacionalizacion-funcionario').value = config.Internacionalizacion.peso.funcionario;
-      document.getElementById('Internacionalizacion-academico').value = config.Internacionalizacion.peso.academico;
-      document.getElementById('Internacionalizacion-MaxPuntaje').value = config.Internacionalizacion.MaxPuntaje;
-
-      // Carta
-      document.getElementById('CartaRespaldo-estudiante').value = config.CartaRespaldo.peso.estudiante;
-      document.getElementById('CartaRespaldo-funcionario').value = config.CartaRespaldo.peso.funcionario;
-      document.getElementById('CartaRespaldo-academico').value = config.CartaRespaldo.peso.academico;
+    // Programa
+    document.getElementById('prog-FECHA_LIMITE').value = config.program.FECHA_LIMITE;
+    document.getElementById('prog-FECHA_INICIO').value = config.program.FECHA_INICIO;
+    if (config.program.HORARIOS['B1+']) {
+      document.getElementById('prog-HORARIO_B1p_cat').value = config.program.HORARIOS['B1+'].catedra;
+      document.getElementById('prog-HORARIO_B1p_ayu').value = config.program.HORARIOS['B1+'].ayudantia;
+    }
     }
 
     function save() {
       document.body.classList.add('loading');
+
+      // Map to combined data structure
       const data = {
-        UsoIngles: {
-          peso: {
-            estudiante: parseFloat(document.getElementById('UsoIngles-estudiante').value),
-            funcionario: parseFloat(document.getElementById('UsoIngles-funcionario').value),
-            academico: parseFloat(document.getElementById('UsoIngles-academico').value)
+        scoring: {
+          UsoIngles: {
+            peso: {
+              estudiante: parseFloat(document.getElementById('UsoIngles-estudiante').value),
+              funcionario: parseFloat(document.getElementById('UsoIngles-funcionario').value),
+              academico: parseFloat(document.getElementById('UsoIngles-academico').value)
+            },
+            MaxPuntaje: parseFloat(document.getElementById('UsoIngles-MaxPuntaje').value)
           },
-          MaxPuntaje: parseFloat(document.getElementById('UsoIngles-MaxPuntaje').value)
-        },
-        Internacionalizacion: {
-          peso: {
-            estudiante: parseFloat(document.getElementById('Internacionalizacion-estudiante').value),
-            funcionario: parseFloat(document.getElementById('Internacionalizacion-funcionario').value),
-            academico: parseFloat(document.getElementById('Internacionalizacion-academico').value)
+          Internacionalizacion: {
+            peso: {
+              estudiante: parseFloat(document.getElementById('Internacionalizacion-estudiante').value),
+              funcionario: parseFloat(document.getElementById('Internacionalizacion-funcionario').value),
+              academico: parseFloat(document.getElementById('Internacionalizacion-academico').value)
+            },
+            MaxPuntaje: parseFloat(document.getElementById('Internacionalizacion-MaxPuntaje').value)
           },
-          MaxPuntaje: parseFloat(document.getElementById('Internacionalizacion-MaxPuntaje').value)
+          CartaRespaldo: {
+            peso: {
+              estudiante: parseFloat(document.getElementById('CartaRespaldo-estudiante').value),
+              funcionario: parseFloat(document.getElementById('CartaRespaldo-funcionario').value),
+              academico: parseFloat(document.getElementById('CartaRespaldo-academico').value)
+            }
+          }
         },
-        CartaRespaldo: {
-          peso: {
-            estudiante: parseFloat(document.getElementById('CartaRespaldo-estudiante').value),
-            funcionario: parseFloat(document.getElementById('CartaRespaldo-funcionario').value),
-            academico: parseFloat(document.getElementById('CartaRespaldo-academico').value)
+        program: {
+          FECHA_LIMITE: document.getElementById('prog-FECHA_LIMITE').value,
+          FECHA_INICIO: document.getElementById('prog-FECHA_INICIO').value,
+          // We only edit B1+ here as example/shortcut, the others remain in memory or are edited in sheet
+          HORARIOS: {
+            'B1+': {
+              catedra: document.getElementById('prog-HORARIO_B1p_cat').value,
+              ayudantia: document.getElementById('prog-HORARIO_B1p_ayu').value
+            }
           }
         }
       };
@@ -301,4 +352,5 @@
     };
   </script>
 </body>
+
 </html>

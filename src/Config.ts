@@ -188,7 +188,10 @@ const DEFAULT_SCORING_PARAMS: IScoringParams = {
  */
 let SCORING_PARAMS: IScoringParams = JSON.parse(JSON.stringify(DEFAULT_SCORING_PARAMS));
 
-const PROGRAM_DATA: IProgramData = {
+/**
+ * Default program specific data (fallback).
+ */
+const DEFAULT_PROGRAM_DATA: IProgramData = {
   FECHA_LIMITE: "jueves 11 de diciembre",
   FECHA_INICIO: "23 de marzo de 2026",
   FECHA_TERMINO: "2 de julio de 2026",
@@ -200,3 +203,8 @@ const PROGRAM_DATA: IProgramData = {
     "Default": { catedra: "[Horario por confirmar]", ayudantia: "[Horario por confirmar]" }
   }
 };
+
+/**
+ * These parameters can be modified by the 'cargarDatosPrograma' function.
+ */
+let PROGRAM_DATA: IProgramData = JSON.parse(JSON.stringify(DEFAULT_PROGRAM_DATA));
