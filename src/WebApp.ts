@@ -131,3 +131,86 @@ function guardarRevisionPostulante(data: {correo: string, verificacion: string, 
   }
   throw new Error("No se encontró el postulante.");
 }
+
+/**
+ * Generates a UUID token for an applicant and stores it in script properties.
+ * Per Plan 3.1, Task 3.1.1.
+ */
+function generarToken(correo: string): string {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(10000);
+    const token = Utilities.getUuid();
+    PropertiesService.getScriptProperties().setProperty('token_' + token, correo);
+    return token;
+  } catch (e: any) {
+    logToWebApp("Error generando token: " + e.message);
+    throw e;
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
+ * Returns the full confirmation URL for an applicant's action.
+ */
+function obtenerUrlConfirmacion(correo: string, action: string): string {
+  const token = generarToken(correo);
+  const webAppUrl = ScriptApp.getService().getUrl();
+  return `${webAppUrl}?action=${action}&token=${token}`;
+}
+
+/**
+ * Processes an applicant's accept/reject action via token.
+ * Updates the spreadsheet and triggers promotion logic on rejection.
+ */
+function procesarAccionPostulante(token: string, action: string): { exito: boolean; mensaje: string; nombre?: string } {
+  const scriptProperties = PropertiesService.getScriptProperties();
+  const correo = scriptProperties.getProperty('token_' + token);
+
+  if (!correo) {
+    return { exito: false, mensaje: "Este enlace ya fue utilizado o no es válido." };
+  }
+
+  const ss = getSpreadsheet();
+  const hojaS = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
+  if (!hojaS) {
+    return { exito: false, mensaje: "Error base de datos: Hoja 'Seleccionados' no encontrada." };
+  }
+
+  const values = hojaS.getDataRange().getValues();
+  const headers = values[0];
+  const idxCorreo = headers.indexOf(CONFIG.COLUMNS.EMAIL);
+  const idxNombre = headers.indexOf(CONFIG.COLUMNS.FIRST_NAME);
+  const idxAceptacion = headers.indexOf("Aceptación") + 1;
+
+  for (let i = 1; i < values.length; i++) {
+    if (values[i][idxCorreo] === correo) {
+      const nombre = values[i][idxNombre];
+      const estadoActual = values[i][idxAceptacion - 1];
+
+      if (estadoActual === 'Acepta' || estadoActual === 'Rechaza') {
+        scriptProperties.deleteProperty('token_' + token); // Clean up used token
+        return { exito: true, mensaje: "Tu respuesta ya fue registrada anteriormente.", nombre: nombre };
+      }
+
+      const nuevoEstado = action === 'accept' ? 'Acepta' : 'Rechaza';
+      hojaS.getRange(i + 1, idxAceptacion).setValue(nuevoEstado);
+      
+      scriptProperties.deleteProperty('token_' + token); // One-time use
+
+      if (action === 'reject') {
+        // Trigger waitlist promotion if rejection (to be fully implemented in Plan 3.3)
+        // For now, we update the sheet and log the action.
+        logToWebApp(`Rechazo recibido de ${correo}.`);
+        // Note: procesarRechazoDesdeWebApp(correo) will be added in task 3.3.1
+      } else {
+        logToWebApp(`Aceptación recibida de ${correo}.`);
+      }
+
+      return { exito: true, mensaje: action === 'accept' ? "Gracias por confirmar tu participación." : "Lamentamos tu decisión, tu cupo será reasignado.", nombre: nombre };
+    }
+  }
+
+  return { exito: false, mensaje: "No se encontró tu postulación en el sistema." };
+}
