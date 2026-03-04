@@ -21,6 +21,7 @@ function onOpen(): void {
       .addItem('⏳ Lista de Espera', 'enviarCorreosEspera')
       .addItem('❌ No Seleccionados', 'enviarCorreosNoSeleccionados')
       .addSeparator()
+      .addItem('👁️ Vista Previa Siguiente (Lista de Espera)', 'mostrarVistaPreviaProximo')
       .addItem('✉️ Enviar Correo de Prueba', 'abrirDialogoCorreoPrueba'))
     .addSeparator()
     .addItem('📈 Ver Dashboard', 'abrirDashboard')
@@ -94,4 +95,13 @@ function abrirDialogoCorreoPrueba() {
     const result = sendTestEmail(email, 'CorreoSeleccionado');
     ui.alert(result);
   }
+}
+
+/**
+ * Shows a preview of the next candidate in the waitlist.
+ */
+function mostrarVistaPreviaProximo(): void {
+  const ui = SpreadsheetApp.getUi();
+  const preview = previewEmailBatch('SELECTED'); // This currently shows all pending SELECTED
+  ui.alert('Próximos Notificables', preview, ui.ButtonSet.OK);
 }
