@@ -4,31 +4,81 @@
  */
 
 /**
- * Serves the HTML dashboard page.
+ * Serves the HTML dashboard page or the applicant confirmation page.
  */
 function doGet(e: GoogleAppsScript.Events.DoGet): GoogleAppsScript.HTML.HtmlOutput {
+  const action = e.parameter.action;
+  const token = e.parameter.token;
+
+  if (action && token) {
+    const result = procesarAccionPostulante(token, action);
+    return crearPaginaConfirmacion(action, result.nombre || "Postulante", result.exito, result.mensaje);
+  }
+
   return HtmlService.createHtmlOutputFromFile('index')
     .setTitle('Panel de Control de Evaluación PUCV')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DEFAULT);
 }
 
 /**
+ * Creates a branded confirmation page for applicants.
+ */
+function crearPaginaConfirmacion(accion: string, nombre: string, exito: boolean, mensaje: string): GoogleAppsScript.HTML.HtmlOutput {
+  const logoUrl = "https://www.pucv.cl/uuaa/vriea/dircom/manual-de-marca-pucv-2022/logo-pucv-color.png";
+  const color = exito ? (accion === 'accept' ? "#4CAF50" : "#f44336") : "#ff9800";
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <base target="_top">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+          body { font-family: 'Roboto', Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+          .card { background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 500px; width: 100%; text-align: center; border-top: 5px solid ${color}; }
+          img { max-width: 150px; margin-bottom: 20px; }
+          h2 { color: #003366; }
+          p { line-height: 1.6; color: #555; font-size: 1.1em; }
+          .footer { margin-top: 30px; font-size: 0.8em; color: #888; border-top: 1px solid #eee; padding-top: 20px; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <img src="${logoUrl}" alt="PUCV Logo">
+          <h2>Hola, ${nombre}</h2>
+          <p>${mensaje}</p>
+          <div class="footer">
+            Pontificia Universidad Católica de Valparaíso<br>
+            Programa PUCV2English
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+
+  return HtmlService.createHtmlOutput(html)
+    .setTitle('Confirmación PUCV2English')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DEFAULT);
+}
+
+
+/**
  * Retrieves data for the Web App tables (Selected and Waitlist).
  */
 function getSelectionData(): object {
   const ss = getSpreadsheet();
-  
+
   // Selected Data
   const hojaS = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
   const dataS = hojaS ? hojaS.getDataRange().getValues() : [];
   const headersS = dataS.shift() || [];
-  
+
   // Waitlist Data
   const dataW: any[] = []; // Implementation for waitlist if needed
-  
+
   // Statistics
   // ... can call calcularEstadisticas here if needed
-  
+
   return {
     selected: dataS.map(f => {
       const obj: any = {};
@@ -77,14 +127,14 @@ function getPostulantesParaRevision(): object[] {
 
   const data = sheet.getDataRange().getValues();
   const headers = data.shift() || [];
-  
+
   return data.map(row => {
     const obj: any = { puntajes: {} };
     headers.forEach((h, i) => {
       const val = row[i];
       // Group scores into a sub-object for the UI
       if (["disponibilidad", "tipo", "usoIngles", "intl", "nivelIngles", "anioIngreso", "compromiso", "carta", "total"].includes(h.toLowerCase())) {
-         obj.puntajes[h.toLowerCase()] = val;
+        obj.puntajes[h.toLowerCase()] = val;
       } else {
         // Map common fields to camelCase for the UI
         if (h === CONFIG.COLUMNS.EMAIL) obj.correo = val;
@@ -109,7 +159,7 @@ function getPostulantesParaRevision(): object[] {
 /**
  * Saves review data for a single applicant.
  */
-function guardarRevisionPostulante(data: {correo: string, verificacion: string, nivel: string, comentarios: string}): string {
+function guardarRevisionPostulante(data: { correo: string, verificacion: string, nivel: string, comentarios: string }): string {
   const ss = getSpreadsheet();
   const sheet = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
   if (!sheet) throw new Error("Hoja 'Seleccionados' no encontrada.");
@@ -196,7 +246,7 @@ function procesarAccionPostulante(token: string, action: string): { exito: boole
 
       const nuevoEstado = action === 'accept' ? 'Acepta' : 'Rechaza';
       hojaS.getRange(i + 1, idxAceptacion).setValue(nuevoEstado);
-      
+
       scriptProperties.deleteProperty('token_' + token); // One-time use
 
       if (action === 'reject') {
