@@ -115,7 +115,7 @@ function sendEmailBatch(type: string): string {
       (htmlBody as any).nombre = r.nombre;
       (htmlBody as any).nivel = r.nivel;
       (htmlBody as any).programData = PROGRAM_DATA;
-      (htmlBody as any).fechaLimite = "Viernes 12 de diciembre"; // Should be dynamic in the future
+      (htmlBody as any).fechaLimite = PROGRAM_DATA.FECHA_LIMITE;
 
       if (templateName === 'CorreoSeleccionado') {
         (htmlBody as any).urlAceptar = obtenerUrlConfirmacion(r.email, 'accept');

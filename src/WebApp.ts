@@ -1,4 +1,8 @@
 /**
+ * @file WebApp.ts
+ * Handlers for the Google Web App interface (doGet) and data APIs.
+ */
+/**
  * Serves the HTML dashboard page or the applicant confirmation page.
  * @param e The GET event object from Google Apps Script.
  * @returns {GoogleAppsScript.HTML.HtmlOutput} The rendered HTML content.

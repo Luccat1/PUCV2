@@ -1,4 +1,8 @@
 /**
+ * @file Seleccionados.ts
+ * Logic for managing selected applicants, waitlist, and sheet formatting.
+ */
+/**
  * Generates the "Seleccionados" sheet with ranking and data validation.
  * @param resultados The processed evaluation results array.
  * @param ss The target Spreadsheet.
