@@ -1,10 +1,7 @@
 /**
- * @file Seleccionados.ts
- * Logic for managing selected applicants, waitlist, and sheet formatting.
- */
-
-/**
  * Generates the "Seleccionados" sheet with ranking and data validation.
+ * @param resultados The processed evaluation results array.
+ * @param ss The target Spreadsheet.
  */
 function generarHojaSeleccionados(resultados: any[][], ss: GoogleAppsScript.Spreadsheet.Spreadsheet): void {
   const datosPostulantes = resultados.slice(1);
@@ -129,7 +126,6 @@ function gestionarListaDeEspera(): void {
     logToWebApp(`Candidato ${candidateEmail} promovido de lista de espera.`);
 
     // Send notification email to the NEW candidate
-    // Note: sendEmailBatch('SELECTED') will now only send to those with empty Fecha Notificación
     sendEmailBatch('SELECTED');
   } catch (e: any) {
     logToWebApp("Error en gestionarListaDeEspera: " + e.message);
@@ -140,6 +136,7 @@ function gestionarListaDeEspera(): void {
 
 /**
  * Specifically handles rejection from the Web App.
+ * @param correo The email address of the rejecting applicant.
  */
 function procesarRechazoDesdeWebApp(correo: string): void {
   logToWebApp(`Procesando rechazo de ${correo} y activando lista de espera.`);

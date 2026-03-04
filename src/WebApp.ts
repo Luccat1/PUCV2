@@ -1,10 +1,7 @@
 /**
- * @file WebApp.ts
- * Handlers for the Google Web App interface (doGet) and data APIs.
- */
-
-/**
  * Serves the HTML dashboard page or the applicant confirmation page.
+ * @param e The GET event object from Google Apps Script.
+ * @returns {GoogleAppsScript.HTML.HtmlOutput} The rendered HTML content.
  */
 function doGet(e: GoogleAppsScript.Events.DoGet): GoogleAppsScript.HTML.HtmlOutput {
   const action = e.parameter.action;
@@ -22,6 +19,11 @@ function doGet(e: GoogleAppsScript.Events.DoGet): GoogleAppsScript.HTML.HtmlOutp
 
 /**
  * Creates a branded confirmation page for applicants.
+ * @param accion The action performed ('accept' or 'reject').
+ * @param nombre The name of the applicant.
+ * @param exito Whether the operation was successful.
+ * @param mensaje The status message to display.
+ * @returns {GoogleAppsScript.HTML.HtmlOutput} The confirmation page.
  */
 function crearPaginaConfirmacion(accion: string, nombre: string, exito: boolean, mensaje: string): GoogleAppsScript.HTML.HtmlOutput {
   const logoUrl = "https://www.pucv.cl/uuaa/vriea/dircom/manual-de-marca-pucv-2022/logo-pucv-color.png";

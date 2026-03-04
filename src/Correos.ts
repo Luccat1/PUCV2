@@ -79,10 +79,18 @@ function previewEmailBatch(type: string): string {
 /**
  * Sends a batch of emails using the appropriate template.
  * Updates "Fecha Notificación" on success.
+ * @param type The category of recipients to notify.
+ * @returns {string} Status message for the UI.
  */
 function sendEmailBatch(type: string): string {
   const recipients = getRecipients(type);
   if (recipients.length === 0) return "No hay destinatarios pendientes para enviar '" + type + "'.";
+
+  // Gmail Quota Check
+  const quota = MailApp.getRemainingDailyQuota();
+  if (quota < recipients.length) {
+    return `ERROR: Cuota de Gmail insuficiente. Te quedan ${quota} envíos y quieres enviar ${recipients.length}.`;
+  }
 
   const ss = getSpreadsheet();
   const hojaS = ss.getSheetByName(CONFIG.SHEETS.SELECTED);

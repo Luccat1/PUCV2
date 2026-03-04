@@ -10,7 +10,7 @@
 function evaluarPostulacionesPUCV2(): string {
   const lock = LockService.getScriptLock();
   const tuvoExito = lock.tryLock(10000);
-  
+
   logToWebApp("Intentando iniciar evaluación de postulaciones...");
   if (!tuvoExito) {
     logToWebApp("No se pudo obtener el bloqueo. Reintenta en unos segundos.");
@@ -19,7 +19,7 @@ function evaluarPostulacionesPUCV2(): string {
 
   try {
     const ss = getSpreadsheet();
-    
+
     // ADR-006: Load configuration BEFORE the evaluation loop
     logToWebApp("Cargando configuración de pesos desde la hoja...");
     cargarConfiguracionDesdeHoja();
@@ -50,16 +50,34 @@ function evaluarPostulacionesPUCV2(): string {
 
     logToWebApp(`Iniciando procesamiento de ${datos.length - 1} filas...`);
 
+    // Set for fast duplicate lookup in current batch or existing sheets
+    const correosProcesados = new Set<string>();
+
     for (let r = 1; r < datos.length; r++) {
       try {
         const fila = datos[r];
+
+        // Skip already processed rows (marked in sheet)
         if (indiceEstado !== -1 && obtenerValor(fila, COLUMNA_ESTADO_NOMBRE, indiceColumnas) !== "") {
+          const emailExistente = obtenerValor(fila, CONFIG.COLUMNS.EMAIL, indiceColumnas);
+          if (emailExistente) correosProcesados.add(emailExistente.toLowerCase().trim());
           continue;
         }
 
+        const correo = obtenerValor(fila, CONFIG.COLUMNS.EMAIL, indiceColumnas).toLowerCase().trim();
+
+        // Edge Case: Duplicate Applicant Detection
+        if (correo && correosProcesados.has(correo)) {
+          logToWebApp(`Saltando duplicado: ${correo}`);
+          if (indiceEstado !== -1) {
+            actualizacionesEstado.push({ fila: r + 1, valor: "DUPLICADO (Ignorado)" });
+          }
+          continue;
+        }
+        if (correo) correosProcesados.add(correo);
+
         const apellidos = [obtenerValor(fila, CONFIG.COLUMNS.LAST_NAME_P, indiceColumnas), obtenerValor(fila, CONFIG.COLUMNS.LAST_NAME_M, indiceColumnas)].filter(Boolean).join(" ");
         const nombres = [obtenerValor(fila, CONFIG.COLUMNS.FIRST_NAME, indiceColumnas), obtenerValor(fila, CONFIG.COLUMNS.SECOND_NAME, indiceColumnas)].filter(Boolean).join(" ");
-        const correo = obtenerValor(fila, CONFIG.COLUMNS.EMAIL, indiceColumnas);
         const rut = obtenerValor(fila, CONFIG.COLUMNS.RUT, indiceColumnas);
         const fecha = obtenerValor(fila, CONFIG.COLUMNS.TIMESTAMP, indiceColumnas);
         const tipo = obtenerValor(fila, CONFIG.COLUMNS.APPLICANT_TYPE, indiceColumnas);
@@ -91,7 +109,7 @@ function evaluarPostulacionesPUCV2(): string {
         const tieneCarta = !!obtenerValor(fila, CONFIG.COLUMNS.ENDORSEMENT_LETTER, indiceColumnas);
 
         if (esEstudiante(tipo)) {
-          pCarta = 1; 
+          pCarta = 1;
           if (tieneCarta) pCarta += 1.5;
         } else {
           if (esSi(obtenerValor(fila, CONFIG.COLUMNS.ENDORSEMENT_APPROVAL, indiceColumnas))) pCarta += 1;
@@ -129,7 +147,7 @@ function evaluarPostulacionesPUCV2(): string {
     let hojaResultados = ss.getSheetByName(CONFIG.SHEETS.OUTPUT);
     if (!hojaResultados) hojaResultados = ss.insertSheet(CONFIG.SHEETS.OUTPUT);
     else hojaResultados.clear();
-    
+
     hojaResultados.getRange(1, 1, resultados.length, resultados[0].length).setValues(resultados);
     applyConditionalFormattingToScores(hojaResultados, resultados.length);
 
@@ -144,7 +162,7 @@ function evaluarPostulacionesPUCV2(): string {
     logToWebApp("Generando hoja de seleccionados y dashboard...");
     generarHojaSeleccionados(resultados, ss); // From Seleccionados.ts
     generarYActualizarDashboard(resultados, ss, datos, indiceColumnas); // From Dashboard.ts
-    
+
     SpreadsheetApp.flush();
     logToWebApp("Evaluación completada.");
     return `¡Evaluación completada! Se procesaron ${resultados.length - 1} nuevas postulaciones.`;
@@ -225,10 +243,10 @@ function saveConfiguracion(data: any): string {
 
   sheet.getRange(1, 1, rows.length, 3).setValues(rows);
   sheet.getRange(1, 1, 1, 3).setFontWeight("bold").setBackground("#e9f2fa");
-  
+
   // Update in-memory
   SCORING_PARAMS = data;
-  
+
   return "Configuración guardada correctamente.";
 }
 
@@ -239,7 +257,7 @@ function resetConfiguracion(): object {
   const ss = getSpreadsheet();
   const sheet = ss.getSheetByName(CONFIG.SHEETS.CONFIG);
   if (sheet) sheet.clear();
-  
+
   SCORING_PARAMS = JSON.parse(JSON.stringify(DEFAULT_SCORING_PARAMS));
   return SCORING_PARAMS;
 }
@@ -374,7 +392,7 @@ function getAnalysisReport(): string {
 
     const lineas = ["--- ANÁLISIS DE EQUILIBRIO ---"];
     lineas.push(`Total seleccionados: ${datosS.length}`);
-    
+
     // Portfolio analysis logic from original - simplified for TS/Modular
     const dist = datosS.reduce((acc: any, f) => {
       const p = esEstudiante(f[idxsS.cat]) ? "Estudiantes" : "Funcionarios";
