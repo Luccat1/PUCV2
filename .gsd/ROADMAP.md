@@ -5,14 +5,14 @@
 
 ## Must-Haves (from SPEC)
 
-- [ ] Clasp + TypeScript project structure with modular files
-- [ ] Native Sheets menu with organized action items
-- [ ] Sidebar for evaluation config and applicant review
-- [ ] Web App dashboard with charts and management tables
-- [ ] Accept/reject cupo via email link → web app endpoint
-- [ ] Batch email sending by category, post-review
-- [ ] Clean state separation (Seleccionado/Espera/No Seleccionado/Rechazado/Excluido)
-- [ ] Automatic waitlist promotion and rejection exclusion
+- [x] Clasp + TypeScript project structure with modular files *(Phase 1)*
+- [x] Native Sheets menu with organized action items *(Phase 2)*
+- [x] Sidebar for evaluation config and applicant review *(Phase 2)*
+- [x] Web App dashboard with charts and management tables *(Phase 4)*
+- [x] Accept/reject cupo via email link → web app endpoint *(Phase 3)*
+- [x] Batch email sending by category, post-review *(Phase 3)*
+- [x] Clean state separation (Seleccionado/Espera/No Seleccionado/Rechazado/Excluido) *(Phase 3)*
+- [x] Automatic waitlist promotion and rejection exclusion *(Phase 3)*
 
 ## Phases
 
@@ -49,7 +49,7 @@
 
 ### Phase 3: Email System — Links, Batch Sending, State Management
 
-**Status**: ⬜ Not Started
+**Status**: ✅ Complete (2026-03-04) — *verified in Gap Closure*
 **Objective**: Overhaul email system with accept/reject links, batch sending, and clean state tracking
 **Requirements**: REQ-07, REQ-08, REQ-09, REQ-10, REQ-11, REQ-12, REQ-13
 
@@ -92,3 +92,16 @@
 - Updated README.md with full usage guide
 - Clasp setup guide
 - Code comments and JSDoc annotations
+
+---
+
+### Phase 6: Gap Closure (from Audit)
+
+**Status**: ⬜ Not Started
+**Objective**: Address gaps identified in milestone v5.0 audit
+
+**Gaps to Close:**
+
+- [ ] Phase 3 formal verification (create summaries + VERIFICATION.md)
+- [ ] Phase 5 execution (testing, edge cases, documentation)
+- [ ] Update all user-facing READMEs and setup guides
