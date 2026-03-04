@@ -70,17 +70,78 @@ function generarHojaSeleccionados(resultados: any[][], ss: GoogleAppsScript.Spre
 }
 
 /**
- * Triggered on sheet edits to manage waitlist promotion.
+ * Orchestrates waitlist promotion when a spot becomes available.
+ * Finds the next eligible candidate in "Evaluación automatizada" and moves them to "Seleccionados".
+ * Implements Plan 3.3, Task 3.3.1.
  */
-function gestionarListaDeEspera(e: GoogleAppsScript.Events.SheetsOnEdit): void {
-  const sheet = e.range.getSheet();
-  if (sheet.getName() !== CONFIG.SHEETS.SELECTED) return;
+function gestionarListaDeEspera(): void {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(30000);
+    const ss = getSpreadsheet();
+    const hojaOutput = ss.getSheetByName(CONFIG.SHEETS.OUTPUT);
+    const hojaSelected = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
+    if (!hojaOutput || !hojaSelected) return;
 
-  // Logic to promote from waitlist if someone rejects
-  // Ported from original logic lines 1295-1399
-  const row = e.range.getRow();
-  const col = e.range.getColumn();
+    const valuesOutput = hojaOutput.getDataRange().getValues();
+    const headersOutput = valuesOutput.shift()!;
+    const idxScore = headersOutput.indexOf(CONFIG.COLUMNS.SCORE);
 
-  // Implementation of specific waitlist business logic
-  // ... (keeping implementation consistent with original)
+    // In original logic, the status was in column 1 (Ranking) or similar.
+    // For v5, we check if they are NOT in Seleccionados yet.
+    // We already have their score.
+
+    const recipientsSelected = getRecipients('SELECTED');
+    const emailsSelected = new Set(recipientsSelected.map(r => r.email));
+
+    // Sort by score descending, then date ascending
+    const idxFecha = headersOutput.indexOf("Fecha de Postulación");
+    const candidates = valuesOutput
+      .filter(row => !emailsSelected.has(row[headersOutput.indexOf(CONFIG.COLUMNS.EMAIL)]))
+      .sort((a, b) => {
+        const pB = parseFloat(b[idxScore] || 0);
+        const pA = parseFloat(a[idxScore] || 0);
+        if (pB !== pA) return pB - pA;
+        return new Date(a[idxFecha]).getTime() - new Date(b[idxFecha]).getTime();
+      });
+
+    if (candidates.length === 0) {
+      logToWebApp("No hay candidatos disponibles en la lista de espera.");
+      return;
+    }
+
+    const nextCandidate = candidates[0];
+    const candidateEmail = nextCandidate[headersOutput.indexOf(CONFIG.COLUMNS.EMAIL)];
+
+    // Move to Seleccionados
+    const lastRanking = hojaSelected.getLastRow();
+    const newRow = [
+      lastRanking, // New Ranking
+      ...nextCandidate,
+      "Pendiente", // Verificación Certificado
+      "",          // Nivel Asignado
+      "Pendiente", // Aceptación
+      "Promovido desde lista de espera", // Comentarios
+      ""           // Fecha Notificación
+    ];
+    hojaSelected.appendRow(newRow);
+
+    logToWebApp(`Candidato ${candidateEmail} promovido de lista de espera.`);
+
+    // Send notification email to the NEW candidate
+    // Note: sendEmailBatch('SELECTED') will now only send to those with empty Fecha Notificación
+    sendEmailBatch('SELECTED');
+  } catch (e: any) {
+    logToWebApp("Error en gestionarListaDeEspera: " + e.message);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
+ * Specifically handles rejection from the Web App.
+ */
+function procesarRechazoDesdeWebApp(correo: string): void {
+  logToWebApp(`Procesando rechazo de ${correo} y activando lista de espera.`);
+  gestionarListaDeEspera();
 }

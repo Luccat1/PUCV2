@@ -250,10 +250,9 @@ function procesarAccionPostulante(token: string, action: string): { exito: boole
       scriptProperties.deleteProperty('token_' + token); // One-time use
 
       if (action === 'reject') {
-        // Trigger waitlist promotion if rejection (to be fully implemented in Plan 3.3)
-        // For now, we update the sheet and log the action.
-        logToWebApp(`Rechazo recibido de ${correo}.`);
-        // Note: procesarRechazoDesdeWebApp(correo) will be added in task 3.3.1
+        // Trigger waitlist promotion if rejection (Plan 3.3, Task 3.3.1)
+        procesarRechazoDesdeWebApp(correo);
+        logToWebApp(`Rechazo recibido y procesado para ${correo}.`);
       } else {
         logToWebApp(`Aceptación recibida de ${correo}.`);
       }
