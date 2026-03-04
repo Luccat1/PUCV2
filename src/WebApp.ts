@@ -68,27 +68,175 @@ function crearPaginaConfirmacion(accion: string, nombre: string, exito: boolean,
 function getSelectionData(): object {
   const ss = getSpreadsheet();
 
-  // Selected Data
+  // 1. Selected Data
   const hojaS = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
   const dataS = hojaS ? hojaS.getDataRange().getValues() : [];
   const headersS = dataS.shift() || [];
 
-  // Waitlist Data
-  const dataW: any[] = []; // Implementation for waitlist if needed
+  const idxCorreoS = headersS.indexOf(CONFIG.COLUMNS.EMAIL);
+  const idxNombreS = headersS.indexOf(CONFIG.COLUMNS.FIRST_NAME);
+  const idxApellidosS = headersS.indexOf("Apellido(s)");
+  const idxRankingS = headersS.indexOf("Ranking");
+  const idxPuntajeS = headersS.indexOf("PUNTAJE TOTAL");
+  const idxEnlaceS = headersS.indexOf("Enlace Certificado");
+  const idxVerifS = headersS.indexOf("Verificación Certificado");
+  const idxNivelS = headersS.indexOf("Nivel Asignado");
+  const idxAceptacionS = headersS.indexOf("Aceptación");
+  const idxNotificadoS = headersS.indexOf("Fecha Notificación");
 
-  // Statistics
-  // ... can call calcularEstadisticas here if needed
+  const seleccionados = dataS.map(f => ({
+    ranking: f[idxRankingS],
+    nombre: f[idxNombreS],
+    apellidos: f[idxApellidosS],
+    correo: f[idxCorreoS],
+    puntaje: f[idxPuntajeS],
+    enlaceCertificado: f[idxEnlaceS],
+    verificacion: f[idxVerifS],
+    nivel: f[idxNivelS],
+    aceptacion: f[idxAceptacionS],
+    fechaNotificacion: f[idxNotificadoS]
+  }));
+
+  // 2. Waitlist Data (Applicants in Evaluation but not in Selected)
+  const hojaE = ss.getSheetByName(CONFIG.SHEETS.OUTPUT);
+  const dataE = hojaE ? hojaE.getDataRange().getValues() : [];
+  const headersE = dataE.shift() || [];
+
+  const emailsSelected = new Set(seleccionados.map(s => s.correo));
+  const idxCorreoE = headersE.indexOf(CONFIG.COLUMNS.EMAIL);
+  const idxNombreE = headersE.indexOf("Nombre(s)");
+  const idxApellidosE = headersE.indexOf("Apellido(s)");
+  const idxPuntajeE = headersE.indexOf("PUNTAJE TOTAL");
+  const idxFechaE = headersE.indexOf("Fecha de Postulación");
+
+  const listaDeEspera = dataE
+    .filter(row => row[idxCorreoE] && !emailsSelected.has(row[idxCorreoE]))
+    .sort((a, b) => {
+      const pB = parseFloat(b[idxPuntajeE] || 0);
+      const pA = parseFloat(a[idxPuntajeE] || 0);
+      if (pB !== pA) return pB - pA;
+      return new Date(a[idxFechaE]).getTime() - new Date(b[idxFechaE]).getTime();
+    })
+    .map(f => ({
+      nombre: f[idxNombreE],
+      apellidos: f[idxApellidosE],
+      correo: f[idxCorreoE],
+      puntaje: f[idxPuntajeE]
+    }));
+
+  // 3. Statistics
+  const stats = getDashboardStats();
 
   return {
-    selected: dataS.map(f => {
-      const obj: any = {};
-      headersS.forEach((h, i) => obj[h] = f[i]);
-      return obj;
-    }),
-    waitlist: dataW,
+    seleccionados,
+    listaDeEspera,
+    estadisticas: stats,
     logs: getWebAppLogs()
   };
 }
+
+/**
+ * Retrieves statistics specifically for the dashboard charts.
+ * Independent API for faster refreshes.
+ */
+function getDashboardStats(): any {
+  const ss = getSpreadsheet();
+  const hojaE = ss.getSheetByName(CONFIG.SHEETS.OUTPUT);
+  const dataE = hojaE ? hojaE.getDataRange().getValues() : [];
+  if (dataE.length <= 1) return { error: "No hay datos de evaluación para generar estadísticas." };
+
+  const headersE = dataE[0];
+  const indicesOriginales: Record<string, number> = {};
+
+  // Reconstruct indices from Input sheet to satisfy calculateEstadisticas requirement
+  const hojaI = ss.getSheetByName(CONFIG.SHEETS.INPUT);
+  if (hojaI) {
+    hojaI.getRange(1, 1, 1, hojaI.getLastColumn()).getValues()[0].forEach((h, i) => {
+      indicesOriginales[String(h).trim()] = i;
+    });
+  }
+
+  const inputData = hojaI ? hojaI.getDataRange().getValues() : [];
+  const baseStats = calcularEstadisticas(dataE, inputData, indicesOriginales);
+
+  // Seat state from Seleccionados
+  const hojaS = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
+  const dataS = hojaS ? hojaS.getDataRange().getValues() : [];
+  const headersS = dataS.shift() || [];
+  const idxAceptacion = headersS.indexOf("Aceptación");
+  const idxNivel = headersS.indexOf("Nivel Asignado");
+  const idxPuntaje = headersS.indexOf("PUNTAJE TOTAL");
+
+  const countBy = (arr: any[][], idx: number) => {
+    const res: Record<string, number> = {};
+    arr.forEach(row => {
+      const val = row[idx] || "Pendiente/Sin Asignar";
+      res[val] = (res[val] || 0) + 1;
+    });
+    return res;
+  };
+
+  const seatBreakdown = countBy(dataS, idxAceptacion);
+  const distribucionNivel = countBy(dataS, idxNivel);
+
+  const sumPuntajeS = dataS.reduce((acc, row) => acc + parseFloat(row[idxPuntaje] || 0), 0);
+  const promPuntajeS = dataS.length > 0 ? sumPuntajeS / dataS.length : 0;
+
+  return {
+    ...baseStats,
+    totalSeleccionados: dataS.length,
+    puntajePromedioSeleccionados: promPuntajeS,
+    seatBreakdown: {
+      aceptados: seatBreakdown["Acepta"] || 0,
+      pendientes: seatBreakdown["Pendiente"] || 0,
+      rechazados: seatBreakdown["Rechaza"] || 0,
+      total: dataS.length
+    },
+    distribucionNivel,
+    distribucionSede: Object.fromEntries(Object.entries(baseStats.statsPorSede).map(([k, v]) => [k, v.contador])),
+    promediosPorTipo: Object.fromEntries(Object.entries(baseStats.statsPorCategoria).map(([k, v]) => [k, v.suma / v.contador])),
+    // Analysis detailed breakdown
+    analisisDetallado: getDetailedScoreBreakdown(dataE, headersE)
+  };
+}
+
+/**
+ * Helper to get detailed score breakdown by category.
+ */
+function getDetailedScoreBreakdown(data: any[][], headers: any[]): Record<string, any> {
+  const result: Record<string, any> = {};
+  const rows = data.slice(1);
+
+  const getIdx = (name: string) => headers.indexOf(name);
+  const idxCat = getIdx("Categoría Postulante");
+  const scores = {
+    "Uso Inglés": getIdx("Puntaje Uso Inglés"),
+    "Internacionalización": getIdx("Puntaje Intl."),
+    "Año Ingreso": getIdx("Puntaje Año Ingreso"),
+    "Nivel Inglés": getIdx("Puntaje Nivel Inglés")
+  };
+
+  rows.forEach(row => {
+    const cat = row[idxCat] || "N/A";
+    if (!result[cat]) {
+      result[cat] = { count: 0, puntajes: { "Uso Inglés": 0, "Internacionalización": 0, "Año Ingreso": 0, "Nivel Inglés": 0 } };
+    }
+    result[cat].count++;
+    for (const [name, idx] of Object.entries(scores)) {
+      result[cat].puntajes[name] += parseFloat(row[idx] || 0);
+    }
+  });
+
+  // Calculate averages
+  for (const cat in result) {
+    for (const name in result[cat].puntajes) {
+      result[cat].puntajes[name] = result[cat].puntajes[name] / result[cat].count;
+    }
+  }
+
+  return result;
+}
+
 
 /**
  * Updates an applicant's verification status or assigned level from the Web App.
