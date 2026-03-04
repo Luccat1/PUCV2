@@ -82,7 +82,7 @@
 
 ### Phase 5: Polish, Testing + Documentation
 
-**Status**: ⬜ Not Started
+**Status**: ✅ Complete
 **Objective**: End-to-end testing, edge case handling, documentation, and final cleanup
 
 **Deliverables:**
@@ -95,13 +95,23 @@
 
 ---
 
-### Phase 6: Gap Closure (from Audit)
+### Phase 6: Gap Closure (Milestone 5.0 Audit)
 
-**Status**: ⬜ Not Started
-**Objective**: Address gaps identified in milestone v5.0 audit
+**Status**: ✅ Complete
+**Objective**: Final architecture alignment and documentation modernization.
 
-**Gaps to Close:**
+#### Plan 6.1: Phase 3 Gap Closure (Tracking & State)
 
-- [ ] Phase 3 formal verification (create summaries + VERIFICATION.md)
-- [ ] Phase 5 execution (testing, edge cases, documentation)
-- [ ] Update all user-facing READMEs and setup guides
+- [x] Generate phase summaries for Plan 3.1, 3.2, 3.3
+- [x] Formal verification report for Phase 3
+
+#### Plan 6.2: Documentation Modernization
+
+- [x] Rewrite README.md for v5 architecture
+- [x] Rewrite ARCHITECTURE.md for modular data flow
+
+#### Plan 6.3: System Hardening
+
+- [x] Implement duplicate applicant detection
+- [x] Implement Gmail quota guard
+- [x] Ensure JSDoc documentation across core engines

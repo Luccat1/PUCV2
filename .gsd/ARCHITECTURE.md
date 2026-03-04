@@ -71,6 +71,6 @@ graph TD
 ## Deuda Técnica v5.0
 
 - [ ] **Tests Unitarios:** A pesar de la modularidad, no existen tests automatizados para la lógica de puntuación.
-- [ ] **Email Quota Guard:** No hay un chequeo preventivo de la cuota diaria de Gmail (100-1000/día) antes de disparar un batch grande.
+- [x] **Email Quota Guard:** Implementado en `Correos.ts` con chequeo preventivo antes de envíos en batch.
 - [ ] **Cache Service:** La carga de datos en la Web App podría optimizarse usando `CacheService` para las estadísticas más pesadas.
 - [ ] **Error UI:** Los errores del servidor en la Web App se muestran solo en consola/logs; falta una UI de error más amigable para el usuario.
