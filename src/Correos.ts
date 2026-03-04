@@ -68,6 +68,15 @@ function getRecipients(type: string): any[] {
 }
 
 /**
+ * Returns a preview string for the batch.
+ */
+function previewEmailBatch(type: string): string {
+  const recipients = getRecipients(type);
+  if (recipients.length === 0) return "No hay destinatarios que cumplan los requisitos para el envío de '" + type + "'.";
+  return `Se enviarán ${recipients.length} correos de tipo '${type}'. Destinatarios: ${recipients.map(r => r.email).join(', ')}`;
+}
+
+/**
  * Sends a batch of emails using the appropriate template.
  * Updates "Fecha Notificación" on success.
  */
