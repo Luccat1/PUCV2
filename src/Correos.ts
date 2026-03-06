@@ -27,8 +27,8 @@ function getRecipients(type: string): any[] {
     const datos = hoja.getDataRange().getValues();
     const headers = datos.shift()!;
 
-    const idxCorreo = headers.indexOf(CONFIG.COLUMNS.EMAIL);
-    const idxNombre = headers.indexOf(CONFIG.COLUMNS.FIRST_NAME);
+    const idxCorreo = headers.indexOf("Correo Electrónico");
+    const idxNombre = headers.indexOf("Nombre(s)");
     const idxNivel = headers.indexOf("Nivel Asignado");
     const idxVerificacion = headers.indexOf("Verificación Certificado");
     const idxNotificado = headers.indexOf(CONFIG.COLUMNS.NOTIFICATION_DATE);
@@ -98,6 +98,8 @@ function sendEmailBatch(type: string): string {
   const idxNotificado = headersS?.indexOf(CONFIG.COLUMNS.NOTIFICATION_DATE);
 
   let count = 0;
+  let ultimosErrores: string[] = [];
+  
   recipients.forEach(r => {
     try {
       let templateName = 'CorreoSeleccionado';
@@ -105,6 +107,7 @@ function sendEmailBatch(type: string): string {
 
       if (type === 'TEST_LEVEL_ONLY') {
         templateName = 'CorreoTestNivel';
+        subject = "Test de Nivel - Programas de Inglés PUCV";
       } else if (type === 'WAITLIST') {
         templateName = 'CorreoListaEspera';
       } else if (type === 'NO_SELECTED') {
@@ -136,8 +139,13 @@ function sendEmailBatch(type: string): string {
       count++;
     } catch (e: any) {
       logToWebApp(`Error enviando a ${r.email}: ${e.message}`);
+      ultimosErrores.push(`[${r.email}]: ${e.message}`);
     }
   });
+
+  if (ultimosErrores.length > 0) {
+    return `Se enviaron ${count} correos.\n\nSin embargo, hubo ${ultimosErrores.length} errores. Algunos de ellos son:\n${ultimosErrores.slice(0, 3).join('\n')}`;
+  }
 
   return `Se enviaron ${count} correos exitosamente para el lote '${type}'.`;
 }

@@ -79,8 +79,8 @@ function getSelectionData(): object {
   const dataS = hojaS ? hojaS.getDataRange().getValues() : [];
   const headersS = dataS.shift() || [];
 
-  const idxCorreoS = headersS.indexOf(CONFIG.COLUMNS.EMAIL);
-  const idxNombreS = headersS.indexOf(CONFIG.COLUMNS.FIRST_NAME);
+  const idxCorreoS = headersS.indexOf("Correo Electrónico");
+  const idxNombreS = headersS.indexOf("Nombre(s)");
   const idxApellidosS = headersS.indexOf("Apellido(s)");
   const idxRankingS = headersS.indexOf("Ranking");
   const idxPuntajeS = headersS.indexOf("PUNTAJE TOTAL");
@@ -109,7 +109,7 @@ function getSelectionData(): object {
   const headersE = dataE.shift() || [];
 
   const emailsSelected = new Set(seleccionados.map(s => s.correo));
-  const idxCorreoE = headersE.indexOf(CONFIG.COLUMNS.EMAIL);
+  const idxCorreoE = headersE.indexOf("Correo Electrónico");
   const idxNombreE = headersE.indexOf("Nombre(s)");
   const idxApellidosE = headersE.indexOf("Apellido(s)");
   const idxPuntajeE = headersE.indexOf("PUNTAJE TOTAL");
@@ -254,7 +254,7 @@ function updateApplicantStatus(correo: string, verificacion: string, nivel: stri
 
   const datos = hojaS.getDataRange().getValues();
   const headers = datos[0];
-  const idxCorreo = headers.indexOf(CONFIG.COLUMNS.EMAIL);
+  const idxCorreo = headers.indexOf("Correo Electrónico");
   const idxVerificacion = headers.indexOf("Verificación Certificado") + 1;
   const idxNivel = headers.indexOf("Nivel Asignado") + 1;
 
@@ -291,13 +291,13 @@ function getPostulantesParaRevision(): object[] {
         obj.puntajes[h.toLowerCase()] = val;
       } else {
         // Map common fields to camelCase for the UI
-        if (h === CONFIG.COLUMNS.EMAIL) obj.correo = val;
-        else if (h === CONFIG.COLUMNS.FIRST_NAME) obj.nombre = val;
-        else if (h === CONFIG.COLUMNS.LAST_NAME_P) obj.apellidos = val;
-        else if (h === CONFIG.COLUMNS.RUT) obj.rut = val;
-        else if (h === CONFIG.COLUMNS.TIMESTAMP) obj.fecha = val;
-        else if (h === CONFIG.COLUMNS.APPLICANT_TYPE) obj.categoria = val;
-        else if (h === CONFIG.COLUMNS.CAMPUS) obj.sede = val;
+        if (h === "Correo Electrónico") obj.correo = val;
+        else if (h === "Nombre(s)") obj.nombre = val;
+        else if (h === "Apellido(s)") obj.apellidos = val;
+        else if (h === "RUT") obj.rut = val;
+        else if (h === "Fecha de Postulación") obj.fecha = val;
+        else if (h === "Categoría Postulante") obj.categoria = val;
+        else if (h === "Sede") obj.sede = val;
         else if (h === "Verificación Certificado") obj.verificacion = val;
         else if (h === "Nivel Asignado") obj.nivel = val;
         else if (h === "Aceptación") obj.aceptacion = val;
@@ -320,7 +320,7 @@ function guardarRevisionPostulante(data: { correo: string, verificacion: string,
 
   const values = sheet.getDataRange().getValues();
   const headers = values[0];
-  const idxCorreo = headers.indexOf(CONFIG.COLUMNS.EMAIL);
+  const idxCorreo = headers.indexOf("Correo Electrónico");
   const idxVerif = headers.indexOf("Verificación Certificado") + 1;
   const idxNivel = headers.indexOf("Nivel Asignado") + 1;
   const idxComents = headers.indexOf("Comentarios") + 1;
@@ -360,8 +360,13 @@ function generarToken(correo: string): string {
  */
 function obtenerUrlConfirmacion(correo: string, action: string): string {
   const token = generarToken(correo);
-  const webAppUrl = ScriptApp.getService().getUrl();
-  return `${webAppUrl}?action=${action}&token=${token}`;
+  const webAppUrl = CONFIG.WEB_APP_URL || ScriptApp.getService().getUrl();
+  
+  if (!CONFIG.WEB_APP_URL && webAppUrl.endsWith('/dev')) {
+    logToWebApp(`⚠️ ADVERTENCIA: Enlace /dev generado para ${correo}. Publica la Web App y configura WEB_APP_URL en Config.ts para evitar errores de Google Drive.`);
+  }
+
+  return `${webAppUrl.replace(/\/$/, '')}?action=${action}&token=${token}`;
 }
 
 /**
@@ -384,8 +389,8 @@ function procesarAccionPostulante(token: string, action: string): { exito: boole
 
   const values = hojaS.getDataRange().getValues();
   const headers = values[0];
-  const idxCorreo = headers.indexOf(CONFIG.COLUMNS.EMAIL);
-  const idxNombre = headers.indexOf(CONFIG.COLUMNS.FIRST_NAME);
+  const idxCorreo = headers.indexOf("Correo Electrónico");
+  const idxNombre = headers.indexOf("Nombre(s)");
   const idxAceptacion = headers.indexOf("Aceptación") + 1;
 
   for (let i = 1; i < values.length; i++) {

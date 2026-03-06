@@ -8,13 +8,14 @@
 
 /**
  * Status of an applicant during the selection process.
+ * (Pendiente | Seleccionado | Notificado | Acepta | Rechaza | Excluido)
  */
-type ApplicantStatus = 'Pendiente' | 'Seleccionado' | 'Notificado' | 'Acepta' | 'Rechaza' | 'Excluido';
 
 /**
  * Configuration for Sheet names and Column headers.
  */
 interface IConfig {
+  WEB_APP_URL: string;
   SHEETS: {
     INPUT: string;
     OUTPUT: string;
@@ -101,6 +102,8 @@ interface IStatistics {
 // --- CONSTANTS ---
 
 const CONFIG: IConfig = {
+  // Pega aquí la URL publicada de tu Web App (terminada en /exec) si los links de correo fallan con "No se puede abrir el archivo"
+  WEB_APP_URL: "",
   SHEETS: {
     INPUT: "Respuestas de formulario 1",
     OUTPUT: "Evaluación automatizada",
@@ -140,8 +143,9 @@ const CONFIG: IConfig = {
     COMMITMENT_BREACH: "Consecuencias por incumplimiento",
     ENDORSEMENT_APPROVAL: "¿Cuentas con el respaldo de tu jefatura directa para participar en este programa?",
     ENDORSEMENT_LETTER: "Si la respuesta anterior fue \"Sí\", por favor, adjunta una carta de respaldo de tu jefatura?\" [Nota: Opcional, pero otorga puntaje adicional]",
-    ENDORSEMENT_SCHEDULE: "¿Tu jefatura está en conocimiento y aprueba tu participación en el horario establecido?"
-    // Note: The "Seleccionados" sheet also includes: "Ranking", "Verificación Certificado", "Nivel Asignado", "Aceptación", "Comentarios", "Fecha Notificación"
+    ENDORSEMENT_SCHEDULE: "¿Tu jefatura está en conocimiento y aprueba tu participación en el horario establecido?",
+    NOTIFICATION_DATE: "Fecha Notificación"
+    // Note: The "Seleccionados" sheet also includes: "Ranking", "Verificación Certificado", "Nivel Asignado", "Aceptación", "Comentarios"
   }
 };
 

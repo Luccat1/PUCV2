@@ -58,10 +58,26 @@ function abrirSidebarRevision(): void {
 /**
  * Menu action wrappers
  */
-function enviarCorreosSeleccionados() { return sendEmailBatch('SELECTED'); }
-function enviarCorreosTestNivel() { return sendEmailBatch('TEST_LEVEL_ONLY'); }
-function enviarCorreosEspera() { return sendEmailBatch('WAITLIST'); }
-function enviarCorreosNoSeleccionados() { return sendEmailBatch('NO_SELECTED'); }
+function confirmarYEnviarCorreos(tipo: string): void {
+  const ui = SpreadsheetApp.getUi();
+  const vistaPrevia = previewEmailBatch(tipo);
+  
+  const respuesta = ui.alert('Confirmar Envío de Correos', 
+    vistaPrevia + '\n\n¿Estás SEGURO de que deseas enviar estos correos REALMENTE?', 
+    ui.ButtonSet.YES_NO);
+    
+  if (respuesta === ui.Button.YES) {
+    const resultado = sendEmailBatch(tipo);
+    ui.alert('Resultado', resultado, ui.ButtonSet.OK);
+  } else {
+    ui.alert('Cancelado', 'El envío de correos ha sido cancelado.', ui.ButtonSet.OK);
+  }
+}
+
+function enviarCorreosSeleccionados() { confirmarYEnviarCorreos('SELECTED'); }
+function enviarCorreosTestNivel() { confirmarYEnviarCorreos('TEST_LEVEL_ONLY'); }
+function enviarCorreosEspera() { confirmarYEnviarCorreos('WAITLIST'); }
+function enviarCorreosNoSeleccionados() { confirmarYEnviarCorreos('NO_SELECTED'); }
 
 function ejecutarAnalisisDesdeMenu() {
   const report = getAnalysisReport();

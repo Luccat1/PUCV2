@@ -105,7 +105,7 @@
       </div>
 
       <p>Has sido asignado/a al nivel <strong>
-          <?= nivelAsignado ?>
+          <?= nivel ?>
         </strong>, según la documentación aportada y verificada por el Programa PILE. En tu caso, no será necesario
         rendir prueba de nivel.</p>
       <p><i><b>Importante:</b> No todos los participantes fueron asignados al nivel al que postularon. En particular,
@@ -116,23 +116,23 @@
       <h3>Datos generales del programa:</h3>
       <ul>
         <li><strong>Inicio de clases:</strong>
-          <?= fechaInicio ?>
+          <?= programData.FECHA_INICIO ?>
         </li>
         <li><strong>Término de clases:</strong>
-          <?= fechaTermino ?>
+          <?= programData.FECHA_TERMINO ?>
         </li>
         <li><strong>Modalidad:</strong> Presencial</li>
       </ul>
 
       <h3>Horario del curso asignado (
-        <?= nivelAsignado ?>):
+        <?= nivel ?>):
       </h3>
       <ul>
         <li><strong>Cátedras:</strong>
-          <?= horarioCatedra ?>
+          <?= programData.HORARIOS[nivel] ? programData.HORARIOS[nivel].catedra : '[Horario por confirmar]' ?>
         </li>
         <li><strong>Ayudantía:</strong>
-          <?= horarioAyudantia ?>
+          <?= programData.HORARIOS[nivel] ? programData.HORARIOS[nivel].ayudantia : '[Horario por confirmar]' ?>
         </li>
       </ul>
       <p>Si no puedes comprometerte con el horario asignado a tu curso, debes renunciar a tu cupo y avisar a la
