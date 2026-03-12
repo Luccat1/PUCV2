@@ -20,31 +20,38 @@ function generarListaFinalCurso() {
     const idxCorreo = headers.indexOf("Correo Electrónico");
     const idxNivel = headers.indexOf("Nivel Asignado");
     const idxAceptacion = headers.indexOf("Aceptación");
-    // Filter: Accepted AND has a Nivel
-    const finales = datosS.filter(f => String(f[idxAceptacion]).toLowerCase() === 'acepta' &&
-        String(f[idxNivel]).trim() !== "");
+    const idxVerificacion = headers.indexOf("Verificación Certificado");
+    // Filter: (Accepted AND has a Nivel) OR (Verification says Test de nivel)
+    const finales = datosS.filter(f => {
+        const isAcceptedCourse = String(f[idxAceptacion]).toLowerCase() === 'acepta' && String(f[idxNivel]).trim() !== "";
+        const isTestDeNivel = String(f[idxVerificacion]).toLowerCase() === 'test de nivel';
+        return isAcceptedCourse || isTestDeNivel;
+    });
     if (finales.length === 0)
         return "No hay participantes confirmados para generar la lista final.";
     // Group by Nivel
     const grupos = {};
     finales.forEach(f => {
-        const nivel = String(f[idxNivel]).trim();
+        let nivel = String(f[idxNivel]).trim();
+        if (String(f[idxVerificacion]).toLowerCase() === 'test de nivel') {
+            nivel = "PRUEBA DE NIVEL";
+        }
         if (!grupos[nivel])
             grupos[nivel] = [];
-        grupos[nivel].push([f[idxApellido], f[idxNombre], f[idxCorreo], nivel]);
+        grupos[nivel].push([f[idxApellido], f[idxNombre], f[idxCorreo], nivel, ""]); // Empty string for 'Pagó'
     });
     let hojaF = ss.getSheetByName(CONFIG.SHEETS.FINAL_LIST);
     if (!hojaF)
         hojaF = ss.insertSheet(CONFIG.SHEETS.FINAL_LIST);
     else
         hojaF.clear();
-    const finalRows = [["Apellido(s)", "Nombre(s)", "Correo", "Nivel"]];
+    const finalRows = [["Apellido(s)", "Nombre(s)", "Correo", "Nivel", "Pagó (Sí/No)"]];
     Object.keys(grupos).sort().forEach(nivel => {
-        finalRows.push([]); // Empty row as separator
-        finalRows.push([`NIVEL: ${nivel}`, "", "", ""]);
+        finalRows.push(["", "", "", "", ""]); // Empty row as separator (must have 5 columns)
+        finalRows.push([`CATEGORÍA: ${nivel}`, "", "", "", ""]);
         grupos[nivel].forEach(p => finalRows.push(p));
     });
     hojaF.getRange(1, 1, finalRows.length, finalRows[0].length).setValues(finalRows);
-    hojaF.getRange(1, 1, 1, 4).setFontWeight("bold").setBackground("#cfe2f3");
+    hojaF.getRange(1, 1, 1, 5).setFontWeight("bold").setBackground("#cfe2f3");
     return `Lista final generada exitosamente en la hoja '${CONFIG.SHEETS.FINAL_LIST}'. Total confirmados: ${finales.length}.`;
 }

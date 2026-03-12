@@ -10,7 +10,7 @@ function onOpen() {
     const ui = SpreadsheetApp.getUi();
     ui.createMenu('PUCV2English')
         .addItem('📊 Evaluar Postulaciones', 'abrirDialogoEvaluacion')
-        .addItem('📋 Generar Lista Final', 'generarListaFinalCurso')
+        .addItem('📋 Generar Lista Final', 'ejecutarGenerarListaFinal')
         .addSeparator()
         .addItem('⚙️ Configurar Pesos', 'abrirSidebarConfig')
         .addItem('👁️ Revisar Postulaciones', 'abrirSidebarRevision')
@@ -50,6 +50,10 @@ function abrirSidebarRevision() {
         .setTitle('Revisión de Postulaciones')
         .setWidth(300);
     SpreadsheetApp.getUi().showSidebar(html);
+}
+function ejecutarGenerarListaFinal() {
+    const result = generarListaFinalCurso();
+    SpreadsheetApp.getUi().alert('Generar Lista Final', result, SpreadsheetApp.getUi().ButtonSet.OK);
 }
 /**
  * Menu action wrappers
