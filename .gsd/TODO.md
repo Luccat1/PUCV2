@@ -12,3 +12,5 @@
 - [x] Phase 5 execution — End-to-end testing, edge case handling, documentation `high` — 2026-03-04 *(resolved Phase 5)*
 - [ ] ROADMAP.md consistency — Update Phase 3 status and top-level must-have checkboxes `medium` — 2026-03-04
 - [ ] Bug: Exception al ejecutar generar lista final del curso (El número de columnas de los datos no coincide con el del intervalo. Los datos tienen 0 y el intervalo, 4) `high` — 2026-03-10
+- [ ] Incluir correo nuevo o categoría para seleccionados extratemporáneos por certificación ("hand picked"). Debe incluir botones regulares de aceptación y variable para fecha límite `medium` — 2026-03-13
+- [x] tenemos que sacar las referencias a trabajar con clasp porque no funcionó debido a diferentes motivos `medium` — 2026-03-13

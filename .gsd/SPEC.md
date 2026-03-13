@@ -4,7 +4,7 @@
 
 ## Vision
 
-Refactorizar PUCV2English desde un script monolítico hacia un sistema modular, profesional y ergonómico que viva dentro de Google Sheets. El sistema usará menús nativos, sidebars HTML y una web app externa para dashboard, transformando la experiencia tanto para los revisores administrativos (2 personas) como para los postulantes que interactúan vía correo. El código se desarrollará con **clasp + TypeScript** para tipado, modularidad y desarrollo local.
+Refactorizar PUCV2English desde un script monolítico hacia un sistema modular, profesional y ergonómico que viva dentro de Google Sheets. El sistema usará menús nativos, sidebars HTML y una web app externa para dashboard, transformando la experiencia tanto para los revisores administrativos (2 personas) como para los postulantes que interactúan vía correo. El código se desarrollará con **TypeScript** para tipado, modularidad y desarrollo local.
 
 ## Goals
 
@@ -16,7 +16,7 @@ Refactorizar PUCV2English desde un script monolítico hacia un sistema modular, 
 6. **Automatización inteligente de correos** — Envío en batch activado por botón tras revisión, con lógica que solo envía a quienes cumplen criterios y no han sido notificados
 7. **Separación limpia Seleccionados vs Lista de Espera** — Evitar confusiones entre estados; exclusión automática de quienes rechazan o son marcados como no aptos
 8. **Correos automatizados para no seleccionados** — Incluir en el flujo de envío batch
-9. **Refactoring arquitectónico** — Modularizar en archivos separados (Evaluacion, Correos, Dashboard, Config, WebApp, Utils), usar clasp + TypeScript, aplicar buenas prácticas GAS
+9. **Refactoring arquitectónico** — Modularizar en archivos separados (Evaluacion, Correos, Dashboard, Config, WebApp, Utils), usar TypeScript, aplicar buenas prácticas GAS
 
 ## Non-Goals (Out of Scope)
 
@@ -41,7 +41,7 @@ Refactorizar PUCV2English desde un script monolítico hacia un sistema modular, 
 ## Constraints
 
 - **Plataforma:** Google Apps Script (V8 runtime) dentro de Google Sheets
-- **Desarrollo:** clasp + TypeScript con guía de setup clara
+- **Desarrollo:** TypeScript con build y guía de setup clara
 - **Timeline:** Urgente — debe estar listo para la próxima convocatoria (5ª versión del programa)
 - **Datos:** El script reside en la misma hoja que recibe las respuestas del formulario (34 columnas de entrada)
 - **Límites GAS:** 6 min timeout por ejecución, 100 emails/día (Gmail), 30 sec sidebar/dialog timeout
@@ -56,5 +56,5 @@ Refactorizar PUCV2English desde un script monolítico hacia un sistema modular, 
 - [ ] Los correos se envían en batch por categoría (seleccionados, espera, no seleccionados) con un solo clic post-revisión
 - [ ] La lista de espera está claramente separada y los rechazos/exclusiones se procesan automáticamente
 - [ ] El código está modularizado en archivos separados con TypeScript
-- [ ] Guía de setup de clasp incluida y funcional
+- [ ] Guía de setup manual o build incluída y funcional
 - [ ] El sistema funciona íntegramente dentro de Google Workspace

@@ -3,14 +3,10 @@
   "version": "5.0.0",
   "description": "Refactoring of PUCV2 English script to modular TypeScript",
   "devDependencies": {
-    "@google/clasp": "^2.4.2",
     "@types/google-apps-script": "^1.0.98",
     "typescript": "^5.7.3"
   },
   "scripts": {
-    "push": "cd src && clasp push",
-    "pull": "cd src && clasp pull",
-    "watch": "cd src && clasp push --watch",
-    "build": "tsc -p src/tsconfig.json --noEmit"
+    "build": "npx tsc -p src/tsconfig.json --outDir dist"
   }
 }

@@ -5,7 +5,7 @@
 
 ## Must-Haves (from SPEC)
 
-- [x] Clasp + TypeScript project structure with modular files *(Phase 1)*
+- [x] TypeScript project structure with modular files *(Phase 1)*
 - [x] Native Sheets menu with organized action items *(Phase 2)*
 - [x] Sidebar for evaluation config and applicant review *(Phase 2)*
 - [x] Web App dashboard with charts and management tables *(Phase 4)*
@@ -16,15 +16,15 @@
 
 ## Phases
 
-### Phase 1: Foundation — Clasp + TypeScript + Modular Architecture
+### Phase 1: Foundation — TypeScript + Modular Architecture
 
 **Status**: ✅ Complete (2026-03-03)
-**Objective**: Set up clasp project, migrate existing code to TypeScript modules, establish project structure
+**Objective**: Set up local typescript project, migrate existing code to TypeScript modules, establish project structure
 **Requirements**: REQ-01, REQ-02, REQ-15, REQ-16
 
 **Deliverables:**
 
-- `clasp.json` + `appsscript.json` configured
+- `appsscript.json` configured
 - TypeScript modules: `Config.ts`, `Utils.ts`, `Evaluacion.ts`, `Dashboard.ts`, `Correos.ts`, `WebApp.ts`, `Menu.ts`
 - Existing logic migrated and working identically
 - Setup guide in README
@@ -90,7 +90,7 @@
 - End-to-end test with sample data
 - Edge case handling (duplicate emails, concurrent edits, quota limits)
 - Updated README.md with full usage guide
-- Clasp setup guide
+- Manual setup guide using `dist` directory in README
 - Code comments and JSDoc annotations
 
 ---

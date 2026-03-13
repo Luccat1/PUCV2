@@ -1,12 +1,11 @@
 # PUCV2English v5.0 — Sistema de Gestión Automatizada
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
-[![clasp](https://img.shields.io/badge/clasp-v2.x-blue.svg)](https://github.com/google/clasp)
 [![Platform](https://img.shields.io/badge/Platform-Google%20Apps%20Script-green.svg)](https://developers.google.com/apps-script)
 
 **PUCV2English** es un ecosistema modular desarrollado en **TypeScript** para la gestión profesional de postulaciones al Programa de Inglés PUCV. El sistema automatiza el ciclo completo: desde la evaluación masiva con criterios ponderados, hasta la gestión de matrícula vía dashboard y la comunicación automatizada con los postulantes.
 
-> **Novedad v5.0:** Migración completa de monolito JavaScript (1.6k loc) a arquitectura modular profesional utilizando `clasp` para desarrollo local y tipado estricto.
+> **Novedad v5.0:** Migración completa de monolito JavaScript (1.6k loc) a arquitectura modular profesional tipado estricto.
 
 ---
 
@@ -63,11 +62,10 @@ El puntaje total es la suma de varias áreas, con pesos ajustables desde la hoja
 
 ## ⚙️ Arquitectura del Script
 
-El código está estructurado para ser modular, mantenible y robusto.
+    -   El código está estructurado para ser modular, mantenible y robusto.
+    -   **`CONFIG` (Objeto Global):** Centraliza todos los nombres de hojas y columnas importantes en un único objeto. Esto facilita enormemente el mantenimiento: si se renombra una hoja, solo hay que cambiarlo en un lugar.
 
-- **`CONFIG` (Objeto Global):** Centraliza todos los nombres de hojas y columnas importantes en un único objeto. Esto facilita enormemente el mantenimiento: si se renombra una hoja, solo hay que cambiarlo en un lugar.
-
-    ```javascript
+```javascript
     const CONFIG = {
       SHEET_ID: "ID_DE_TU_HOJA",
       SHEETS: {
@@ -78,7 +76,7 @@ El código está estructurado para ser modular, mantenible y robusto.
       },
       // ...
     };
-    ```
+```
 
 - **`evaluarPostulacionesPUCV2()` (Función Principal):** Orquesta todo el proceso.
     1. **Bloqueo (`LockService`):** Adquiere un bloqueo para garantizar una única ejecución.
@@ -122,18 +120,19 @@ Sigue estos pasos para poner en marcha el sistema.
 2. Ve a la página de inicio de Google Apps Script: script.google.com.
 3. Haz clic en **Nuevo proyecto**.
 4. Borra cualquier código de ejemplo que aparezca.
-5. Copia todo el contenido de los archivos `PUCV2.js` y `WebAppUI.html` de este repositorio y pégalos en los archivos correspondientes de tu nuevo proyecto.
-6. **Configura el ID de tu Hoja:** En el archivo `PUCV2.js`, localiza esta línea al inicio del script:
+5. Ejecuta `npm run build` en la carpeta raíz del proyecto de manera local. Esto generará la carpeta `dist`.
+6. Copia todo el contenido de los archivos JS en la carpeta `dist` y pégalos en nuevos archivos correspondientes dentro de tu nuevo proyecto (asegurando ponerle el mismo nombre). Haz lo mismo con los archivos HTML en la carpeta `src`.
+7. **Configura el ID de tu Hoja:** En el archivo `Config.gs` (o `Config.js`), localiza esta línea al inicio del script:
 
-    ```javascript
+```javascript
     const CONFIG = {
       SHEET_ID: "ID_DE_TU_HOJA",
       // ...
     };
-    ```
+```
 
     Reemplaza `"ID_DE_TU_HOJA"` con el ID que copiaste en el Paso 1.
-7. Guarda el proyecto (icono de disquete 💾).
+8. Guarda el proyecto (icono de disquete 💾).
 
 ### **Paso 4: Configurar el Activador (Trigger)**
 
