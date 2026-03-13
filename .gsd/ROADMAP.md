@@ -1,7 +1,7 @@
 # ROADMAP.md
 
-> **Current Phase**: Not started
-> **Milestone**: v5.0
+> **Current Phase**: 7 (Gap Closure)
+> **Milestone**: v5.0 (Auditing Gaps)
 
 ## Must-Haves (from SPEC)
 
