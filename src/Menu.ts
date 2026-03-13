@@ -18,6 +18,7 @@ function onOpen(): void {
     .addSubMenu(ui.createMenu('📧 Enviar Correos')
       .addItem('✅ Seleccionados', 'enviarCorreosSeleccionados')
       .addItem('🧪 Test de Nivel', 'enviarCorreosTestNivel')
+      .addItem('💎 Hand Picked (Extratemporáneos)', 'enviarCorreosHandPicked')
       .addItem('⏳ Lista de Espera', 'enviarCorreosEspera')
       .addItem('❌ No Seleccionados', 'enviarCorreosNoSeleccionados')
       .addSeparator()
@@ -81,6 +82,7 @@ function confirmarYEnviarCorreos(tipo: string): void {
 
 function enviarCorreosSeleccionados() { confirmarYEnviarCorreos('SELECTED'); }
 function enviarCorreosTestNivel() { confirmarYEnviarCorreos('TEST_LEVEL_ONLY'); }
+function enviarCorreosHandPicked() { confirmarYEnviarCorreos('HAND_PICKED'); }
 function enviarCorreosEspera() { confirmarYEnviarCorreos('WAITLIST'); }
 function enviarCorreosNoSeleccionados() { confirmarYEnviarCorreos('NO_SELECTED'); }
 

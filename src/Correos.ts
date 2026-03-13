@@ -21,7 +21,7 @@ function ejecutarEnvioCorreosDesdeWebApp(): string {
 function getRecipients(type: string): any[] {
   const ss = getSpreadsheet();
 
-  if (type === 'SELECTED' || type === 'TEST_LEVEL_ONLY') {
+  if (type === 'SELECTED' || type === 'TEST_LEVEL_ONLY' || type === 'HAND_PICKED') {
     const hoja = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
     if (!hoja) throw new Error(`Hoja ${CONFIG.SHEETS.SELECTED} no encontrada.`);
     const datos = hoja.getDataRange().getValues();
@@ -45,6 +45,7 @@ function getRecipients(type: string): any[] {
       if (p.notificado && p.notificado !== "") return false;
 
       if (type === 'TEST_LEVEL_ONLY') return p.verificacion === 'Test de nivel';
+      if (type === 'HAND_PICKED') return p.verificacion === 'Hand picked' || p.verificacion === 'Manual';
       return p.email && p.nombre && p.nivel && p.verificacion === 'Válido';
     });
   }
@@ -112,6 +113,9 @@ function sendEmailBatch(type: string): string {
         templateName = 'CorreoListaEspera';
       } else if (type === 'NO_SELECTED') {
         templateName = 'CorreoNoSeleccionado';
+      } else if (type === 'HAND_PICKED') {
+        templateName = 'CorreoHandPicked';
+        subject = "Cupo Disponible - Programas de Inglés PUCV";
       }
 
       const htmlBody = HtmlService.createTemplateFromFile(templateName);
@@ -120,7 +124,7 @@ function sendEmailBatch(type: string): string {
       (htmlBody as any).programData = PROGRAM_DATA;
       (htmlBody as any).fechaLimite = PROGRAM_DATA.FECHA_LIMITE;
 
-      if (templateName === 'CorreoSeleccionado') {
+      if (templateName === 'CorreoSeleccionado' || templateName === 'CorreoHandPicked') {
         (htmlBody as any).urlAceptar = obtenerUrlConfirmacion(r.email, 'accept');
         (htmlBody as any).urlRechazar = obtenerUrlConfirmacion(r.email, 'reject');
       }
