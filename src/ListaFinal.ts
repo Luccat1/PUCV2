@@ -47,15 +47,25 @@ function generarListaFinalCurso(): string {
   if (!hojaF) hojaF = ss.insertSheet(CONFIG.SHEETS.FINAL_LIST);
   else hojaF.clear();
 
-  const finalRows: any[][] = [["Apellido(s)", "Nombre(s)", "Correo", "Nivel", "Pagó (Sí/No)"]];
+  const finalRows: any[][] = [];
+  const HEADER = ["Apellido(s)", "Nombre(s)", "Correo", "Nivel", "Pagó (Sí/No)"];
+  finalRows.push(HEADER);
+
   Object.keys(grupos).sort().forEach(nivel => {
-    finalRows.push(["", "", "", "", ""]); // Empty row as separator (must have 5 columns)
+    finalRows.push(["", "", "", "", ""]); // Empty row as separator
     finalRows.push([`CATEGORÍA: ${nivel}`, "", "", "", ""]);
-    grupos[nivel].forEach(p => finalRows.push(p));
+    grupos[nivel].forEach(p => {
+      // Ensure row has exactly 5 columns
+      const row = [...p];
+      while (row.length < 5) row.push("");
+      finalRows.push(row.slice(0, 5));
+    });
   });
 
-  hojaF.getRange(1, 1, finalRows.length, finalRows[0].length).setValues(finalRows);
-  hojaF.getRange(1, 1, 1, 5).setFontWeight("bold").setBackground("#cfe2f3");
+  if (finalRows.length > 0 && finalRows[0].length > 0) {
+    hojaF.getRange(1, 1, finalRows.length, finalRows[0].length).setValues(finalRows);
+    hojaF.getRange(1, 1, 1, 5).setFontWeight("bold").setBackground("#cfe2f3");
+  }
   
   return `Lista final generada exitosamente en la hoja '${CONFIG.SHEETS.FINAL_LIST}'. Total confirmados: ${finales.length}.`;
 }
