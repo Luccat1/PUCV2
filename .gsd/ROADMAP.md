@@ -115,3 +115,16 @@
 - [x] Implement duplicate applicant detection
 - [x] Implement Gmail quota guard
 - [x] Ensure JSDoc documentation across core engines
+
+---
+
+### Phase 7: Gap Closure
+
+**Status**: ⬜ Not Started
+**Objective**: Address gaps from milestone audit v5.0
+
+**Gaps to Close:**
+
+- [ ] 7.1: Update ROADMAP.md consistency
+- [ ] 7.2: Fix Bug in ListaFinal generation
+- [ ] 7.3: Add new email category and deadline for "hand picked" applicants

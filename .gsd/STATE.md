@@ -10,6 +10,6 @@
 
 Phase 5 ("Polish, Testing + Documentation") and Phase 6 ("Gap Closure") executed successfully. Milestone v5.0 is formally complete. The system is now modular, configurable, and hardened.
 
-## Next Steps
+## Gap Closure Mode
 
-1. Formal project handoff or start next Milestone.
+Addressing 3 gaps from milestone audit.
