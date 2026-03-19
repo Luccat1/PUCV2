@@ -34,7 +34,7 @@ interface IProgramData {
   FECHA_LIMITE: string;
   FECHA_INICIO: string;
   FECHA_TERMINO: string;
-  HORARIOS: Record<string, { catedra: string; ayudantia: string }>;
+  HORARIOS: Record<string, { catedra: string; ayudantia: string; sala?: string }>;
 }
 
 /**
@@ -144,7 +144,9 @@ const CONFIG: IConfig = {
     ENDORSEMENT_APPROVAL: "¿Cuentas con el respaldo de tu jefatura directa para participar en este programa?",
     ENDORSEMENT_LETTER: "Si la respuesta anterior fue \"Sí\", por favor, adjunta una carta de respaldo de tu jefatura?\" [Nota: Opcional, pero otorga puntaje adicional]",
     ENDORSEMENT_SCHEDULE: "¿Tu jefatura está en conocimiento y aprueba tu participación en el horario establecido?",
-    NOTIFICATION_DATE: "Fecha Notificación"
+    NOTIFICATION_DATE: "Fecha Notificación",
+    INICIO_NOTIFICATION_DATE: "Notificado Inicio",
+    SALA: "Sala"
     // Note: The "Seleccionados" sheet also includes: "Ranking", "Verificación Certificado", "Nivel Asignado", "Aceptación", "Comentarios"
   }
 };

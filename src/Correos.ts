@@ -88,6 +88,7 @@ function sendEmailBatch(type: string): string {
   if (recipients.length === 0) return "No hay destinatarios pendientes para enviar '" + type + "'.";
 
   // Gmail Quota Check
+  // QUAL-01 verified: MailApp.getRemainingDailyQuota() is the only GAS quota API. GmailApp has no quota method.
   const quota = MailApp.getRemainingDailyQuota();
   if (quota < recipients.length) {
     return `ERROR: Cuota de Gmail insuficiente. Te quedan ${quota} envíos y quieres enviar ${recipients.length}.`;
