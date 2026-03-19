@@ -23,7 +23,9 @@ function onOpen(): void {
       .addItem('❌ No Seleccionados', 'enviarCorreosNoSeleccionados')
       .addSeparator()
       .addItem('👁️ Vista Previa Siguiente (Lista de Espera)', 'mostrarVistaPreviaProximo')
-      .addItem('✉️ Enviar Correo de Prueba', 'abrirDialogoCorreoPrueba'))
+      .addItem('✉️ Enviar Correo de Prueba', 'abrirDialogoCorreoPrueba')
+      .addSeparator()
+      .addItem('🏫 Inicio de Clases', 'abrirDialogoInicioClases'))
     .addSeparator()
     .addItem('📈 Ver Dashboard', 'abrirDashboard')
     .addItem('📉 Ver Análisis de Equilibrio', 'ejecutarAnalisisDesdeMenu')
@@ -127,4 +129,15 @@ function mostrarVistaPreviaProximo(): void {
   const ui = SpreadsheetApp.getUi();
   const preview = previewEmailBatch('SELECTED'); // This currently shows all pending SELECTED
   ui.alert('Próximos Notificables', preview, ui.ButtonSet.OK);
+}
+
+/**
+ * Opens the sala-collection dialog for the class-start email batch.
+ * Required HTML files in GAS project: DialogSalas.html, CorreoInicioClases.html
+ */
+function abrirDialogoInicioClases(): void {
+  const html = HtmlService.createHtmlOutputFromFile('DialogSalas')
+    .setWidth(480)
+    .setHeight(500);
+  SpreadsheetApp.getUi().showModalDialog(html, 'Configurar Salas — Inicio de Clases');
 }
