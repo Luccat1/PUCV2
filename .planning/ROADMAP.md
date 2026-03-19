@@ -12,7 +12,7 @@ Two additive features extend the existing admissions pipeline to cover the final
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [x] **Phase 1: Correo Inicio de Clases** - Admin puede enviar correos personalizados de inicio de clases a todos los estudiantes confirmados, con sala ingresada vía diálogo
+- [x] **Phase 1: Correo Inicio de Clases** (COMPLETE) - Admin puede enviar correos personalizados de inicio de clases a todos los estudiantes confirmados, con sala ingresada vía diálogo
 - [ ] **Phase 2: Informe Ejecutivo PDF** - Admin puede generar un PDF de matrícula final agrupado por nivel y exportarlo directamente desde el menú
 
 ## Phase Details
@@ -32,7 +32,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 Plans:
 - [x] 01-01-PLAN.md — Extend Config.ts (SALA + INICIO_NOTIFICATION_DATE constants, sala? field) and ListaFinal.ts (7-column header); close QUAL-01
 - [x] 01-02-PLAN.md — Create InicioClases.ts server module (getNivelesActivos, guardarSalasYObtenerPreview, enviarCorreosInicioClases) and TestInicioClases.ts
-- [ ] 01-03-PLAN.md — Create DialogSalas.html + CorreoInicioClases.html (src/ and PUCV2English/); wire Menu.ts entry point
+- [x] 01-03-PLAN.md — Create DialogSalas.html + CorreoInicioClases.html (src/ and PUCV2English/); wire Menu.ts entry point
 
 ### Phase 2: Informe Ejecutivo PDF
 **Goal**: Admin can generate a PDF enrollment report grouped by level with totals and individual student rows, exported to Google Drive with the URL shown on success
@@ -52,5 +52,5 @@ Phases execute in numeric order: 1 → 2
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Correo Inicio de Clases | 2/3 | In progress | 2026-03-19 |
+| 1. Correo Inicio de Clases | 3/3 | Complete | 2026-03-19 |
 | 2. Informe Ejecutivo PDF | 0/TBD | Not started | - |
