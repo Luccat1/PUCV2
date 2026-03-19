@@ -27,7 +27,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Every confirmed student in Lista Final Curso receives an email containing their name, level, schedule (cátedra + ayudantía), classroom, and program start/end dates
   4. Each notified student is marked in the "Notificado Inicio" column; re-running the send skips already-notified students without error
   5. The quota check uses GmailApp.getRemainingDailyQuota() and the menu item is reachable from "Enviar Correos"
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — Extend Config.ts (SALA + INICIO_NOTIFICATION_DATE constants, sala? field) and ListaFinal.ts (7-column header); close QUAL-01
+- [ ] 01-02-PLAN.md — Create InicioClases.ts server module (getNivelesActivos, guardarSalasYObtenerPreview, enviarCorreosInicioClases) and TestInicioClases.ts
+- [ ] 01-03-PLAN.md — Create DialogSalas.html + CorreoInicioClases.html (src/ and PUCV2English/); wire Menu.ts entry point
 
 ### Phase 2: Informe Ejecutivo PDF
 **Goal**: Admin can generate a PDF enrollment report grouped by level with totals and individual student rows, exported to Google Drive with the URL shown on success
@@ -47,5 +52,5 @@ Phases execute in numeric order: 1 → 2
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Correo Inicio de Clases | 0/TBD | Not started | - |
+| 1. Correo Inicio de Clases | 0/3 | Not started | - |
 | 2. Informe Ejecutivo PDF | 0/TBD | Not started | - |
