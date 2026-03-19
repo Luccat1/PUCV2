@@ -18,11 +18,12 @@ Automatizar el proceso de admisión end-to-end para que el equipo administrativo
 - ✓ Dashboard estadístico de postulaciones — existing
 - ✓ Web app para confirmación de aceptación/rechazo por token — existing
 - ✓ Generación de lista final de participantes confirmados — existing
+- ✓ Correo de inicio de clases a cada estudiante con su nivel, horario y sala asignada — Phase 1 complete
+- ✓ Ingreso manual de sala de clases por nivel al momento de generar (vía diálogo) — Phase 1 complete
+- ✓ Quota API check with MailApp.getRemainingDailyQuota() — Phase 1 complete
 
 ### Active
 
-- [ ] Correo de inicio de clases a cada estudiante con su nivel, horario y sala asignada
-- [ ] Ingreso manual de sala de clases por nivel al momento de generar (vía diálogo)
 - [ ] Informe ejecutivo PDF con resumen de cursos, agrupaciones y número de matriculados
 
 ### Out of Scope
@@ -49,8 +50,8 @@ El informe PDF es para uso interno/administrativo, no para distribuir a estudian
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Sala ingresada manualmente en diálogo al generar | Origen externo, no automatizable | — Pending |
-| PDF generado desde Google Sheets o Docs | Única opción viable en GAS sin librerías externas | — Pending |
+| Sala ingresada manualmente en diálogo al generar | Origen externo, no automatizable | ✓ Implemented in Phase 1 — DialogSalas.html 4-state modal |
+| PDF generado desde Google Sheets o Docs | Única opción viable en GAS sin librerías externas | — Pending (Phase 2) |
 
 ---
-*Last updated: 2026-03-19 after initialization*
+*Last updated: 2026-03-19 after Phase 1 completion*
