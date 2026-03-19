@@ -31,7 +31,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 Plans:
 - [x] 01-01-PLAN.md — Extend Config.ts (SALA + INICIO_NOTIFICATION_DATE constants, sala? field) and ListaFinal.ts (7-column header); close QUAL-01
-- [ ] 01-02-PLAN.md — Create InicioClases.ts server module (getNivelesActivos, guardarSalasYObtenerPreview, enviarCorreosInicioClases) and TestInicioClases.ts
+- [x] 01-02-PLAN.md — Create InicioClases.ts server module (getNivelesActivos, guardarSalasYObtenerPreview, enviarCorreosInicioClases) and TestInicioClases.ts
 - [ ] 01-03-PLAN.md — Create DialogSalas.html + CorreoInicioClases.html (src/ and PUCV2English/); wire Menu.ts entry point
 
 ### Phase 2: Informe Ejecutivo PDF
@@ -52,5 +52,5 @@ Phases execute in numeric order: 1 → 2
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Correo Inicio de Clases | 1/3 | In progress | 2026-03-19 |
+| 1. Correo Inicio de Clases | 2/3 | In progress | 2026-03-19 |
 | 2. Informe Ejecutivo PDF | 0/TBD | Not started | - |
