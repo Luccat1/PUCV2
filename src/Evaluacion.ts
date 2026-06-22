@@ -393,6 +393,7 @@ function calcularPuntajeInternacionalizacion(fila: any[], tipo: string, idxs: Re
 function calcularPuntajeCertificado(fila: any[], idxs: Record<string, number>): number {
   if (obtenerValor(fila, CONFIG.COLUMNS.CERTIFICATE_CHECKBOX, idxs)) return 0;
   const txt = obtenerValor(fila, CONFIG.COLUMNS.CERTIFICATE_LEVEL, idxs);
+  if (/no sé|no se|no tengo/i.test(txt)) return 0;
   if (/C1/i.test(txt)) return 5;
   if (/B2\.2/i.test(txt)) return 4;
   if (/B2\.1/i.test(txt)) return 3;
@@ -506,7 +507,9 @@ function obtenerNivelDesdeFila(fila: any[], idxs: Record<string, number>): strin
   if (/B2\.2/i.test(txt)) return "B2.2";
   if (/B2\.1/i.test(txt)) return "B2.1";
   if (/\bexim/i.test(txt)) return "B2.1";
+  if (/B2/i.test(txt)) return "B2.1"; // Map generic B2 to B2.1
   if (/B1\+/i.test(txt)) return "B1+";
+  if (/B1/i.test(txt)) return "B1+"; // Map generic B1 to B1+
   if (/inglés 4|ingles 4/i.test(txt)) return "B1+";
 
   return "B1+"; // Default fallback

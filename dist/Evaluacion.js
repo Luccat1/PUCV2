@@ -375,6 +375,8 @@ function calcularPuntajeCertificado(fila, idxs) {
     if (obtenerValor(fila, CONFIG.COLUMNS.CERTIFICATE_CHECKBOX, idxs))
         return 0;
     const txt = obtenerValor(fila, CONFIG.COLUMNS.CERTIFICATE_LEVEL, idxs);
+    if (/no sé|no se|no tengo/i.test(txt))
+        return 0;
     if (/C1/i.test(txt))
         return 5;
     if (/B2\.2/i.test(txt))
@@ -490,8 +492,12 @@ function obtenerNivelDesdeFila(fila, idxs) {
         return "B2.1";
     if (/\bexim/i.test(txt))
         return "B2.1";
+    if (/B2/i.test(txt))
+        return "B2.1"; // Map generic B2 to B2.1
     if (/B1\+/i.test(txt))
         return "B1+";
+    if (/B1/i.test(txt))
+        return "B1+"; // Map generic B1 to B1+
     if (/inglés 4|ingles 4/i.test(txt))
         return "B1+";
     return "B1+"; // Default fallback
