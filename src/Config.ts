@@ -34,6 +34,8 @@ interface IProgramData {
   FECHA_LIMITE: string;
   FECHA_INICIO: string;
   FECHA_TERMINO: string;
+  PAYMENT_URL: string;
+  DEADLINE_DAYS: number;
   HORARIOS: Record<string, { catedra: string; ayudantia: string; sala?: string }>;
 }
 
@@ -146,7 +148,9 @@ const CONFIG: IConfig = {
     ENDORSEMENT_SCHEDULE: "¿Tu jefatura está en conocimiento y aprueba tu participación en el horario establecido?",
     NOTIFICATION_DATE: "Fecha Notificación",
     INICIO_NOTIFICATION_DATE: "Notificado Inicio",
-    SALA: "Sala"
+    SALA: "Sala",
+    LEVEL_APPLIED: "Nivel al que postula",
+    SCORE: "PUNTAJE TOTAL"
     // Note: The "Seleccionados" sheet also includes: "Ranking", "Verificación Certificado", "Nivel Asignado", "Aceptación", "Comentarios"
   }
 };
@@ -201,6 +205,8 @@ const DEFAULT_PROGRAM_DATA: IProgramData = {
   FECHA_LIMITE: "jueves 11 de diciembre",
   FECHA_INICIO: "23 de marzo de 2026",
   FECHA_TERMINO: "2 de julio de 2026",
+  PAYMENT_URL: "https://www.mercadopago.cl/link-pago-matricula",
+  DEADLINE_DAYS: 3,
   HORARIOS: {
     "B1+": { catedra: "Lunes y Miércoles 17:45-18:55", ayudantia: "Jueves 17:45-18:55" },
     "B2.1": { catedra: "Lunes y Miércoles 17:45-18:55", ayudantia: "Jueves 17:45-18:55" },

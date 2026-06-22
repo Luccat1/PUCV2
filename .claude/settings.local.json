@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(grep -E '\\(sk-[a-zA-Z0-9]{20,}|sk_live_[a-zA-Z0-9]+|sk_test_[a-zA-Z0-9]+|ghp_[a-zA-Z0-9]{36}|AKIA[A-Z0-9]{16}|xox[baprs]-[a-zA-Z0-9-]+|-----BEGIN.*PRIVATE KEY|eyJ[a-zA-Z0-9_-]+\\\\.eyJ[a-zA-Z0-9_-]+\\\\.\\)' .planning/codebase/*.md)",
+      "Bash(node:*)",
+      "Skill(gsd:resume-work)",
+      "Bash(grep -E \"\\\\.js$\")",
+      "Bash(bash deploy.sh)",
+      "Bash(ls -la dist/*.js)",
+      "Bash(for file:*)",
+      "Bash(do basename:*)",
+      "Bash(done)",
+      "Bash(ls PUCV2English/*.js)",
+      "Bash(xargs -n1 basename)",
+      "Bash(cp dist/Utils.js PUCV2English/Utils.js)",
+      "Bash(cp dist/Correos.js PUCV2English/Correos.js)",
+      "Bash(cp dist/ListaFinal.js PUCV2English/ListaFinal.js)",
+      "Bash(cp dist/Evaluacion.js PUCV2English/Evaluacion.js)",
+      "Bash(cp dist/Seleccionados.js PUCV2English/Seleccionados.js)",
+      "Bash(ls PUCV2English/*.html)",
+      "Skill(gsd:plan-phase)"
+    ]
+  }
+}

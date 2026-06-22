@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <base target="_top">
+  <style>
+    body {
+      font-family: 'Roboto', Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+      color: #333333;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #ffffff;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .header {
+      text-align: center;
+      padding-bottom: 20px;
+      border-bottom: 2px solid #0055a2;
+    }
+
+    .header img {
+      max-width: 150px;
+    }
+
+    .content {
+      padding: 20px 0;
+      line-height: 1.7;
+    }
+
+    .content h3 {
+      color: #003366;
+    }
+
+    .highlight {
+      background-color: #e9f2fa;
+      padding: 15px;
+      border-left: 4px solid #0055a2;
+      margin: 20px 0;
+      border-radius: 4px;
+      text-align: center;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 10px 20px;
+      margin: 10px 5px;
+      text-decoration: none;
+      border-radius: 4px;
+      font-weight: bold;
+      color: #ffffff !important;
+    }
+
+    .btn-accept { background-color: #28a745; }
+    .btn-reject { background-color: #dc3545; }
+
+    .footer {
+      text-align: center;
+      padding-top: 20px;
+      border-top: 1px solid #eeeeee;
+      font-size: 12px;
+      color: #777777;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="header">
+      <img src="https://www.pucv.cl/uuaa/vriea/dircom/manual-de-marca-pucv-2022/logo-pucv-color.png" alt="Logo PUCV">
+    </div>
+    <div class="content">
+      <h3>¡Estimado/a <?= nombre ?>!</h3>
+      <p>Te informamos que, tras revisar tus antecedentes y certificaciones, has sido seleccionado/a de manera extratemporal para participar en el programa <strong>PUCV2English</strong>.</p>
+      
+      <p>Has sido asignado/a al nivel <strong><?= nivel ?></strong>.</p>
+
+      <div class="highlight">
+        <p>Por favor, confirma tu participación a más tardar el <strong><?= fechaLimite ?></strong>:</p>
+        <a href="<?= urlAceptar ?>" class="btn btn-accept">ACEPTAR CUPO</a>
+        <a href="<?= urlRechazar ?>" class="btn btn-reject">RECHAZAR CUPO</a>
+      </div>
+
+      <h3>Datos del programa:</h3>
+      <ul>
+        <li><strong>Inicio:</strong> <?= programData.FECHA_INICIO ?></li>
+        <li><strong>Término:</strong> <?= programData.FECHA_TERMINO ?></li>
+      </ul>
+
+      <p>Saludos cordiales,<br>Coordinación PUCV2English</p>
+    </div>
+    <div class="footer">
+      <p>Pontificia Universidad Católica de Valparaíso</p>
+    </div>
+  </div>
+</body>
+</html>

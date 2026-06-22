@@ -13,7 +13,8 @@ function doGet(e: GoogleAppsScript.Events.DoGet): GoogleAppsScript.HTML.HtmlOutp
 
   if (action && token) {
     const result = procesarAccionPostulante(token, action);
-    return crearPaginaConfirmacion(action, result.nombre || "Postulante", result.exito, result.mensaje);
+    const paymentUrl = (action === 'accept' && result.exito) ? result.paymentUrl : undefined;
+    return crearPaginaConfirmacion(action, result.nombre || "Postulante", result.exito, result.mensaje, paymentUrl);
   }
 
   return HtmlService.createHtmlOutputFromFile('index')
@@ -27,11 +28,24 @@ function doGet(e: GoogleAppsScript.Events.DoGet): GoogleAppsScript.HTML.HtmlOutp
  * @param nombre The name of the applicant.
  * @param exito Whether the operation was successful.
  * @param mensaje The status message to display.
+ * @param paymentUrl The payment URL if accepted.
  * @returns {GoogleAppsScript.HTML.HtmlOutput} The confirmation page.
  */
-function crearPaginaConfirmacion(accion: string, nombre: string, exito: boolean, mensaje: string): GoogleAppsScript.HTML.HtmlOutput {
+function crearPaginaConfirmacion(accion: string, nombre: string, exito: boolean, mensaje: string, paymentUrl?: string): GoogleAppsScript.HTML.HtmlOutput {
   const logoUrl = "https://www.pucv.cl/uuaa/vriea/dircom/manual-de-marca-pucv-2022/logo-pucv-color.png";
   const color = exito ? (accion === 'accept' ? "#4CAF50" : "#f44336") : "#ff9800";
+
+  let paymentButtonHtml = "";
+  if (exito && accion === 'accept' && paymentUrl) {
+    paymentButtonHtml = `
+      <div style="margin: 25px 0 10px 0;">
+        <a href="${paymentUrl}" target="_blank" style="background-color: #0055a2; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.15);">
+          💳 Proceder al Pago de Matrícula
+        </a>
+      </div>
+      <p style="font-size: 0.85em; color: #666;">Nota: Tienes un plazo de 3 días para completar el pago.</p>
+    `;
+  }
 
   const html = `
     <!DOCTYPE html>
@@ -53,6 +67,7 @@ function crearPaginaConfirmacion(accion: string, nombre: string, exito: boolean,
           <img src="${logoUrl}" alt="PUCV Logo">
           <h2>Hola, ${nombre}</h2>
           <p>${mensaje}</p>
+          ${paymentButtonHtml}
           <div class="footer">
             Pontificia Universidad Católica de Valparaíso<br>
             Programa PUCV2English
@@ -371,9 +386,9 @@ function obtenerUrlConfirmacion(correo: string, action: string): string {
 
 /**
  * Processes an applicant's accept/reject action via token.
- * Updates the spreadsheet and triggers promotion logic on rejection.
+ * Updates the spreadsheet and sends confirmation emails.
  */
-function procesarAccionPostulante(token: string, action: string): { exito: boolean; mensaje: string; nombre?: string } {
+function procesarAccionPostulante(token: string, action: string): { exito: boolean; mensaje: string; nombre?: string; paymentUrl?: string } {
   const scriptProperties = PropertiesService.getScriptProperties();
   const correo = scriptProperties.getProperty('token_' + token);
 
@@ -393,32 +408,78 @@ function procesarAccionPostulante(token: string, action: string): { exito: boole
   const idxNombre = headers.indexOf("Nombre(s)");
   const idxAceptacion = headers.indexOf("Aceptación") + 1;
 
+  let isRealCandidate = false;
+  let nombre = "Usuario de Prueba (Sandbox)";
+  let rowIndex = -1;
+
   for (let i = 1; i < values.length; i++) {
-    if (values[i][idxCorreo] === correo) {
-      const nombre = values[i][idxNombre];
-      const estadoActual = values[i][idxAceptacion - 1];
-
-      if (estadoActual === 'Acepta' || estadoActual === 'Rechaza') {
-        scriptProperties.deleteProperty('token_' + token); // Clean up used token
-        return { exito: true, mensaje: "Tu respuesta ya fue registrada anteriormente.", nombre: nombre };
-      }
-
-      const nuevoEstado = action === 'accept' ? 'Acepta' : 'Rechaza';
-      hojaS.getRange(i + 1, idxAceptacion).setValue(nuevoEstado);
-
-      scriptProperties.deleteProperty('token_' + token); // One-time use
-
-      if (action === 'reject') {
-        // Trigger waitlist promotion if rejection (Plan 3.3, Task 3.3.1)
-        procesarRechazoDesdeWebApp(correo);
-        logToWebApp(`Rechazo recibido y procesado para ${correo}.`);
-      } else {
-        logToWebApp(`Aceptación recibida de ${correo}.`);
-      }
-
-      return { exito: true, mensaje: action === 'accept' ? "Gracias por confirmar tu participación." : "Lamentamos tu decisión, tu cupo será reasignado.", nombre: nombre };
+    if (String(values[i][idxCorreo]).trim().toLowerCase() === correo.trim().toLowerCase()) {
+      isRealCandidate = true;
+      nombre = values[i][idxNombre];
+      rowIndex = i + 1;
+      break;
     }
   }
 
-  return { exito: false, mensaje: "No se encontró tu postulación en el sistema." };
+  // --- SANDBOX / TEST HANDLING ---
+  if (!isRealCandidate) {
+    scriptProperties.deleteProperty('token_' + token);
+    const mockPaymentUrl = PROGRAM_DATA.PAYMENT_URL || "https://www.mercadopago.cl/link-pago-matricula";
+    return {
+      exito: true,
+      mensaje: action === 'accept' ?
+        `[MODO SANDBOX] Confirmación de aceptación simulada con éxito para el correo ${correo}. En producción, recibirías un correo y serías redirigido al portal de pago.` :
+        `[MODO SANDBOX] Confirmación de rechazo simulada con éxito para el correo ${correo}. En producción, tu cupo se liberaría para lista de espera manual.`,
+      nombre: nombre,
+      paymentUrl: mockPaymentUrl
+    };
+  }
+
+  // Real candidate processing
+  const estadoActual = values[rowIndex - 1][idxAceptacion - 1];
+  if (estadoActual === 'Acepta' || estadoActual === 'Rechaza') {
+    scriptProperties.deleteProperty('token_' + token); // Clean up used token
+    return { 
+      exito: true, 
+      mensaje: "Tu respuesta ya fue registrada anteriormente.", 
+      nombre: nombre,
+      paymentUrl: PROGRAM_DATA.PAYMENT_URL 
+    };
+  }
+
+  const nuevoEstado = action === 'accept' ? 'Acepta' : 'Rechaza';
+  hojaS.getRange(rowIndex, idxAceptacion).setValue(nuevoEstado);
+  scriptProperties.deleteProperty('token_' + token); // One-time use
+
+  if (action === 'reject') {
+    procesarRechazoDesdeWebApp(correo);
+    logToWebApp(`Rechazo recibido y procesado para ${correo}.`);
+    // Send confirmation email of rejection
+    enviarCorreoConfirmacion(correo, 'reject');
+  } else {
+    logToWebApp(`Aceptación recibida de ${correo}.`);
+    // Send confirmation email of acceptance (with payment link)
+    enviarCorreoConfirmacion(correo, 'accept');
+  }
+
+  return { 
+    exito: true, 
+    mensaje: action === 'accept' ? 
+      "Gracias por confirmar tu participación. Para formalizar tu cupo, procede al pago de la matrícula." : 
+      "Lamentamos tu decisión, tu cupo será liberado para la lista de espera.", 
+    nombre: nombre,
+    paymentUrl: PROGRAM_DATA.PAYMENT_URL
+  };
+}
+
+/**
+ * Exposed API for manual waitlist promotion from the Web App.
+ */
+function promoverSiguienteEsperaAPI(nivel: string): string {
+  try {
+    gestionarListaDeEspera(nivel);
+    return `Se promovió al siguiente candidato en lista de espera para el nivel ${nivel} con éxito.`;
+  } catch (e: any) {
+    return `Error al promover candidato: ${e.message}`;
+  }
 }

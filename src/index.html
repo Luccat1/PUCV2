@@ -432,6 +432,20 @@
       <h3>Postulantes Seleccionados (Top 25)</h3>
       <div class="table-container" id="seleccionados-table-container">Cargando...</div>
 
+      <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin: 20px 0;">
+        <h4 style="margin-top: 0; color: var(--pucv-dark);">Promoción Manual de Lista de Espera</h4>
+        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+          <label for="promoverNivelSelect" style="font-weight: 500;">Selecciona el nivel para promover:</label>
+          <select id="promoverNivelSelect" style="padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px;">
+            <option value="B1+">B1+</option>
+            <option value="B2.1">B2.1</option>
+            <option value="B2.2">B2.2</option>
+            <option value="C1">C1</option>
+          </select>
+          <button class="btn btn-success" onclick="runManualPromotion()" style="padding: 8px 16px;">👤 Promover Siguiente Candidato</button>
+        </div>
+      </div>
+
       <h3>Lista de Espera</h3>
       <div class="table-container" id="espera-table-container">Cargando...</div>
     </section>
@@ -461,6 +475,8 @@
             <option value="TEST_LEVEL_ONLY">1b. Solo Test Nivel</option>
             <option value="WAITLIST">2. Lista de Espera</option>
             <option value="NOT_SELECTED">3. No Seleccionado</option>
+            <option value="CONFIRM_ACCEPT">4. Confirmación Acepta (Pago)</option>
+            <option value="CONFIRM_REJECT">5. Confirmación Rechaza</option>
           </select>
           <button class="btn" style="background: #6c757d; color: white;" onclick="sendTestEmailAction()">Enviar
             Prueba</button>
@@ -720,6 +736,15 @@
       setLoading(true);
       logIntervalId = setInterval(fetchLogs, 1500);
       google.script.run.withSuccessHandler(showResult).withFailureHandler(showError).evaluarPostulacionesPUCV2();
+    }
+
+    function runManualPromotion() {
+      const nivel = document.getElementById('promoverNivelSelect').value;
+      if (!confirm(`¿Estás seguro de promover al siguiente candidato disponible en lista de espera para el nivel ${nivel}?`)) return;
+      setLoading(true);
+      google.script.run.withSuccessHandler(res => {
+        showResult(res);
+      }).withFailureHandler(showError).promoverSiguienteEsperaAPI(nivel);
     }
 
     function runGenerateFinalList() {

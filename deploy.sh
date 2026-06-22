@@ -69,6 +69,12 @@ done
 echo -e "${GREEN}✓ Copied: $COPIED/${#JS_FILES[@]} files${NC}"
 echo
 
+# Step 2.5: Copy HTML templates
+echo -e "${YELLOW}▶ Copying HTML templates from src/...${NC}"
+cp src/*.html PUCV2English/
+echo -e "${GREEN}✓ HTML templates copied${NC}"
+echo
+
 # Step 3: Verify HTML files
 echo -e "${YELLOW}▶ Verifying HTML templates...${NC}"
 
@@ -80,6 +86,8 @@ HTML_FILES=(
   "CorreoTestNivel.html"
   "CorreoListaEspera.html"
   "CorreoNoSeleccionado.html"
+  "CorreoConfirmacionAcepta.html"
+  "CorreoConfirmacionRechaza.html"
 )
 
 HTML_OK=0

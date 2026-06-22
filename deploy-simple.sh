@@ -15,6 +15,7 @@ cp dist/Menu.js PUCV2English/
 cp dist/Dashboard.js PUCV2English/
 cp dist/WebApp.js PUCV2English/
 cp dist/TestInicioClases.js PUCV2English/
+cp src/*.html PUCV2English/
 
 echo "✓ All files copied"
 ls PUCV2English/*.js | wc -l | xargs echo "✓ JavaScript files:"

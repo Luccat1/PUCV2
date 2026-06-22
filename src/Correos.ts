@@ -123,7 +123,7 @@ function sendEmailBatch(type: string): string {
       (htmlBody as any).nombre = r.nombre;
       (htmlBody as any).nivel = r.nivel;
       (htmlBody as any).programData = PROGRAM_DATA;
-      (htmlBody as any).fechaLimite = PROGRAM_DATA.FECHA_LIMITE;
+      (htmlBody as any).fechaLimite = calcularFechaLimite(new Date(), PROGRAM_DATA.DEADLINE_DAYS || 3);
 
       if (templateName === 'CorreoSeleccionado' || templateName === 'CorreoHandPicked') {
         (htmlBody as any).urlAceptar = obtenerUrlConfirmacion(r.email, 'accept');
@@ -161,19 +161,116 @@ function sendEmailBatch(type: string): string {
  */
 function sendTestEmail(targetEmail: string, type: string): string {
   try {
-    const templateName = type || 'CorreoSeleccionado';
+    let templateName = 'CorreoSeleccionado';
+    let subject = "[TEST] Resultado Postulación PUCV";
+
+    if (type === 'TEST_LEVEL_ONLY') {
+      templateName = 'CorreoTestNivel';
+      subject = "[TEST] Test de Nivel - PUCV";
+    } else if (type === 'WAITLIST') {
+      templateName = 'CorreoListaEspera';
+      subject = "[TEST] Lista de Espera - PUCV";
+    } else if (type === 'NO_SELECTED' || type === 'NOT_SELECTED') {
+      templateName = 'CorreoNoSeleccionado';
+      subject = "[TEST] Resultado de Postulación - PUCV";
+    } else if (type === 'HAND_PICKED') {
+      templateName = 'CorreoHandPicked';
+      subject = "[TEST] Cupo Disponible - PUCV";
+    } else if (type === 'CONFIRM_ACCEPT') {
+      templateName = 'CorreoConfirmacionAcepta';
+      subject = "[TEST] Confirmación de Aceptación - PUCV";
+    } else if (type === 'CONFIRM_REJECT') {
+      templateName = 'CorreoConfirmacionRechaza';
+      subject = "[TEST] Confirmación de Liberación de Cupo - PUCV";
+    } else if (type && type.startsWith('Correo')) {
+      templateName = type;
+    }
+
     const htmlBody = HtmlService.createTemplateFromFile(templateName);
     (htmlBody as any).nombre = "Usuario de Prueba";
     (htmlBody as any).nivel = "B2.1";
     (htmlBody as any).programData = PROGRAM_DATA;
+    (htmlBody as any).fechaLimite = calcularFechaLimite(new Date(), PROGRAM_DATA.DEADLINE_DAYS || 3);
+    (htmlBody as any).fechaPagoLimite = calcularFechaLimite(new Date(), PROGRAM_DATA.DEADLINE_DAYS || 3);
+    (htmlBody as any).paymentUrl = PROGRAM_DATA.PAYMENT_URL || "https://www.mercadopago.cl/link-pago-matricula";
+    (htmlBody as any).urlAceptar = obtenerUrlConfirmacion(targetEmail, 'accept');
+    (htmlBody as any).urlRechazar = obtenerUrlConfirmacion(targetEmail, 'reject');
 
     const finishedHtml = htmlBody.evaluate().getContent();
 
-    GmailApp.sendEmail(targetEmail, "[TEST] Resultado Postulación PUCV", "", {
+    GmailApp.sendEmail(targetEmail, subject, "", {
       htmlBody: finishedHtml
     });
     return `Correo de prueba (${templateName}) enviado a ${targetEmail}`;
   } catch (e: any) {
     return `Error en test: ${e.message}`;
+  }
+}
+
+/**
+ * Calculates a future limit date.
+ */
+function calcularFechaLimite(fechaInicio: Date, dias: number): string {
+  const fechaLimite = new Date(fechaInicio.getTime() + dias * 24 * 60 * 60 * 1000);
+  const opciones: Intl.DateTimeFormatOptions = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+  const str = fechaLimite.toLocaleDateString('es-ES', opciones);
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+/**
+ * Sends a confirmation email to the applicant after they accept/reject their spot.
+ */
+function enviarCorreoConfirmacion(correo: string, tipoConfirmacion: 'accept' | 'reject'): void {
+  const ss = getSpreadsheet();
+  const hojaS = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
+  if (!hojaS) return;
+
+  const dataS = hojaS.getDataRange().getValues();
+  const headersS = dataS[0];
+  const idxCorreo = headersS.indexOf("Correo Electrónico");
+  const idxNombre = headersS.indexOf("Nombre(s)");
+  const idxNivel = headersS.indexOf("Nivel Asignado");
+
+  let candidateRow: any[] | null = null;
+  for (let i = 1; i < dataS.length; i++) {
+    if (String(dataS[i][idxCorreo]).trim().toLowerCase() === correo.trim().toLowerCase()) {
+      candidateRow = dataS[i];
+      break;
+    }
+  }
+
+  if (!candidateRow) {
+    logToWebApp(`No se encontró candidato para enviar confirmación a ${correo}`);
+    return;
+  }
+
+  const nombre = candidateRow[idxNombre];
+  const nivel = candidateRow[idxNivel] || "B1+";
+
+  const templateName = tipoConfirmacion === 'accept' ? 'CorreoConfirmacionAcepta' : 'CorreoConfirmacionRechaza';
+  const subject = tipoConfirmacion === 'accept' ?
+    "Confirmación de Aceptación y Pago - PUCV2English" :
+    "Confirmación de Liberación de Cupo - PUCV2English";
+
+  try {
+    const htmlBody = HtmlService.createTemplateFromFile(templateName);
+    (htmlBody as any).nombre = nombre;
+    (htmlBody as any).nivel = nivel;
+    (htmlBody as any).programData = PROGRAM_DATA;
+    
+    if (tipoConfirmacion === 'accept') {
+      (htmlBody as any).paymentUrl = PROGRAM_DATA.PAYMENT_URL || "https://www.mercadopago.cl/link-pago-matricula";
+      (htmlBody as any).fechaPagoLimite = calcularFechaLimite(new Date(), PROGRAM_DATA.DEADLINE_DAYS || 3);
+    }
+
+    const finishedHtml = htmlBody.evaluate().getContent();
+
+    GmailApp.sendEmail(correo, subject, "", {
+      htmlBody: finishedHtml
+    });
+
+    logToWebApp(`Correo de confirmación (${tipoConfirmacion}) enviado a ${correo}`);
+  } catch (e: any) {
+    logToWebApp(`Error enviando correo de confirmación a ${correo}: ${e.message}`);
   }
 }

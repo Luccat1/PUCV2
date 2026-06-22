@@ -45,7 +45,7 @@ function evaluarPostulacionesPUCV2(): string {
     const resultados: any[][] = [
       ["Apellido(s)", "Nombre(s)", "Correo Electrónico", "RUT", "Fecha de Postulación", "Categoría Postulante", "Sede",
         "Puntaje Disponibilidad", "Puntaje Tipo", "Puntaje Uso Inglés", "Puntaje Intl.", "Puntaje Nivel Inglés",
-        "Puntaje Año Ingreso", "Puntaje Compromiso", "Puntaje Carta", "PUNTAJE TOTAL", "Enlace Certificado"]
+        "Puntaje Año Ingreso", "Puntaje Compromiso", "Puntaje Carta", "PUNTAJE TOTAL", "Enlace Certificado", "Nivel Postulado"]
     ];
 
     logToWebApp(`Iniciando procesamiento de ${datos.length - 1} filas...`);
@@ -119,11 +119,12 @@ function evaluarPostulacionesPUCV2(): string {
 
         const pTotal = pDisp + pTipo + pUso + pIntl + pCert + pAnio + pComp + (pCarta * pesoCarta);
         const enlaceCert = obtenerValor(fila, CONFIG.COLUMNS.CERTIFICATE_ATTACHMENT, indiceColumnas);
+        const nivelPostulado = obtenerNivelDesdeFila(fila, indiceColumnas);
 
         resultados.push([
           apellidos, nombres, correo, rut, fecha, tipo, sede,
           pDisp, pTipo, pUso.toFixed(2), pIntl.toFixed(2), pCert, pAnio,
-          pComp, pCarta, pTotal.toFixed(2), enlaceCert
+          pComp, pCarta, pTotal.toFixed(2), enlaceCert, nivelPostulado
         ]);
 
         if (indiceEstado !== -1) {
@@ -242,6 +243,8 @@ function cargarDatosPrograma(): void {
       if (perfil === "FECHA_LIMITE") PROGRAM_DATA.FECHA_LIMITE = valor;
       else if (perfil === "FECHA_INICIO") PROGRAM_DATA.FECHA_INICIO = valor;
       else if (perfil === "FECHA_TERMINO") PROGRAM_DATA.FECHA_TERMINO = valor;
+      else if (perfil === "PAYMENT_URL") PROGRAM_DATA.PAYMENT_URL = valor;
+      else if (perfil === "DEADLINE_DAYS") PROGRAM_DATA.DEADLINE_DAYS = parseInt(valor, 10) || 3;
     } else if (criterio.startsWith("HORARIO_")) {
       const nivel = criterio.replace("HORARIO_", "");
       if (PROGRAM_DATA.HORARIOS[nivel]) {
@@ -291,6 +294,8 @@ function saveConfiguracion(mergedData: any): string {
   rows.push(["PROGRAMA", "FECHA_LIMITE", pData.FECHA_LIMITE]);
   rows.push(["PROGRAMA", "FECHA_INICIO", pData.FECHA_INICIO]);
   rows.push(["PROGRAMA", "FECHA_TERMINO", pData.FECHA_TERMINO]);
+  rows.push(["PROGRAMA", "PAYMENT_URL", pData.PAYMENT_URL]);
+  rows.push(["PROGRAMA", "DEADLINE_DAYS", pData.DEADLINE_DAYS]);
 
   for (const [nivel, horarios] of Object.entries(pData.HORARIOS)) {
     const h = horarios as any;
@@ -462,8 +467,47 @@ function getAnalysisReport(): string {
     lineas.push(`Estudiantes: ${dist.Estudiantes || 0}`);
     lineas.push(`Funcionarios: ${dist.Funcionarios || 0}`);
 
+    const idxNivelPostulado = headersS.indexOf("Nivel Postulado");
+    const distNivel = datosS.reduce((acc: any, f) => {
+      const n = idxNivelPostulado !== -1 ? String(f[idxNivelPostulado]).trim() : "No asignado";
+      acc[n] = (acc[n] || 0) + 1;
+      return acc;
+    }, {});
+
+    lineas.push("\nSeleccionados por Nivel:");
+    ["B1+", "B2.1", "B2.2", "C1"].forEach(nivel => {
+      lineas.push(`  - ${nivel}: ${distNivel[nivel] || 0} / 15`);
+    });
+
     return lineas.join("\n");
   } catch (e: any) {
     return `Error en el análisis: ${e.message}`;
   }
+}
+
+/**
+ * Extracts the postulado level from a row based on LEVEL_APPLIED, or falls back to CERTIFICATE_LEVEL.
+ */
+function obtenerNivelDesdeFila(fila: any[], idxs: Record<string, number>): string {
+  const colLevelApplied = CONFIG.COLUMNS.LEVEL_APPLIED;
+  const colCertLevel = CONFIG.COLUMNS.CERTIFICATE_LEVEL;
+
+  let txt = "";
+  if (colLevelApplied && idxs[colLevelApplied] !== undefined) {
+    txt = String(obtenerValor(fila, colLevelApplied, idxs) || "").trim();
+  }
+  
+  if (!txt && colCertLevel && idxs[colCertLevel] !== undefined) {
+    txt = String(obtenerValor(fila, colCertLevel, idxs) || "").trim();
+  }
+
+  // Normalize mapping
+  if (/C1/i.test(txt)) return "C1";
+  if (/B2\.2/i.test(txt)) return "B2.2";
+  if (/B2\.1/i.test(txt)) return "B2.1";
+  if (/\bexim/i.test(txt)) return "B2.1";
+  if (/B1\+/i.test(txt)) return "B1+";
+  if (/inglés 4|ingles 4/i.test(txt)) return "B1+";
+
+  return "B1+"; // Default fallback
 }
