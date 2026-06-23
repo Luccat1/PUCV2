@@ -1,2 +1,18 @@
+# OS System Files
 .DS_Store
-node_modules
+Thumbs.db
+*.lnk
+
+# Dependencies
+node_modules/
+
+# Compilation Output
+dist/
+
+# Local Logs & Build Logs
+*.log
+build_output*.txt
+install_log.txt
+
+# Duplicate JS files in TypeScript src folder
+src/**/*.js

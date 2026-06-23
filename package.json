@@ -1,6 +1,6 @@
 {
   "name": "pucv2-english-refactor",
-  "version": "5.0.0",
+  "version": "5.0.1",
   "description": "Refactoring of PUCV2 English script to modular TypeScript",
   "devDependencies": {
     "@types/google-apps-script": "^1.0.98",
