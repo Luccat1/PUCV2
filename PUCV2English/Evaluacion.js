@@ -372,8 +372,6 @@ function calcularPuntajeInternacionalizacion(fila, tipo, idxs) {
     return Math.min(SCORING_PARAMS.Internacionalizacion.MaxPuntaje, p) * peso;
 }
 function calcularPuntajeCertificado(fila, idxs) {
-    if (obtenerValor(fila, CONFIG.COLUMNS.CERTIFICATE_CHECKBOX, idxs))
-        return 0;
     const txt = obtenerValor(fila, CONFIG.COLUMNS.CERTIFICATE_LEVEL, idxs);
     if (/no sé|no se|no tengo/i.test(txt))
         return 0;
@@ -383,9 +381,13 @@ function calcularPuntajeCertificado(fila, idxs) {
         return 4;
     if (/B2\.1/i.test(txt))
         return 3;
+    if (/B2/i.test(txt))
+        return 3;
     if (/\bexim/i.test(txt))
         return 3;
     if (/B1\+/i.test(txt))
+        return 2;
+    if (/B1/i.test(txt))
         return 2;
     if (/inglés 4|ingles 4/i.test(txt))
         return 2;

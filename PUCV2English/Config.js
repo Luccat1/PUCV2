@@ -27,7 +27,7 @@ const CONFIG = {
         RUT: "RUT",
         APPLICANT_TYPE: "Indica si eres funcionario, alumno, profesor, académico, etc.",
         CAMPUS: "¿En qué sede realizas la mayoría de tus actividades académicas o profesionales?",
-        AVAILABILITY_SESSIONS: "¿Tienes disponibilidad para dedicar 3 sesiones semanales?",
+        AVAILABILITY_SESSIONS: "¿Tienes disponibilidad para participar en 3 sesiones semanales? ",
         AVAILABILITY_CONFLICTS: "¿Tienes compromisos académicos/laborales que podrían impedir cumplir con la asistencia obligatoria?",
         AVAILABILITY_ASSISTANCE: "¿Estás en condiciones de asistir al menos al 80 % de las clases?",
         AVAILABILITY_STUDY: "¿Puedes comprometerte a dedicar 4 horas semanales de estudio autónomo además de las clases?",
@@ -38,8 +38,7 @@ const CONFIG = {
         INTL_STAGE: "¿En qué etapa se encuentra tu proceso de internacionalización?",
         INTL_PLAN: "¿Cómo has planeado internacionalizar tu carrera?",
         INTL_SUPPORT_DOCS: "Adjunta los documentos de respaldo",
-        CERTIFICATE_CHECKBOX: "En caso de que no tengas certificación de inglés, marca esta casilla:",
-        CERTIFICATE_ATTACHMENT: "Adjunta la certificación que permita verificar tu nivel de inglés más alto (certificado oficial, captura con aprobación y nota final de la asignatura u otros).",
+        CERTIFICATE_ATTACHMENT: "Adjunta la certificación que permita verificar tu nivel de inglés más alto (certificado oficial).",
         CERTIFICATE_LEVEL: "Certificación de inglés",
         ENTRY_YEAR: "¿En qué año ingresaste a tu carrera actual?",
         COMMITMENT_PROGRAM: "Compromiso con el programa ",
@@ -52,7 +51,15 @@ const CONFIG = {
         INICIO_NOTIFICATION_DATE: "Notificado Inicio",
         SALA: "Sala",
         LEVEL_APPLIED: "Nivel al que postula",
-        SCORE: "PUNTAJE TOTAL"
+        SCORE: "PUNTAJE TOTAL",
+        PHONE: "Número de teléfono de contacto",
+        CARGO_ACTUAL: "¿Cuál es tu cargo actual en la PUCV?",
+        ANTIGUEDAD_CARGO: "¿Cuánto tiempo llevas en tu cargo actual?",
+        SITUACIONES_INGLES: "Describe brevemente las situaciones específicas en las que requieres usar inglés en tu trabajo:",
+        PROYECTOS_FUTUROS_DESC: "Si respondiste \"Sí\"; por favor, describe estos proyectos y su rol en ellos.",
+        DOCUMENTOS_RESPALDO_SITUACION: "¿Tienes algún documento que respalde este proceso?",
+        AUTORIZACION_COMUNICACIONES: "Autorización de comunicaciones",
+        NUCLEO: "¿Eres parte del programa Núcleo? "
         // Note: The "Seleccionados" sheet also includes: "Ranking", "Verificación Certificado", "Nivel Asignado", "Aceptación", "Comentarios"
     }
 };
