@@ -43,9 +43,9 @@ El puntaje total es la suma de varias áreas, con pesos ajustables desde la hoja
   - **Desgloses Detallados:** Estadísticas por categoría, sede y año de ingreso.
   - **Análisis Cruzado:** Relación Sede vs. Categoría.
   - **Gráfico Interactivo:** Distribución de postulantes por sede.
-- **Ranking de Seleccionados:** Crea y ordena la hoja `Seleccionados` con el **Top 25** de postulantes.
+- **Ranking de Seleccionados:** Crea y ordena la hoja `Seleccionados` con el **Top 15 por nivel** (hasta 60 cupos en total).
   - **Columnas de Gestión:** Incluye campos para `Verificación Certificado` y `Nivel Asignado`.
-  - **Estado Interactivo:** Añade una columna `Aceptación` con menú desplegable (`Acepta`, `Rechaza`, `Pendiente`) y formato condicional que colorea la fila según el estado.
+  - **Estado Interactivo:** Envía las invitaciones con menú desplegable (`Acepta`, `Rechaza`, `Pendiente`) y formato condicional que colorea la fila según el estado.
 
 ### 🛡️ **Optimización y Robustez**
 
@@ -67,12 +67,13 @@ El puntaje total es la suma de varias áreas, con pesos ajustables desde la hoja
 
 ```javascript
     const CONFIG = {
-      SHEET_ID: "ID_DE_TU_HOJA",
+      WEB_APP_URL: "https://script.google.com/.../exec",
       SHEETS: {
         INPUT: "Respuestas de formulario 1",
         OUTPUT: "Evaluación automatizada",
         DASHBOARD: "Dashboard",
-        SELECTED: "Seleccionados"
+        SELECTED: "Seleccionados",
+        FINAL_LIST: "Lista Final Curso"
       },
       // ...
     };
@@ -106,7 +107,6 @@ Sigue estos pasos para poner en marcha el sistema.
 1. **Crear Hoja de Cálculo:** Crea un nuevo **Google Sheet**. Este será tu centro de operaciones.
 2. **Crear Formulario:** Crea un **Google Form** para recibir las postulaciones.
 3. **Vincular Formulario:** Dentro del formulario, ve a la pestaña "Respuestas" y haz clic en el icono de Google Sheets para vincularlo a la hoja que creaste. Las respuestas se guardarán en una nueva pestaña, normalmente llamada `Respuestas de formulario 1`.
-4. **Obtener el ID de la Hoja:** Copia el ID de tu hoja de cálculo desde la URL. Lo necesitarás más adelante. La URL tiene el formato: `https://docs.google.com/spreadsheets/d/`**AQUÍ_VA_EL_ID**`/edit`.
 
 ### **Paso 2: Configurar la Hoja de Respuestas**
 
@@ -120,18 +120,18 @@ Sigue estos pasos para poner en marcha el sistema.
 2. Ve a la página de inicio de Google Apps Script: script.google.com.
 3. Haz clic en **Nuevo proyecto**.
 4. Borra cualquier código de ejemplo que aparezca.
-5. Ejecuta `npm run build` en la carpeta raíz del proyecto de manera local. Esto generará la carpeta `dist`.
-6. Copia todo el contenido de los archivos JS en la carpeta `dist` y pégalos en nuevos archivos correspondientes dentro de tu nuevo proyecto (asegurando ponerle el mismo nombre). Haz lo mismo con los archivos HTML en la carpeta `src`.
-7. **Configura el ID de tu Hoja:** En el archivo `Config.gs` (o `Config.js`), localiza esta línea al inicio del script:
+5. Ejecuta `npm run build` localmente y utiliza el script de despliegue `deploy.sh` (o copia manual) para generar el contenido compilado en la carpeta `PUCV2English/`.
+6. Copia todo el contenido de los archivos JS y plantillas HTML ubicados dentro de la carpeta **`PUCV2English/`** y pégalos en nuevos archivos correspondientes dentro de tu editor de Apps Script (asegurando ponerles el mismo nombre).
+7. **Configura la URL de la Web App:** En el archivo `Config.js`, localiza la propiedad `WEB_APP_URL` al inicio del script en la constante `CONFIG`:
 
 ```javascript
     const CONFIG = {
-      SHEET_ID: "ID_DE_TU_HOJA",
+      WEB_APP_URL: "https://script.google.com/.../exec",
       // ...
     };
 ```
 
-    Reemplaza `"ID_DE_TU_HOJA"` con el ID que copiaste en el Paso 1.
+    Reemplaza ese valor con la URL publicada de tu Web App obtenida en el Paso 5.
 8. Guarda el proyecto (icono de disquete 💾).
 
 ### **Paso 4: Configurar el Activador (Trigger)**
@@ -193,7 +193,7 @@ Puedes ejecutar análisis o enviar notificaciones desde tu panel de control web.
 ### Gestión de Seleccionados
 
 1. Ve a la hoja **`Seleccionados`**.
-2. Revisa el Top 25 de postulantes.
+2. Revisa la lista de preseleccionados (Top 15 por nivel de inglés, hasta 60 en total).
 3. Usa las columnas `Verificación Certificado` y `Nivel Asignado` para tus anotaciones.
 4. Cuando un postulante confirme, cambia el estado en la columna `Aceptación`. La fila cambiará de color automáticamente para una mejor visualización.
 
