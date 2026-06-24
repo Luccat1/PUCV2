@@ -48,6 +48,16 @@ function evaluarPostulacionesPUCV2(): string {
         "Puntaje Año Ingreso", "Puntaje Compromiso", "Puntaje Carta", "PUNTAJE TOTAL", "Enlace Certificado", "Nivel Postulado"]
     ];
 
+    const hojaResultadosExistente = ss.getSheetByName(CONFIG.SHEETS.OUTPUT);
+    if (hojaResultadosExistente) {
+      const valoresExistentes = hojaResultadosExistente.getDataRange().getValues();
+      if (valoresExistentes.length > 1) {
+        resultados.push(...valoresExistentes.slice(1));
+      }
+    }
+
+    let nuevasProcesadas = 0;
+
     logToWebApp(`Iniciando procesamiento de ${datos.length - 1} filas...`);
 
     // Set for fast duplicate lookup in current batch or existing sheets
@@ -126,6 +136,7 @@ function evaluarPostulacionesPUCV2(): string {
           pDisp, pTipo, pUso.toFixed(2), pIntl.toFixed(2), pCert, pAnio,
           pComp, pCarta, pTotal.toFixed(2), enlaceCert, nivelPostulado
         ]);
+        nuevasProcesadas++;
 
         if (indiceEstado !== -1) {
           actualizacionesEstado.push({ fila: r + 1, valor: new Date() });
@@ -139,7 +150,7 @@ function evaluarPostulacionesPUCV2(): string {
       }
     }
 
-    if (resultados.length <= 1) {
+    if (nuevasProcesadas === 0) {
       lock.releaseLock();
       return "No hay nuevas postulaciones para añadir.";
     }
@@ -166,7 +177,7 @@ function evaluarPostulacionesPUCV2(): string {
 
     SpreadsheetApp.flush();
     logToWebApp("Evaluación completada.");
-    return `¡Evaluación completada! Se procesaron ${resultados.length - 1} nuevas postulaciones.`;
+    return `¡Evaluación completada! Se procesaron ${nuevasProcesadas} nuevas postulaciones.`;
 
   } finally {
     lock.releaseLock();

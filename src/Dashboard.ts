@@ -18,6 +18,7 @@ function calcularEstadisticas(
   const idxCat = getIdx("Categoría Postulante");
   const idxTotal = getIdx("PUNTAJE TOTAL");
   const idxSede = getIdx("Sede");
+  const idxEmail = getIdx("Correo Electrónico");
 
   const puntajes = postulantes.map(f => parseFloat(f[idxTotal] || 0));
   const totalPostulantes = postulantes.length;
@@ -45,11 +46,25 @@ function calcularEstadisticas(
   const sCat = agrupar(idxCat);
   const sSede = agrupar(idxSede);
 
+  const idxEmailOriginal = indicesOriginales[CONFIG.COLUMNS.EMAIL];
   const idxAnioOriginal = indicesOriginales[CONFIG.COLUMNS.ENTRY_YEAR];
+  const mapEmailAnio: Record<string, string> = {};
+
+  if (idxEmailOriginal !== undefined && idxAnioOriginal !== undefined) {
+    datosOriginales.slice(1).forEach(row => {
+      const email = String(row[idxEmailOriginal] || "").toLowerCase().trim();
+      const anio = String(row[idxAnioOriginal] || "No especificado").trim();
+      if (email) {
+        mapEmailAnio[email] = anio;
+      }
+    });
+  }
+
   const sAnio: Record<string, { suma: number; contador: number }> = {};
-  datosOriginales.slice(1).forEach((fOrig, i) => {
-    const anio = String(fOrig[idxAnioOriginal] || "No especificado");
-    const p = parseFloat(postulantes[i][idxTotal] || 0);
+  postulantes.forEach(f => {
+    const email = idxEmail !== -1 ? String(f[idxEmail] || "").toLowerCase().trim() : "";
+    const anio = mapEmailAnio[email] || "No especificado";
+    const p = parseFloat(f[idxTotal] || 0);
     if (!sAnio[anio]) sAnio[anio] = { suma: 0, contador: 0 };
     sAnio[anio].suma += p;
     sAnio[anio].contador++;
