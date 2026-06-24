@@ -157,13 +157,30 @@
       padding: 20px;
       border-radius: 12px;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-      min-height: 350px;
+      height: 350px;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .chart-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     }
 
     .chart-card h3 {
       margin-top: 0;
+      margin-bottom: 15px;
       font-size: 1rem;
       color: var(--pucv-dark);
+      flex-shrink: 0;
+    }
+
+    .chart-container {
+      position: relative;
+      flex-grow: 1;
+      min-height: 0;
+      width: 100%;
     }
 
     /* Tables */
@@ -404,19 +421,27 @@
       <div class="dashboard-grid">
         <div class="chart-card">
           <h3>Puntaje Promedio por Categoría</h3>
-          <canvas id="chart-categories"></canvas>
+          <div class="chart-container">
+            <canvas id="chart-categories"></canvas>
+          </div>
         </div>
         <div class="chart-card">
           <h3>Distribución por Sede</h3>
-          <canvas id="chart-sedes"></canvas>
+          <div class="chart-container">
+            <canvas id="chart-sedes"></canvas>
+          </div>
         </div>
         <div class="chart-card">
           <h3>Análisis Detallado de Puntajes</h3>
-          <canvas id="chart-detailed"></canvas>
+          <div class="chart-container">
+            <canvas id="chart-detailed"></canvas>
+          </div>
         </div>
         <div class="chart-card">
           <h3>Estado de Cupos</h3>
-          <canvas id="chart-seats"></canvas>
+          <div class="chart-container">
+            <canvas id="chart-seats"></canvas>
+          </div>
         </div>
       </div>
     </section>
