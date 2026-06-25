@@ -13,29 +13,90 @@ function generarHojaSeleccionados(resultados, ss) {
     const idxTotal = resultados[0].indexOf("PUNTAJE TOTAL");
     const idxFecha = resultados[0].indexOf("Fecha de Postulación");
     const idxNivelPostulado = resultados[0].indexOf("Nivel Postulado");
+    const idxEmail = resultados[0].indexOf("Correo Electrónico");
     logToWebApp("Generando lista de seleccionados por nivel (Top 15 por nivel)...");
+    // Read existing candidates from Seleccionados to preserve their states
+    const emailMap = {};
+    const existingRowsMap = {};
+    let sheet = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
+    if (sheet) {
+        const existingValues = sheet.getDataRange().getValues();
+        if (existingValues.length > 1) {
+            const headersS = existingValues[0];
+            const idxEmailS = headersS.indexOf("Correo Electrónico");
+            const idxVerifS = headersS.indexOf("Verificación Certificado");
+            const idxNivelS = headersS.indexOf("Nivel Asignado");
+            const idxAceptacionS = headersS.indexOf("Aceptación");
+            const idxCommentsS = headersS.indexOf("Comentarios");
+            const idxNotifS = headersS.indexOf("Fecha Notificación");
+            if (idxEmailS !== -1) {
+                existingValues.slice(1).forEach(row => {
+                    const email = String(row[idxEmailS]).trim().toLowerCase();
+                    if (email) {
+                        emailMap[email] = {
+                            verificacion: idxVerifS !== -1 ? String(row[idxVerifS]) : "",
+                            nivel: idxNivelS !== -1 ? String(row[idxNivelS]) : "",
+                            aceptacion: idxAceptacionS !== -1 ? String(row[idxAceptacionS]) : "Pendiente",
+                            comentarios: idxCommentsS !== -1 ? String(row[idxCommentsS]) : "",
+                            fechaNotif: idxNotifS !== -1 ? String(row[idxNotifS]) : ""
+                        };
+                        // Extract the original results row part (excluding "Ranking" at start and custom columns at the end)
+                        // The custom columns start at "Verificación Certificado".
+                        const endIdx = idxVerifS !== -1 ? idxVerifS : row.length;
+                        const resultRowPart = row.slice(1, endIdx);
+                        existingRowsMap[email] = resultRowPart;
+                    }
+                });
+            }
+        }
+    }
     const niveles = ["B1+", "B2.1", "B2.2", "C1"];
     const seleccionadosPorNivel = [];
     niveles.forEach(nivel => {
-        const filtrados = datosPostulantes.filter(f => {
-            const nivelFila = idxNivelPostulado !== -1 ? String(f[idxNivelPostulado]).trim() : "";
-            return nivelFila === nivel;
+        // 1. Candidates from latest evaluations for this level
+        const candidatesInResults = datosPostulantes.filter(f => {
+            const nivelPost = idxNivelPostulado !== -1 ? String(f[idxNivelPostulado]).trim() : "";
+            return nivelPost === nivel;
         });
-        // Sort: 1. Score desc, 2. Date asc (tie breaker)
-        filtrados.sort((a, b) => {
+        // 2. Candidates from existing selected sheet for this level (mapped by assigned level)
+        const alreadySelectedEmails = Object.keys(emailMap).filter(email => emailMap[email].nivel === nivel);
+        // Build the list of already selected candidates for this level
+        const yaSeleccionados = [];
+        alreadySelectedEmails.forEach(email => {
+            const matchInResults = datosPostulantes.find(f => idxEmail !== -1 && String(f[idxEmail]).trim().toLowerCase() === email);
+            if (matchInResults) {
+                yaSeleccionados.push(matchInResults);
+            }
+            else if (existingRowsMap[email]) {
+                yaSeleccionados.push(existingRowsMap[email]);
+            }
+        });
+        // Build the list of new candidates for this level who are not already selected
+        const nuevosCandidatos = candidatesInResults.filter(f => {
+            const email = idxEmail !== -1 ? String(f[idxEmail]).trim().toLowerCase() : "";
+            return !emailMap[email];
+        });
+        // Sort new candidates by score desc, date asc (tie breaker)
+        nuevosCandidatos.sort((a, b) => {
             const pB = parseFloat(b[idxTotal] || 0);
             const pA = parseFloat(a[idxTotal] || 0);
             if (pB !== pA)
                 return pB - pA;
             return new Date(a[idxFecha]).getTime() - new Date(b[idxFecha]).getTime();
         });
-        const top15 = filtrados.slice(0, 15);
-        seleccionadosPorNivel.push(...top15);
+        // Available spots: 15 minus those already selected
+        const cuposDisponibles = Math.max(0, 15 - yaSeleccionados.length);
+        const nuevosAceptados = nuevosCandidatos.slice(0, cuposDisponibles);
+        seleccionadosPorNivel.push(...yaSeleccionados, ...nuevosAceptados);
     });
     // Sort combined candidates: by level, then score desc
     seleccionadosPorNivel.sort((a, b) => {
-        const nivelA = idxNivelPostulado !== -1 ? String(a[idxNivelPostulado]).trim() : "";
-        const nivelB = idxNivelPostulado !== -1 ? String(b[idxNivelPostulado]).trim() : "";
+        const emailA = idxEmail !== -1 ? String(a[idxEmail]).trim().toLowerCase() : "";
+        const emailB = idxEmail !== -1 ? String(b[idxEmail]).trim().toLowerCase() : "";
+        const existA = emailMap[emailA];
+        const existB = emailMap[emailB];
+        const nivelA = existA ? existA.nivel : (idxNivelPostulado !== -1 ? String(a[idxNivelPostulado]).trim() : "");
+        const nivelB = existB ? existB.nivel : (idxNivelPostulado !== -1 ? String(b[idxNivelPostulado]).trim() : "");
         if (nivelA !== nivelB)
             return nivelA.localeCompare(nivelB);
         const pB = parseFloat(b[idxTotal] || 0);
@@ -47,41 +108,56 @@ function generarHojaSeleccionados(resultados, ss) {
         "Ranking", ...resultados[0],
         "Verificación Certificado", "Nivel Asignado", "Aceptación", "Comentarios", "Fecha Notificación"
     ];
+    const idxEmailInS = headersS.indexOf("Correo Electrónico");
     const idxNivelPostuladoInS = headersS.indexOf("Nivel Postulado");
     const sheetData = [headersS, ...rankedData.map(f => {
+            const email = idxEmailInS !== -1 ? String(f[idxEmailInS]).trim().toLowerCase() : "";
+            const existing = emailMap[email];
             const nivelPost = idxNivelPostuladoInS !== -1 ? String(f[idxNivelPostuladoInS]).trim() : "";
-            return [...f, "", nivelPost, "Pendiente", "", ""];
+            return [
+                ...f,
+                existing ? existing.verificacion : "",
+                existing ? existing.nivel : nivelPost,
+                existing ? existing.aceptacion : "Pendiente",
+                existing ? existing.comentarios : "",
+                existing ? existing.fechaNotif : ""
+            ];
         })];
-    let sheet = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
-    if (!sheet)
+    if (!sheet) {
         sheet = ss.insertSheet(CONFIG.SHEETS.SELECTED);
-    else
-        sheet.clear();
-    if (sheetData.length > 1) {
+    }
+    else {
+        sheet.clearConditionalFormatRules();
+        if (sheet.getLastRow() > 0 && sheet.getLastColumn() > 0) {
+            sheet.getRange(1, 1, sheet.getLastRow(), sheet.getLastColumn()).clearContent();
+        }
+    }
+    if (sheetData.length > 0) {
         const range = sheet.getRange(1, 1, sheetData.length, sheetData[0].length);
         range.setValues(sheetData);
-        const idxAceptacion = headersS.indexOf("Aceptación") + 1;
-        const idxVerificacion = headersS.indexOf("Verificación Certificado") + 1;
-        const idxNivel = headersS.indexOf("Nivel Asignado") + 1;
-        // Data validations
-        const ruleAceptacion = SpreadsheetApp.newDataValidation().requireValueInList(['Acepta', 'Rechaza', 'Pendiente'], true).build();
-        const ruleVerificacion = SpreadsheetApp.newDataValidation().requireValueInList(['Válido', 'Test de nivel'], true).build();
-        const ruleNivel = SpreadsheetApp.newDataValidation().requireValueInList(['B1+', 'B2.1', 'B2.2', 'C1'], true).setAllowInvalid(true).build();
-        const rangeA = sheet.getRange(2, idxAceptacion, sheetData.length - 1, 1);
-        const rangeV = sheet.getRange(2, idxVerificacion, sheetData.length - 1, 1);
-        const rangeN = sheet.getRange(2, idxNivel, sheetData.length - 1, 1);
-        rangeA.setDataValidation(ruleAceptacion);
-        rangeV.setDataValidation(ruleVerificacion);
-        rangeN.setDataValidation(ruleNivel);
-        // Conditional formatting
-        sheet.clearConditionalFormatRules();
-        const fullRange = sheet.getRange(2, 1, sheetData.length - 1, sheetData[0].length);
-        const letterA = columnaALetra(idxAceptacion);
-        const ruleGreen = SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied(`=$${letterA}2="Acepta"`).setBackground("#D9EAD3").setRanges([fullRange]).build();
-        const ruleRed = SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied(`=$${letterA}2="Rechaza"`).setBackground("#F4CCCC").setRanges([fullRange]).build();
-        const rules = sheet.getConditionalFormatRules();
-        rules.push(ruleGreen, ruleRed);
-        sheet.setConditionalFormatRules(rules);
+        if (sheetData.length > 1) {
+            const idxAceptacion = headersS.indexOf("Aceptación") + 1;
+            const idxVerificacion = headersS.indexOf("Verificación Certificado") + 1;
+            const idxNivel = headersS.indexOf("Nivel Asignado") + 1;
+            // Data validations
+            const ruleAceptacion = SpreadsheetApp.newDataValidation().requireValueInList(['Acepta', 'Rechaza', 'Pendiente'], true).build();
+            const ruleVerificacion = SpreadsheetApp.newDataValidation().requireValueInList(['Válido', 'Test de nivel'], true).build();
+            const ruleNivel = SpreadsheetApp.newDataValidation().requireValueInList(['B1+', 'B2.1', 'B2.2', 'C1'], true).setAllowInvalid(true).build();
+            const rangeA = sheet.getRange(2, idxAceptacion, sheetData.length - 1, 1);
+            const rangeV = sheet.getRange(2, idxVerificacion, sheetData.length - 1, 1);
+            const rangeN = sheet.getRange(2, idxNivel, sheetData.length - 1, 1);
+            rangeA.setDataValidation(ruleAceptacion);
+            rangeV.setDataValidation(ruleVerificacion);
+            rangeN.setDataValidation(ruleNivel);
+            // Conditional formatting
+            const fullRange = sheet.getRange(2, 1, sheetData.length - 1, sheetData[0].length);
+            const letterA = columnaALetra(idxAceptacion);
+            const ruleGreen = SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied(`=$${letterA}2="Acepta"`).setBackground("#D9EAD3").setRanges([fullRange]).build();
+            const ruleRed = SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied(`=$${letterA}2="Rechaza"`).setBackground("#F4CCCC").setRanges([fullRange]).build();
+            const rules = sheet.getConditionalFormatRules();
+            rules.push(ruleGreen, ruleRed);
+            sheet.setConditionalFormatRules(rules);
+        }
     }
 }
 /**

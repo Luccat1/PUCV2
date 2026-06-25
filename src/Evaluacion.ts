@@ -155,12 +155,28 @@ function evaluarPostulacionesPUCV2(): string {
       return "No hay nuevas postulaciones para añadir.";
     }
 
-    // Write results
-    let hojaResultados = ss.getSheetByName(CONFIG.SHEETS.OUTPUT);
-    if (!hojaResultados) hojaResultados = ss.insertSheet(CONFIG.SHEETS.OUTPUT);
-    else hojaResultados.clear();
+    // Ensure all rows in resultados have the exact same length as the header row
+    const expectedCols = resultados[0].length;
+    for (let i = 0; i < resultados.length; i++) {
+      if (resultados[i].length !== expectedCols) {
+        logToWebApp(`Advertencia: Fila ${i} tiene longitud ${resultados[i].length} en lugar de ${expectedCols}. Ajustando...`);
+        while (resultados[i].length < expectedCols) resultados[i].push("");
+        if (resultados[i].length > expectedCols) resultados[i] = resultados[i].slice(0, expectedCols);
+      }
+    }
 
-    hojaResultados.getRange(1, 1, resultados.length, resultados[0].length).setValues(resultados);
+    // Write results safely: clear contents to avoid leftover rows and keep formatting template
+    let hojaResultados = ss.getSheetByName(CONFIG.SHEETS.OUTPUT);
+    if (!hojaResultados) {
+      hojaResultados = ss.insertSheet(CONFIG.SHEETS.OUTPUT);
+    } else {
+      hojaResultados.clearConditionalFormatRules();
+      if (hojaResultados.getLastRow() > 0 && hojaResultados.getLastColumn() > 0) {
+        hojaResultados.getRange(1, 1, hojaResultados.getLastRow(), hojaResultados.getLastColumn()).clearContent();
+      }
+    }
+
+    hojaResultados.getRange(1, 1, resultados.length, expectedCols).setValues(resultados);
     applyConditionalFormattingToScores(hojaResultados, resultados.length);
 
     // Update processing states
