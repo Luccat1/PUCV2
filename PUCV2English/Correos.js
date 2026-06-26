@@ -173,6 +173,10 @@ function sendTestEmail(targetEmail, type) {
             templateName = 'CorreoConfirmacionRechaza';
             subject = "[TEST] Confirmación de Liberación de Cupo - PUCV";
         }
+        else if (type === 'CLASS_START') {
+            templateName = 'CorreoInicioClases';
+            subject = "[TEST] Inicio de Clases - PUCV";
+        }
         else if (type && type.startsWith('Correo')) {
             templateName = type;
         }
@@ -185,6 +189,12 @@ function sendTestEmail(targetEmail, type) {
         htmlBody.paymentUrl = PROGRAM_DATA.PAYMENT_URL || "https://www.mercadopago.cl/link-pago-matricula";
         htmlBody.urlAceptar = obtenerUrlConfirmacion(targetEmail, 'accept');
         htmlBody.urlRechazar = obtenerUrlConfirmacion(targetEmail, 'reject');
+        // Add dummy variables for CorreoInicioClases template
+        htmlBody.catedra = "Lunes y Miércoles 14:30 - 16:00";
+        htmlBody.ayudantia = "Viernes 14:30 - 16:00";
+        htmlBody.sala = "Sala 2-3 (Casa Central)";
+        htmlBody.fechaInicio = "Lunes, 30 de Marzo";
+        htmlBody.fechaTermino = "Viernes, 10 de Julio";
         const finishedHtml = htmlBody.evaluate().getContent();
         GmailApp.sendEmail(targetEmail, subject, "", {
             htmlBody: finishedHtml

@@ -182,6 +182,9 @@ function sendTestEmail(targetEmail: string, type: string): string {
     } else if (type === 'CONFIRM_REJECT') {
       templateName = 'CorreoConfirmacionRechaza';
       subject = "[TEST] Confirmación de Liberación de Cupo - PUCV";
+    } else if (type === 'CLASS_START') {
+      templateName = 'CorreoInicioClases';
+      subject = "[TEST] Inicio de Clases - PUCV";
     } else if (type && type.startsWith('Correo')) {
       templateName = type;
     }
@@ -195,6 +198,13 @@ function sendTestEmail(targetEmail: string, type: string): string {
     (htmlBody as any).paymentUrl = PROGRAM_DATA.PAYMENT_URL || "https://www.mercadopago.cl/link-pago-matricula";
     (htmlBody as any).urlAceptar = obtenerUrlConfirmacion(targetEmail, 'accept');
     (htmlBody as any).urlRechazar = obtenerUrlConfirmacion(targetEmail, 'reject');
+    
+    // Add dummy variables for CorreoInicioClases template
+    (htmlBody as any).catedra = "Lunes y Miércoles 14:30 - 16:00";
+    (htmlBody as any).ayudantia = "Viernes 14:30 - 16:00";
+    (htmlBody as any).sala = "Sala 2-3 (Casa Central)";
+    (htmlBody as any).fechaInicio = "Lunes, 30 de Marzo";
+    (htmlBody as any).fechaTermino = "Viernes, 10 de Julio";
 
     const finishedHtml = htmlBody.evaluate().getContent();
 
