@@ -95,10 +95,25 @@ function ejecutarAnalisisDesdeMenu() {
 
 function abrirDashboard() {
   const url = ScriptApp.getService().getUrl();
-  const html = `<p>El dashboard se ha abierto en una nueva pestaña. Si no aparece, haz clic en el siguiente enlace:</p>
-                <a href="${url}" target="_blank">Abrir Dashboard</a>
-                <script>window.open("${url}", "_blank"); google.script.host.close();</script>`;
-  const output = HtmlService.createHtmlOutput(html).setWidth(400).setHeight(150);
+  const html = `<div style="font-family: 'Inter', -apple-system, sans-serif; padding: 15px; text-align: center;">
+                  <p style="color: #1a1a1a; font-size: 14px; margin-bottom: 20px; line-height: 1.5;">
+                    El panel de control administrativo se abrirá en una nueva pestaña. Si tu navegador bloqueó la apertura automática, haz clic en el botón de abajo:
+                  </p>
+                  <a href="${url}" target="_blank" style="background-color: #0055a2; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" onclick="google.script.host.close();">
+                    🚀 Abrir Panel de Control (Dashboard)
+                  </a>
+                </div>
+                <script>
+                  try {
+                    var win = window.open("${url}", "_blank");
+                    if (win) {
+                      google.script.host.close();
+                    }
+                  } catch (e) {
+                    console.error("Popup blocker active", e);
+                  }
+                </script>`;
+  const output = HtmlService.createHtmlOutput(html).setWidth(420).setHeight(180);
   SpreadsheetApp.getUi().showModalDialog(output, "Abriendo Dashboard...");
 }
 

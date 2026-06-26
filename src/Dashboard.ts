@@ -19,6 +19,8 @@ function calcularEstadisticas(
   const idxTotal = getIdx("PUNTAJE TOTAL");
   const idxSede = getIdx("Sede");
   const idxEmail = getIdx("Correo Electrónico");
+  const idxNivel = getIdx("Nivel Postulado");
+  const idxCert = getIdx("Enlace Certificado");
 
   const puntajes = postulantes.map(f => parseFloat(f[idxTotal] || 0));
   const totalPostulantes = postulantes.length;
@@ -34,7 +36,7 @@ function calcularEstadisticas(
   const agrupar = (idx: number) => {
     const s: Record<string, { suma: number; contador: number }> = {};
     postulantes.forEach(f => {
-      const k = String(f[idx] || "No especificado");
+      const k = idx !== -1 ? String(f[idx] || "No especificado").trim() : "No especificado";
       const p = parseFloat(f[idxTotal] || 0);
       if (!s[k]) s[k] = { suma: 0, contador: 0 };
       s[k].suma += p;
@@ -45,6 +47,15 @@ function calcularEstadisticas(
 
   const sCat = agrupar(idxCat);
   const sSede = agrupar(idxSede);
+  const sNivel = agrupar(idxNivel);
+
+  let totalCertificados = 0;
+  postulantes.forEach(f => {
+    const certVal = idxCert !== -1 ? String(f[idxCert]).trim() : "";
+    if (certVal !== "") {
+      totalCertificados++;
+    }
+  });
 
   const idxEmailOriginal = indicesOriginales[CONFIG.COLUMNS.EMAIL];
   const idxAnioOriginal = indicesOriginales[CONFIG.COLUMNS.ENTRY_YEAR];
@@ -83,11 +94,13 @@ function calcularEstadisticas(
 
   return {
     totalPostulantes,
+    totalCertificados,
     puntajePromedio: pPromedio,
     puntajeMaximo: pMax,
     puntajeMinimo: pMin,
     statsPorCategoria: sCat,
     statsPorSede: sSede,
+    statsPorNivel: sNivel,
     statsPorAnio: sAnio,
     statsCruzados: sCruzados
   };
@@ -97,11 +110,12 @@ function calcularEstadisticas(
  * Formats statistics for writing into the Spreadsheet dashboard.
  */
 function formatearDatosDashboard(stats: IStatistics): any[][] {
-  const { totalPostulantes, puntajePromedio, puntajeMaximo, puntajeMinimo, statsPorCategoria, statsPorSede, statsPorAnio, statsCruzados } = stats;
+  const { totalPostulantes, totalCertificados, puntajePromedio, puntajeMaximo, puntajeMinimo, statsPorCategoria, statsPorSede, statsPorNivel, statsPorAnio, statsCruzados } = stats;
   
   let rows: any[][] = [
     ["MÉTRICAS GENERALES", "", ""],
     ["Número Total de Postulantes", totalPostulantes, ""],
+    ["Postulantes con Certificado", totalCertificados, ""],
     ["Puntaje Promedio General", puntajePromedio.toFixed(2), ""],
     ["Puntaje Máximo / Mínimo", `${puntajeMaximo.toFixed(2)} / ${puntajeMinimo.toFixed(2)}`, ""],
     []
@@ -116,6 +130,7 @@ function formatearDatosDashboard(stats: IStatistics): any[][] {
     rows.push([]);
   };
 
+  addTable("DESGLOSE POR NIVEL POSTULADO", statsPorNivel);
   addTable("DESGLOSE POR CATEGORÍA", statsPorCategoria);
   addTable("DESGLOSE POR SEDE", statsPorSede);
   addTable("DESGLOSE POR AÑO DE INGRESO", statsPorAnio);

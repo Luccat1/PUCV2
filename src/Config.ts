@@ -92,11 +92,13 @@ interface IApplicantResult {
  */
 interface IStatistics {
   totalPostulantes: number;
+  totalCertificados: number;
   puntajePromedio: number;
   puntajeMaximo: number;
   puntajeMinimo: number;
   statsPorCategoria: Record<string, { suma: number; contador: number }>;
   statsPorSede: Record<string, { suma: number; contador: number }>;
+  statsPorNivel: Record<string, { suma: number; contador: number }>;
   statsPorAnio: Record<string, { suma: number; contador: number }>;
   statsCruzados: Record<string, Record<string, { suma: number; contador: number }>>;
 }

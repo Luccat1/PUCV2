@@ -214,6 +214,7 @@ function getDashboardStats(): any {
       total: dataS.length
     },
     distribucionNivel,
+    distribucionNivelPostulado: Object.fromEntries(Object.entries(baseStats.statsPorNivel).map(([k, v]) => [k, v.contador])),
     distribucionSede: Object.fromEntries(Object.entries(baseStats.statsPorSede).map(([k, v]) => [k, v.contador])),
     promediosPorTipo: Object.fromEntries(Object.entries(baseStats.statsPorCategoria).map(([k, v]) => [k, v.suma / v.contador])),
     // Analysis detailed breakdown

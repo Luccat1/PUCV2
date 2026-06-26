@@ -395,6 +395,10 @@
         <div class="kpi-label">Total Postulantes</div>
         <div class="kpi-value" id="kpi-total">-</div>
       </div>
+      <div class="kpi-card" style="border-left-color: var(--info);">
+        <div class="kpi-label">Con Certificado</div>
+        <div class="kpi-value" id="kpi-certificados">-</div>
+      </div>
       <div class="kpi-card">
         <div class="kpi-label">Seleccionados</div>
         <div class="kpi-value" id="kpi-selected">-</div>
@@ -429,6 +433,12 @@
           <h3>Distribución por Sede</h3>
           <div class="chart-container">
             <canvas id="chart-sedes"></canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <h3>Distribución por Nivel Postulado</h3>
+          <div class="chart-container">
+            <canvas id="chart-niveles"></canvas>
           </div>
         </div>
         <div class="chart-card">
@@ -573,6 +583,7 @@
 
     function renderKPIs(stats) {
       document.getElementById('kpi-total').textContent = stats.totalPostulantes || 0;
+      document.getElementById('kpi-certificados').textContent = (stats.totalCertificados || 0) + ' (' + (((stats.totalCertificados / (stats.totalPostulantes || 1)) * 100) || 0).toFixed(0) + '%)';
       document.getElementById('kpi-selected').textContent = stats.totalSeleccionados || 0;
       document.getElementById('kpi-avg').textContent = (stats.puntajePromedio || 0).toFixed(1);
       document.getElementById('kpi-accepted').textContent = stats.seatBreakdown.aceptados || 0;
@@ -612,7 +623,21 @@
         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
       });
 
-      // 3. Status Doughnut (Seats)
+      // 3. Niveles Doughnut (Nivel Postulado)
+      const ctxNiv = document.getElementById('chart-niveles').getContext('2d');
+      dashboardCharts.niveles = new Chart(ctxNiv, {
+        type: 'doughnut',
+        data: {
+          labels: Object.keys(stats.distribucionNivelPostulado),
+          datasets: [{
+            data: Object.values(stats.distribucionNivelPostulado),
+            backgroundColor: ['#002244', '#004488', '#0066cc', '#3388ff']
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+      });
+
+      // 4. Status Doughnut (Seats)
       const ctxSeats = document.getElementById('chart-seats').getContext('2d');
       dashboardCharts.seats = new Chart(ctxSeats, {
         type: 'doughnut',
@@ -626,7 +651,7 @@
         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
       });
 
-      // 4. Detailed Breakdown Stacked Bar
+      // 5. Detailed Breakdown Stacked Bar
       const ctxDetailed = document.getElementById('chart-detailed').getContext('2d');
       const detLabels = Object.keys(stats.analisisDetallado);
       const getSet = (name, color) => ({
