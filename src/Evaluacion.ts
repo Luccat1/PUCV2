@@ -290,6 +290,8 @@ function cargarDatosPrograma(): void {
       else if (perfil === "FECHA_TERMINO") PROGRAM_DATA.FECHA_TERMINO = valor;
       else if (perfil === "PAYMENT_URL") PROGRAM_DATA.PAYMENT_URL = valor;
       else if (perfil === "DEADLINE_DAYS") PROGRAM_DATA.DEADLINE_DAYS = parseInt(valor, 10) || 3;
+      else if (perfil === "TEST_FECHA") PROGRAM_DATA.TEST_FECHA = valor;
+      else if (perfil === "TEST_INSTRUCCIONES_FECHA") PROGRAM_DATA.TEST_INSTRUCCIONES_FECHA = valor;
     } else if (criterio.startsWith("HORARIO_")) {
       const nivel = criterio.replace("HORARIO_", "");
       if (PROGRAM_DATA.HORARIOS[nivel]) {
@@ -341,6 +343,8 @@ function saveConfiguracion(mergedData: any): string {
   rows.push(["PROGRAMA", "FECHA_TERMINO", pData.FECHA_TERMINO]);
   rows.push(["PROGRAMA", "PAYMENT_URL", pData.PAYMENT_URL]);
   rows.push(["PROGRAMA", "DEADLINE_DAYS", pData.DEADLINE_DAYS]);
+  rows.push(["PROGRAMA", "TEST_FECHA", pData.TEST_FECHA]);
+  rows.push(["PROGRAMA", "TEST_INSTRUCCIONES_FECHA", pData.TEST_INSTRUCCIONES_FECHA]);
 
   for (const [nivel, horarios] of Object.entries(pData.HORARIOS)) {
     const h = horarios as any;

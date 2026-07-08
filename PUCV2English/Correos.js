@@ -118,7 +118,7 @@ function sendEmailBatch(type) {
             htmlBody.nivel = r.nivel;
             htmlBody.programData = PROGRAM_DATA;
             htmlBody.fechaLimite = calcularFechaLimite(new Date(), PROGRAM_DATA.DEADLINE_DAYS || 3);
-            if (templateName === 'CorreoSeleccionado' || templateName === 'CorreoHandPicked') {
+            if (templateName === 'CorreoSeleccionado' || templateName === 'CorreoHandPicked' || templateName === 'CorreoTestNivel') {
                 const token = generarToken(r.email);
                 htmlBody.urlAceptar = obtenerUrlConfirmacionConToken(token, 'accept');
                 htmlBody.urlRechazar = obtenerUrlConfirmacionConToken(token, 'reject');

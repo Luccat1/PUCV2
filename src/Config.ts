@@ -36,6 +36,8 @@ interface IProgramData {
   FECHA_TERMINO: string;
   PAYMENT_URL: string;
   DEADLINE_DAYS: number;
+  TEST_FECHA: string;
+  TEST_INSTRUCCIONES_FECHA: string;
   HORARIOS: Record<string, { catedra: string; ayudantia: string; sala?: string }>;
 }
 
@@ -216,6 +218,8 @@ const DEFAULT_PROGRAM_DATA: IProgramData = {
   FECHA_TERMINO: "2 de julio de 2026",
   PAYMENT_URL: "https://www.mercadopago.cl/link-pago-matricula",
   DEADLINE_DAYS: 3,
+  TEST_FECHA: "2.ª semana de marzo de 2026",
+  TEST_INSTRUCCIONES_FECHA: "primera semana de marzo",
   HORARIOS: {
     "B1+": { catedra: "Lunes y Miércoles 17:45-18:55", ayudantia: "Jueves 17:45-18:55" },
     "B2.1": { catedra: "Lunes y Miércoles 17:45-18:55", ayudantia: "Jueves 17:45-18:55" },

@@ -73,37 +73,28 @@
                 <strong>PUCV2English</strong>.
             </p>
 
-            <div class="highlight">
-                <p>Para hacer efectiva tu matrícula definitiva, <strong>debes rendir una prueba de nivel
-                        online</strong> (costo de referencia: $42.000), la cual se llevará a cabo durante la <b>2.ª
-                        semana de marzo de 2026</b>. Esta prueba es obligatoria para tu perfil para determinar tu
-                    ubicación exacta.</p>
+            <div class="highlight" style="text-align: center;">
+                <p>Para confirmar tu participación y reservar tu cupo, utiliza los siguientes botones a más tardar el <b><?= fechaLimite ?></b>:</p>
+                <div style="margin: 20px 0;">
+                    <a href="<?= urlAceptar ?>" style="background-color: #4CAF50; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block; margin: 5px;">✅ Acepto mi Cupo</a>
+                    <a href="<?= urlRechazar ?>" style="background-color: #f44336; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block; margin: 5px;">❌ Rechazo mi Cupo</a>
+                </div>
+                <p style="font-size: 0.85em; color: #666; margin-top: 15px;">Si los botones no funcionan, copia y pega este enlace en tu navegador:<br>
+                <span style="word-break: break-all;"><?= urlAceptar ?></span></p>
             </div>
 
-            <div class="highlight">
-                <p>Si estás de acuerdo con rendir la prueba, por favor responde a este correo con un «<b>Confirmo</b>»
-                    antes del <b>
-                        <?= fechaLimite ?>
-                    </b>.</p>
-            </div>
+            <p><strong>Matrícula y Test de Nivel:</strong></p>
+            <ul>
+                <li>Para formalizar tu cupo, debes realizar el pago de la <strong>matrícula obligatoria de $45.000</strong> (el enlace de pago se presentará tras hacer clic en "Acepto mi Cupo").</li>
+                <li>Adicionalmente, para determinar tu ubicación exacta en los cursos, <strong>debes rendir una prueba de nivel online</strong>, la cual se llevará a cabo durante la 2.ª semana de marzo de 2026.</li>
+                <li>Las instrucciones detalladas para rendir la prueba se te enviarán durante la primera semana de marzo.</li>
+            </ul>
 
-            <p>Una vez recibida tu confirmación, te haremos envío del <strong>enlace de pago</strong>. Ten presente que
-                la <strong>fecha máxima de pago es el lunes 15 de diciembre</strong>.</p>
-
-            <p>Las <strong>instrucciones detalladas</strong> para rendir la prueba se harán llegar durante la
-                <strong>primera semana de marzo</strong>, para que puedas rendirla durante la segunda semana del mismo
-                mes.
-            </p>
-
-            <h3>Recordatorio de Clases y Horarios (Cuarta Versión):</h3>
+            <h3>Recordatorio de Clases y Horarios (Quinta Versión):</h3>
             <ul>
                 <li><strong>Fecha test de nivel:</strong> 2.ª semana de marzo de 2026</li>
-                <li><strong>Inicio de clases:</strong>
-                    <?= fechaInicio ?>
-                </li>
-                <li><strong>Término de clases:</strong>
-                    <?= fechaTermino ?>
-                </li>
+                <li><strong>Inicio de clases:</strong> <?= programData.FECHA_INICIO ?></li>
+                <li><strong>Término de clases:</strong> <?= programData.FECHA_TERMINO ?></li>
             </ul>
 
             <br>

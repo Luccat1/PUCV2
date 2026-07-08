@@ -218,14 +218,13 @@
             style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
         </div>
         <div class="form-group">
-          <label>Horarios (Ejemplo B1+)</label>
+          <label>Horario Único de Cursos</label>
           <input type="text" id="prog-HORARIO_B1p_cat" placeholder="Cátedra"
             style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; margin-bottom: 4px;">
           <input type="text" id="prog-HORARIO_B1p_ayu" placeholder="Ayudantía"
             style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
         </div>
-        <p style="font-size: 10px; color: #888;">* Los horarios de otros niveles se pueden editar directamente en la
-          pestaña 'Configuración'.</p>
+        <p style="font-size: 10px; color: #888;">* Todos los niveles (B1+, B2.1, B2.2, C1 y Default) se configurarán automáticamente con este mismo horario.</p>
       </div>
     </div>
   </div>
@@ -257,18 +256,33 @@
       setTimeout(() => { status.style.display = 'none'; }, 4000);
     }
 
-    // Carta
-    document.getElementById('CartaRespaldo-estudiante').value = config.scoring.CartaRespaldo.peso.estudiante;
-    document.getElementById('CartaRespaldo-funcionario').value = config.scoring.CartaRespaldo.peso.funcionario;
-    document.getElementById('CartaRespaldo-academico').value = config.scoring.CartaRespaldo.peso.academico;
+    function populate(config) {
+      document.body.classList.remove('loading');
 
-    // Programa
-    document.getElementById('prog-FECHA_LIMITE').value = config.program.FECHA_LIMITE;
-    document.getElementById('prog-FECHA_INICIO').value = config.program.FECHA_INICIO;
-    if (config.program.HORARIOS['B1+']) {
-      document.getElementById('prog-HORARIO_B1p_cat').value = config.program.HORARIOS['B1+'].catedra;
-      document.getElementById('prog-HORARIO_B1p_ayu').value = config.program.HORARIOS['B1+'].ayudantia;
-    }
+      // Uso de Inglés
+      document.getElementById('UsoIngles-estudiante').value = config.scoring.UsoIngles.peso.estudiante;
+      document.getElementById('UsoIngles-funcionario').value = config.scoring.UsoIngles.peso.funcionario;
+      document.getElementById('UsoIngles-academico').value = config.scoring.UsoIngles.peso.academico;
+      document.getElementById('UsoIngles-MaxPuntaje').value = config.scoring.UsoIngles.MaxPuntaje;
+
+      // Internacionalización
+      document.getElementById('Internacionalizacion-estudiante').value = config.scoring.Internacionalizacion.peso.estudiante;
+      document.getElementById('Internacionalizacion-funcionario').value = config.scoring.Internacionalizacion.peso.funcionario;
+      document.getElementById('Internacionalizacion-academico').value = config.scoring.Internacionalizacion.peso.academico;
+      document.getElementById('Internacionalizacion-MaxPuntaje').value = config.scoring.Internacionalizacion.MaxPuntaje;
+
+      // Carta de Respaldo
+      document.getElementById('CartaRespaldo-estudiante').value = config.scoring.CartaRespaldo.peso.estudiante;
+      document.getElementById('CartaRespaldo-funcionario').value = config.scoring.CartaRespaldo.peso.funcionario;
+      document.getElementById('CartaRespaldo-academico').value = config.scoring.CartaRespaldo.peso.academico;
+
+      // Datos del Programa
+      document.getElementById('prog-FECHA_LIMITE').value = config.program.FECHA_LIMITE;
+      document.getElementById('prog-FECHA_INICIO').value = config.program.FECHA_INICIO;
+      if (config.program.HORARIOS['B1+']) {
+        document.getElementById('prog-HORARIO_B1p_cat').value = config.program.HORARIOS['B1+'].catedra;
+        document.getElementById('prog-HORARIO_B1p_ayu').value = config.program.HORARIOS['B1+'].ayudantia;
+      }
     }
 
     function save() {
@@ -304,9 +318,25 @@
         program: {
           FECHA_LIMITE: document.getElementById('prog-FECHA_LIMITE').value,
           FECHA_INICIO: document.getElementById('prog-FECHA_INICIO').value,
-          // We only edit B1+ here as example/shortcut, the others remain in memory or are edited in sheet
+          // Apply the single schedule to all levels as requested
           HORARIOS: {
             'B1+': {
+              catedra: document.getElementById('prog-HORARIO_B1p_cat').value,
+              ayudantia: document.getElementById('prog-HORARIO_B1p_ayu').value
+            },
+            'B2.1': {
+              catedra: document.getElementById('prog-HORARIO_B1p_cat').value,
+              ayudantia: document.getElementById('prog-HORARIO_B1p_ayu').value
+            },
+            'B2.2': {
+              catedra: document.getElementById('prog-HORARIO_B1p_cat').value,
+              ayudantia: document.getElementById('prog-HORARIO_B1p_ayu').value
+            },
+            'C1': {
+              catedra: document.getElementById('prog-HORARIO_B1p_cat').value,
+              ayudantia: document.getElementById('prog-HORARIO_B1p_ayu').value
+            },
+            'Default': {
               catedra: document.getElementById('prog-HORARIO_B1p_cat').value,
               ayudantia: document.getElementById('prog-HORARIO_B1p_ayu').value
             }
