@@ -357,11 +357,14 @@ function generarToken(correo) {
  */
 function obtenerUrlConfirmacion(correo, action) {
     const token = generarToken(correo);
+    return obtenerUrlConfirmacionConToken(token, action);
+}
+function obtenerUrlConfirmacionConToken(token, action) {
     let webAppUrl = CONFIG.WEB_APP_URL || ScriptApp.getService().getUrl();
     // Strip multi-login segment (e.g. /u/2/) to avoid account conflict errors for recipients
     webAppUrl = webAppUrl.replace(/\/u\/\d+/, '');
     if (!CONFIG.WEB_APP_URL && webAppUrl.endsWith('/dev')) {
-        logToWebApp(`⚠️ ADVERTENCIA: Enlace /dev generado para ${correo}. Publica la Web App y configura WEB_APP_URL en Config.ts para evitar errores de Google Drive.`);
+        logToWebApp(`⚠️ ADVERTENCIA: Enlace /dev generado. Publica la Web App y configura WEB_APP_URL en Config.ts para evitar errores de Google Drive.`);
     }
     return `${webAppUrl.replace(/\/$/, '')}?action=${action}&token=${token}`;
 }

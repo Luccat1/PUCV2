@@ -127,7 +127,7 @@ const CONFIG: IConfig = {
     RUT: "RUT",
     APPLICANT_TYPE: "Indica si eres funcionario, alumno, profesor, académico, etc.",
     CAMPUS: "¿En qué sede realizas la mayoría de tus actividades académicas o profesionales?",
-    AVAILABILITY_SESSIONS: "¿Tienes disponibilidad para participar en 3 sesiones semanales? ",
+    AVAILABILITY_SESSIONS: "¿Tienes disponibilidad para participar en 3 sesiones semanales?",
     AVAILABILITY_CONFLICTS: "¿Tienes compromisos académicos/laborales que podrían impedir cumplir con la asistencia obligatoria?",
     AVAILABILITY_ASSISTANCE: "¿Estás en condiciones de asistir al menos al 80 % de las clases?",
     AVAILABILITY_STUDY: "¿Puedes comprometerte a dedicar 4 horas semanales de estudio autónomo además de las clases?",
@@ -141,7 +141,7 @@ const CONFIG: IConfig = {
     CERTIFICATE_ATTACHMENT: "Adjunta la certificación que permita verificar tu nivel de inglés más alto (certificado oficial).",
     CERTIFICATE_LEVEL: "Certificación de inglés",
     ENTRY_YEAR: "¿En qué año ingresaste a tu carrera actual?",
-    COMMITMENT_PROGRAM: "Compromiso con el programa ",
+    COMMITMENT_PROGRAM: "Compromiso con el programa",
     COMMITMENT_VERACITY: "Veracidad de la información",
     COMMITMENT_BREACH: "Consecuencias por incumplimiento",
     ENDORSEMENT_APPROVAL: "¿Cuentas con el respaldo de tu jefatura directa para participar en este programa?",
@@ -159,7 +159,7 @@ const CONFIG: IConfig = {
     PROYECTOS_FUTUROS_DESC: "Si respondiste \"Sí\"; por favor, describe estos proyectos y su rol en ellos.",
     DOCUMENTOS_RESPALDO_SITUACION: "¿Tienes algún documento que respalde este proceso?",
     AUTORIZACION_COMUNICACIONES: "Autorización de comunicaciones",
-    NUCLEO: "¿Eres parte del programa Núcleo? "
+    NUCLEO: "¿Eres parte del programa Núcleo?"
     // Note: The "Seleccionados" sheet also includes: "Ranking", "Verificación Certificado", "Nivel Asignado", "Aceptación", "Comentarios"
   }
 };

@@ -10,6 +10,7 @@ function onOpen() {
     const ui = SpreadsheetApp.getUi();
     ui.createMenu('PUCV2English')
         .addItem('📊 Evaluar Postulaciones', 'abrirDialogoEvaluacion')
+        .addItem('🔄 Reevaluar Todo desde Cero', 'ejecutarReevaluacionCompleta')
         .addItem('📋 Generar Lista Final', 'ejecutarGenerarListaFinal')
         .addSeparator()
         .addItem('⚙️ Configurar Pesos', 'abrirSidebarConfig')

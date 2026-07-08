@@ -1,11 +1,17 @@
-# PUCV2English v5.0.1 — Sistema de Gestión Automatizada
+# PUCV2English v5.0.2 — Sistema de Gestión Automatizada
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
 [![Platform](https://img.shields.io/badge/Platform-Google%20Apps%20Script-green.svg)](https://developers.google.com/apps-script)
 
 **PUCV2English** es un ecosistema modular desarrollado en **TypeScript** para la gestión profesional de postulaciones al Programa de Inglés PUCV. El sistema automatiza el ciclo completo: desde la evaluación masiva con criterios ponderados, hasta la gestión de matrícula vía dashboard y la comunicación automatizada con los postulantes.
 
-> **Novedad v5.0.1:** Migración completa de monolito JavaScript (1.6k loc) a arquitectura modular profesional tipado estricto.
+> **Novedad v5.0.2:**
+> *   **Corrección de Puntajes**: Solucionados los espacios en blanco adicionales en nombres de columnas de configuración (`CONFIG.COLUMNS`) que causaban pérdida de puntaje de Disponibilidad y Compromiso.
+> *   **Eliminación de Duplicados**: Incorporado control de deduplicación de postulantes en caliente.
+> *   **Filtro de Incompletos**: Descartado y marcado automático de postulaciones corruptas o incompletas.
+> *   **Optimización de Tokens**: Unificado a un solo token por postulante para evitar acumulación huérfana de propiedades.
+> *   **Reevaluación desde Menú**: Añadido comando superior `🔄 Reevaluar Todo desde Cero` para limpieza y recálculo masivo.
+> *   *Migración v5.0.1:* Migración completa de monolito JavaScript (1.6k loc) a arquitectura modular profesional tipado estricto.
 
 ---
 

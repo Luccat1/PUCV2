@@ -48,20 +48,29 @@ function evaluarPostulacionesPUCV2(): string {
         "Puntaje Año Ingreso", "Puntaje Compromiso", "Puntaje Carta", "PUNTAJE TOTAL", "Enlace Certificado", "Nivel Postulado"]
     ];
 
+    const correosProcesados = new Set<string>();
+
     const hojaResultadosExistente = ss.getSheetByName(CONFIG.SHEETS.OUTPUT);
     if (hojaResultadosExistente) {
       const valoresExistentes = hojaResultadosExistente.getDataRange().getValues();
       if (valoresExistentes.length > 1) {
-        resultados.push(...valoresExistentes.slice(1));
+        for (let i = 1; i < valoresExistentes.length; i++) {
+          const email = String(valoresExistentes[i][2] || "").toLowerCase().trim();
+          if (email) {
+            if (correosProcesados.has(email)) {
+              logToWebApp(`Limpiando duplicado preexistente de la hoja de resultados: ${email}`);
+              continue;
+            }
+            correosProcesados.add(email);
+          }
+          resultados.push(valoresExistentes[i]);
+        }
       }
     }
 
     let nuevasProcesadas = 0;
 
     logToWebApp(`Iniciando procesamiento de ${datos.length - 1} filas...`);
-
-    // Set for fast duplicate lookup in current batch or existing sheets
-    const correosProcesados = new Set<string>();
 
     for (let r = 1; r < datos.length; r++) {
       try {
@@ -75,20 +84,29 @@ function evaluarPostulacionesPUCV2(): string {
         }
 
         const correo = obtenerValor(fila, CONFIG.COLUMNS.EMAIL, indiceColumnas).toLowerCase().trim();
+        const apellidos = [obtenerValor(fila, CONFIG.COLUMNS.LAST_NAME_P, indiceColumnas), obtenerValor(fila, CONFIG.COLUMNS.LAST_NAME_M, indiceColumnas)].filter(Boolean).join(" ");
+        const nombres = [obtenerValor(fila, CONFIG.COLUMNS.FIRST_NAME, indiceColumnas), obtenerValor(fila, CONFIG.COLUMNS.SECOND_NAME, indiceColumnas)].filter(Boolean).join(" ");
+        const rut = obtenerValor(fila, CONFIG.COLUMNS.RUT, indiceColumnas);
+
+        // Edge case: Incomplete submission detection
+        if (!correo || (!apellidos && !nombres) || !rut) {
+          logToWebApp(`Saltando postulación incompleta en fila ${r + 1}: ${correo || 'sin correo'}`);
+          if (indiceEstado !== -1) {
+            actualizacionesEstado.push({ fila: r + 1, valor: "INCOMPLETA (Datos insuficientes)" });
+          }
+          continue;
+        }
 
         // Edge Case: Duplicate Applicant Detection
         if (correo && correosProcesados.has(correo)) {
           logToWebApp(`Saltando duplicado: ${correo}`);
-          if (indiceEstado !== -1) {
+          if (indiceEstado !== -1 && obtenerValor(fila, COLUMNA_ESTADO_NOMBRE, indiceColumnas) === "") {
             actualizacionesEstado.push({ fila: r + 1, valor: "DUPLICADO (Ignorado)" });
           }
           continue;
         }
         if (correo) correosProcesados.add(correo);
 
-        const apellidos = [obtenerValor(fila, CONFIG.COLUMNS.LAST_NAME_P, indiceColumnas), obtenerValor(fila, CONFIG.COLUMNS.LAST_NAME_M, indiceColumnas)].filter(Boolean).join(" ");
-        const nombres = [obtenerValor(fila, CONFIG.COLUMNS.FIRST_NAME, indiceColumnas), obtenerValor(fila, CONFIG.COLUMNS.SECOND_NAME, indiceColumnas)].filter(Boolean).join(" ");
-        const rut = obtenerValor(fila, CONFIG.COLUMNS.RUT, indiceColumnas);
         const fecha = obtenerValor(fila, CONFIG.COLUMNS.TIMESTAMP, indiceColumnas);
         const tipo = obtenerValor(fila, CONFIG.COLUMNS.APPLICANT_TYPE, indiceColumnas);
         const sede = obtenerValor(fila, CONFIG.COLUMNS.CAMPUS, indiceColumnas);
@@ -541,4 +559,88 @@ function obtenerNivelDesdeFila(fila: any[], idxs: Record<string, number>): strin
   if (/inglés 4|ingles 4/i.test(txt)) return "B1+";
 
   return "B1+"; // Default fallback
+}
+
+/**
+ * Reset all evaluation sheets and processing status to force a full re-evaluation.
+ */
+function ejecutarReevaluacionCompleta(): void {
+  const ui = SpreadsheetApp.getUi();
+  const respuesta = ui.alert(
+    'Confirmar Reevaluación Completa',
+    'ATENCIÓN: Esto borrará de forma definitiva todas las evaluaciones y selecciones actuales, limpiará el estado de procesamiento de la hoja de respuestas, y volverá a calcular los puntajes de todos los candidatos desde cero.\n\n¿Estás seguro de que deseas continuar?',
+    ui.ButtonSet.YES_NO
+  );
+
+  if (respuesta !== ui.Button.YES) {
+    ui.alert('Operación Cancelada', 'No se ha realizado ningún cambio.', ui.ButtonSet.OK);
+    return;
+  }
+
+  const lock = LockService.getScriptLock();
+  const tuvoExito = lock.tryLock(15000);
+  if (!tuvoExito) {
+    ui.alert('Error', 'No se pudo obtener el bloqueo del script. Intenta de nuevo en unos segundos.', ui.ButtonSet.OK);
+    return;
+  }
+
+  try {
+    const ss = getSpreadsheet();
+    
+    // 1. Limpiar estado en la hoja de respuestas de formulario
+    const hojaEntrada = ss.getSheetByName(CONFIG.SHEETS.INPUT);
+    if (hojaEntrada) {
+      const ultimaFila = hojaEntrada.getLastRow();
+      if (ultimaFila >= 2) {
+        const datos = hojaEntrada.getRange(1, 1, ultimaFila, hojaEntrada.getLastColumn()).getValues();
+        const encabezados = datos[0].map((h: any) => String(h || "").trim());
+        const COLUMNA_ESTADO_NOMBRE = CONFIG.COLUMNS.PROCESSING_STATUS;
+        const indiceEstado = encabezados.indexOf(COLUMNA_ESTADO_NOMBRE);
+        if (indiceEstado !== -1) {
+          // Clear entire status column starting from row 2
+          hojaEntrada.getRange(2, indiceEstado + 1, ultimaFila - 1, 1).clearContent();
+        }
+      }
+    }
+
+    // 2. Limpiar hoja de Evaluación Automatizada
+    const hojaResultados = ss.getSheetByName(CONFIG.SHEETS.OUTPUT);
+    if (hojaResultados) {
+      hojaResultados.clearConditionalFormatRules();
+      if (hojaResultados.getLastRow() > 0 && hojaResultados.getLastColumn() > 0) {
+        hojaResultados.getRange(1, 1, hojaResultados.getLastRow(), hojaResultados.getLastColumn()).clearContent();
+      }
+    }
+
+    // 3. Limpiar hoja de Seleccionados
+    const hojaSeleccionados = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
+    if (hojaSeleccionados) {
+      hojaSeleccionados.clearConditionalFormatRules();
+      if (hojaSeleccionados.getLastRow() > 0 && hojaSeleccionados.getLastColumn() > 0) {
+        hojaSeleccionados.getRange(1, 1, hojaSeleccionados.getLastRow(), hojaSeleccionados.getLastColumn()).clearContent();
+      }
+    }
+
+    // 4. Limpiar Dashboard (ej. vaciar los datos numéricos de A:C)
+    const hojaDashboard = ss.getSheetByName(CONFIG.SHEETS.DASHBOARD);
+    if (hojaDashboard) {
+      hojaDashboard.getRange("A:C").clearContent().clearFormat();
+      hojaDashboard.getCharts().forEach(c => hojaDashboard.removeChart(c));
+      hojaDashboard.getRange("E:F").clearContent();
+    }
+
+    // Soltar el bloqueo antes de ejecutar la evaluación para evitar deadlock,
+    // ya que evaluarPostulacionesPUCV2() obtendrá su propio bloqueo.
+    lock.releaseLock();
+
+    // 5. Ejecutar la evaluación de nuevo
+    const resultado = evaluarPostulacionesPUCV2();
+    ui.alert('Reevaluación Finalizada', 'Las hojas han sido limpiadas y recalculadas.\n\nResultado: ' + resultado, ui.ButtonSet.OK);
+
+  } catch (e: any) {
+    if (lock.hasLock()) {
+      lock.releaseLock();
+    }
+    ui.alert('Error durante la reevaluación', e.message, ui.ButtonSet.OK);
+  }
 }

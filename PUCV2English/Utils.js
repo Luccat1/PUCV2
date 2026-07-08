@@ -38,7 +38,7 @@ function esSi(valor) {
  * @param indiceColumnas Mapping of header names to indices.
  */
 function obtenerValor(fila, titulo, indiceColumnas) {
-    const i = indiceColumnas[titulo];
+    const i = indiceColumnas[String(titulo || "").trim()];
     if (i === undefined) {
         return "";
     }

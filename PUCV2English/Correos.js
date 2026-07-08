@@ -119,8 +119,9 @@ function sendEmailBatch(type) {
             htmlBody.programData = PROGRAM_DATA;
             htmlBody.fechaLimite = calcularFechaLimite(new Date(), PROGRAM_DATA.DEADLINE_DAYS || 3);
             if (templateName === 'CorreoSeleccionado' || templateName === 'CorreoHandPicked') {
-                htmlBody.urlAceptar = obtenerUrlConfirmacion(r.email, 'accept');
-                htmlBody.urlRechazar = obtenerUrlConfirmacion(r.email, 'reject');
+                const token = generarToken(r.email);
+                htmlBody.urlAceptar = obtenerUrlConfirmacionConToken(token, 'accept');
+                htmlBody.urlRechazar = obtenerUrlConfirmacionConToken(token, 'reject');
             }
             const finishedHtml = htmlBody.evaluate().getContent();
             GmailApp.sendEmail(r.email, subject, "", {
@@ -187,8 +188,9 @@ function sendTestEmail(targetEmail, type) {
         htmlBody.fechaLimite = calcularFechaLimite(new Date(), PROGRAM_DATA.DEADLINE_DAYS || 3);
         htmlBody.fechaPagoLimite = calcularFechaLimite(new Date(), PROGRAM_DATA.DEADLINE_DAYS || 3);
         htmlBody.paymentUrl = PROGRAM_DATA.PAYMENT_URL || "https://www.mercadopago.cl/link-pago-matricula";
-        htmlBody.urlAceptar = obtenerUrlConfirmacion(targetEmail, 'accept');
-        htmlBody.urlRechazar = obtenerUrlConfirmacion(targetEmail, 'reject');
+        const token = generarToken(targetEmail);
+        htmlBody.urlAceptar = obtenerUrlConfirmacionConToken(token, 'accept');
+        htmlBody.urlRechazar = obtenerUrlConfirmacionConToken(token, 'reject');
         // Add dummy variables for CorreoInicioClases template
         htmlBody.catedra = "Lunes y Miércoles 14:30 - 16:00";
         htmlBody.ayudantia = "Viernes 14:30 - 16:00";
