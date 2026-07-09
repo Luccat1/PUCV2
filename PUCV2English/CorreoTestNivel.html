@@ -86,13 +86,13 @@
             <p><strong>Matrícula y Test de Nivel:</strong></p>
             <ul>
                 <li>Para formalizar tu cupo, debes realizar el pago de la <strong>matrícula obligatoria de $45.000</strong> (el enlace de pago se presentará tras hacer clic en "Acepto mi Cupo").</li>
-                <li>Adicionalmente, para determinar tu ubicación exacta en los cursos, <strong>debes rendir una prueba de nivel online</strong>, la cual se llevará a cabo durante la 2.ª semana de marzo de 2026.</li>
-                <li>Las instrucciones detalladas para rendir la prueba se te enviarán durante la primera semana de marzo.</li>
+                <li>Adicionalmente, para determinar tu ubicación exacta en los cursos, <strong>debes rendir una prueba de nivel online</strong>, la cual se llevará a cabo durante la <b><?= programData.TEST_FECHA ?></b>.</li>
+                <li>Las instrucciones detalladas para rendir la prueba se te enviarán durante la <b><?= programData.TEST_INSTRUCCIONES_FECHA ?></b>.</li>
             </ul>
 
             <h3>Recordatorio de Clases y Horarios (Quinta Versión):</h3>
             <ul>
-                <li><strong>Fecha test de nivel:</strong> 2.ª semana de marzo de 2026</li>
+                <li><strong>Fecha test de nivel:</strong> <?= programData.TEST_FECHA ?></li>
                 <li><strong>Inicio de clases:</strong> <?= programData.FECHA_INICIO ?></li>
                 <li><strong>Término de clases:</strong> <?= programData.FECHA_TERMINO ?></li>
             </ul>

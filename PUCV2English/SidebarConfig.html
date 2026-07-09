@@ -218,6 +218,16 @@
             style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
         </div>
         <div class="form-group">
+          <label>Fecha de Rendición de Test de Nivel</label>
+          <input type="text" id="prog-TEST_FECHA" placeholder="ej: 2.ª semana de marzo de 2026"
+            style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+        </div>
+        <div class="form-group">
+          <label>Fecha de Envío de Instrucciones de Test</label>
+          <input type="text" id="prog-TEST_INSTRUCCIONES_FECHA" placeholder="ej: primera semana de marzo"
+            style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+        </div>
+        <div class="form-group">
           <label>Horario Único de Cursos</label>
           <input type="text" id="prog-HORARIO_B1p_cat" placeholder="Cátedra"
             style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; margin-bottom: 4px;">
@@ -279,6 +289,8 @@
       // Datos del Programa
       document.getElementById('prog-FECHA_LIMITE').value = config.program.FECHA_LIMITE;
       document.getElementById('prog-FECHA_INICIO').value = config.program.FECHA_INICIO;
+      document.getElementById('prog-TEST_FECHA').value = config.program.TEST_FECHA || "";
+      document.getElementById('prog-TEST_INSTRUCCIONES_FECHA').value = config.program.TEST_INSTRUCCIONES_FECHA || "";
       if (config.program.HORARIOS['B1+']) {
         document.getElementById('prog-HORARIO_B1p_cat').value = config.program.HORARIOS['B1+'].catedra;
         document.getElementById('prog-HORARIO_B1p_ayu').value = config.program.HORARIOS['B1+'].ayudantia;
@@ -318,6 +330,8 @@
         program: {
           FECHA_LIMITE: document.getElementById('prog-FECHA_LIMITE').value,
           FECHA_INICIO: document.getElementById('prog-FECHA_INICIO').value,
+          TEST_FECHA: document.getElementById('prog-TEST_FECHA').value,
+          TEST_INSTRUCCIONES_FECHA: document.getElementById('prog-TEST_INSTRUCCIONES_FECHA').value,
           // Apply the single schedule to all levels as requested
           HORARIOS: {
             'B1+': {
