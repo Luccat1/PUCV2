@@ -13,6 +13,7 @@ function onOpen(): void {
     .addItem('🔄 Reevaluar Todo desde Cero', 'ejecutarReevaluacionCompleta')
     .addItem('📋 Generar Lista Final', 'ejecutarGenerarListaFinal')
     .addItem('👤 Promover Candidato Activo', 'promoverCandidatoActivo')
+    .addItem('👤 Promover desde Lista de Espera', 'promoverDesdeListaEspera')
     .addItem('🔄 Regenerar Lista de Espera', 'ejecutarRegeneracionDeListas')
     .addItem('⚠️ Restaurar Hoja Seleccionados Perdida', 'restaurarHojaSeleccionadosPerdida')
     .addSeparator()

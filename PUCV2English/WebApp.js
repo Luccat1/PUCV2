@@ -95,6 +95,7 @@ function getSelectionData() {
     const idxVerifS = headersS.indexOf("Verificación Certificado");
     const idxNivelS = headersS.indexOf("Nivel Asignado");
     const idxAceptacionS = headersS.indexOf("Aceptación");
+    const idxPagoS = headersS.indexOf("Pago Matrícula");
     const idxNotificadoS = headersS.indexOf("Fecha Notificación");
     const seleccionados = dataS.map(f => ({
         ranking: f[idxRankingS],
@@ -106,32 +107,28 @@ function getSelectionData() {
         verificacion: f[idxVerifS],
         nivel: f[idxNivelS],
         aceptacion: f[idxAceptacionS],
+        pagoMatricula: idxPagoS !== -1 ? f[idxPagoS] : "Pendiente",
         fechaNotificacion: f[idxNotificadoS]
     }));
-    // 2. Waitlist Data (Applicants in Evaluation but not in Selected)
-    const hojaE = ss.getSheetByName(CONFIG.SHEETS.OUTPUT);
-    const dataE = hojaE ? hojaE.getDataRange().getValues() : [];
-    const headersE = dataE.shift() || [];
-    const emailsSelected = new Set(seleccionados.map(s => s.correo));
-    const idxCorreoE = headersE.indexOf("Correo Electrónico");
-    const idxNombreE = headersE.indexOf("Nombre(s)");
-    const idxApellidosE = headersE.indexOf("Apellido(s)");
-    const idxPuntajeE = headersE.indexOf("PUNTAJE TOTAL");
-    const idxFechaE = headersE.indexOf("Fecha de Postulación");
-    const listaDeEspera = dataE
-        .filter(row => row[idxCorreoE] && !emailsSelected.has(row[idxCorreoE]))
-        .sort((a, b) => {
-        const pB = parseFloat(b[idxPuntajeE] || 0);
-        const pA = parseFloat(a[idxPuntajeE] || 0);
-        if (pB !== pA)
-            return pB - pA;
-        return new Date(a[idxFechaE]).getTime() - new Date(b[idxFechaE]).getTime();
-    })
-        .map(f => ({
-        nombre: f[idxNombreE],
-        apellidos: f[idxApellidosE],
-        correo: f[idxCorreoE],
-        puntaje: f[idxPuntajeE]
+    // 2. Waitlist Data (directly from official waitlist sheet)
+    const hojaW = ss.getSheetByName(CONFIG.SHEETS.WAITLIST);
+    const dataW = hojaW ? hojaW.getDataRange().getValues() : [];
+    const headersW = dataW.shift() || [];
+    const idxRankingW = headersW.indexOf("Ranking");
+    const idxCorreoW = headersW.indexOf("Correo Electrónico");
+    const idxNombreW = headersW.indexOf("Nombre(s)");
+    const idxApellidosW = headersW.indexOf("Apellido(s)");
+    const idxPuntajeW = headersW.indexOf("PUNTAJE TOTAL");
+    const idxNivelW = headersW.indexOf("Nivel Postulado");
+    const idxNotificadoW = headersW.indexOf("Fecha Notificación");
+    const listaDeEspera = dataW.map(f => ({
+        ranking: idxRankingW !== -1 ? f[idxRankingW] : "",
+        nombre: idxNombreW !== -1 ? f[idxNombreW] : "",
+        apellidos: idxApellidosW !== -1 ? f[idxApellidosW] : "",
+        correo: idxCorreoW !== -1 ? f[idxCorreoW] : "",
+        puntaje: idxPuntajeW !== -1 ? f[idxPuntajeW] : "",
+        nivel: idxNivelW !== -1 ? f[idxNivelW] : "",
+        fechaNotificacion: idxNotificadoW !== -1 ? f[idxNotificadoW] : ""
     }));
     // 3. Statistics
     const stats = getDashboardStats();
@@ -235,7 +232,7 @@ function getDetailedScoreBreakdown(data, headers) {
 /**
  * Updates an applicant's verification status or assigned level from the Web App.
  */
-function updateApplicantStatus(correo, verificacion, nivel) {
+function updateApplicantStatus(correo, verificacion, nivel, pago) {
     const ss = getSpreadsheet();
     const hojaS = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
     if (!hojaS)
@@ -245,6 +242,7 @@ function updateApplicantStatus(correo, verificacion, nivel) {
     const idxCorreo = headers.indexOf("Correo Electrónico");
     const idxVerificacion = headers.indexOf("Verificación Certificado") + 1;
     const idxNivel = headers.indexOf("Nivel Asignado") + 1;
+    const idxPago = headers.indexOf("Pago Matrícula") + 1;
     if (idxCorreo === -1)
         return "Error: Columna de correo no encontrada en Seleccionados.";
     for (let i = 1; i < datos.length; i++) {
@@ -253,6 +251,8 @@ function updateApplicantStatus(correo, verificacion, nivel) {
                 hojaS.getRange(i + 1, idxVerificacion).setValue(verificacion);
             if (nivel !== undefined)
                 hojaS.getRange(i + 1, idxNivel).setValue(nivel);
+            if (pago !== undefined && idxPago > 0)
+                hojaS.getRange(i + 1, idxPago).setValue(pago);
             return "Estado de " + correo + " actualizado.";
         }
     }
@@ -298,6 +298,8 @@ function getPostulantesParaRevision() {
                     obj.nivel = val;
                 else if (h === "Aceptación")
                     obj.aceptacion = val;
+                else if (h === "Pago Matrícula")
+                    obj.pagoMatricula = val;
                 else if (h === "Comentarios")
                     obj.comentarios = val;
                 else if (h === "Enlace Certificado")

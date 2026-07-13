@@ -27,6 +27,7 @@ function generarHojaSeleccionados(resultados, ss) {
             const idxVerifS = headersS.indexOf("Verificación Certificado");
             const idxNivelS = headersS.indexOf("Nivel Asignado");
             const idxAceptacionS = headersS.indexOf("Aceptación");
+            const idxPagoS = headersS.indexOf("Pago Matrícula");
             const idxCommentsS = headersS.indexOf("Comentarios");
             const idxNotifS = headersS.indexOf("Fecha Notificación");
             if (idxEmailS !== -1) {
@@ -37,6 +38,7 @@ function generarHojaSeleccionados(resultados, ss) {
                             verificacion: idxVerifS !== -1 ? String(row[idxVerifS]) : "",
                             nivel: idxNivelS !== -1 ? String(row[idxNivelS]) : "",
                             aceptacion: idxAceptacionS !== -1 ? String(row[idxAceptacionS]) : "Pendiente",
+                            pagoMatricula: idxPagoS !== -1 ? String(row[idxPagoS]) : "Pendiente",
                             comentarios: idxCommentsS !== -1 ? String(row[idxCommentsS]) : "",
                             fechaNotif: idxNotifS !== -1 ? String(row[idxNotifS]) : ""
                         };
@@ -106,7 +108,7 @@ function generarHojaSeleccionados(resultados, ss) {
     const rankedData = seleccionadosPorNivel.map((f, i) => [i + 1, ...f]);
     const headersS = [
         "Ranking", ...resultados[0],
-        "Verificación Certificado", "Nivel Asignado", "Aceptación", "Comentarios", "Fecha Notificación"
+        "Verificación Certificado", "Nivel Asignado", "Aceptación", "Pago Matrícula", "Comentarios", "Fecha Notificación"
     ];
     const idxEmailInS = headersS.indexOf("Correo Electrónico");
     const idxNivelPostuladoInS = headersS.indexOf("Nivel Postulado");
@@ -119,6 +121,7 @@ function generarHojaSeleccionados(resultados, ss) {
                 existing ? existing.verificacion : "",
                 existing ? existing.nivel : nivelPost,
                 existing ? existing.aceptacion : "Pendiente",
+                existing ? existing.pagoMatricula : "Pendiente",
                 existing ? existing.comentarios : "",
                 existing ? existing.fechaNotif : ""
             ];
@@ -139,16 +142,20 @@ function generarHojaSeleccionados(resultados, ss) {
             const idxAceptacion = headersS.indexOf("Aceptación") + 1;
             const idxVerificacion = headersS.indexOf("Verificación Certificado") + 1;
             const idxNivel = headersS.indexOf("Nivel Asignado") + 1;
+            const idxPago = headersS.indexOf("Pago Matrícula") + 1;
             // Data validations
             const ruleAceptacion = SpreadsheetApp.newDataValidation().requireValueInList(['Acepta', 'Rechaza', 'Pendiente'], true).build();
             const ruleVerificacion = SpreadsheetApp.newDataValidation().requireValueInList(['Válido', 'Test de nivel'], true).build();
             const ruleNivel = SpreadsheetApp.newDataValidation().requireValueInList(['B1+', 'B2.1', 'B2.2', 'C1'], true).setAllowInvalid(true).build();
+            const rulePago = SpreadsheetApp.newDataValidation().requireValueInList(['Pagado', 'Pendiente'], true).build();
             const rangeA = sheet.getRange(2, idxAceptacion, sheetData.length - 1, 1);
             const rangeV = sheet.getRange(2, idxVerificacion, sheetData.length - 1, 1);
             const rangeN = sheet.getRange(2, idxNivel, sheetData.length - 1, 1);
+            const rangeP = sheet.getRange(2, idxPago, sheetData.length - 1, 1);
             rangeA.setDataValidation(ruleAceptacion);
             rangeV.setDataValidation(ruleVerificacion);
             rangeN.setDataValidation(ruleNivel);
+            rangeP.setDataValidation(rulePago);
             // Conditional formatting
             const fullRange = sheet.getRange(2, 1, sheetData.length - 1, sheetData[0].length);
             const letterA = columnaALetra(idxAceptacion);
@@ -327,7 +334,7 @@ function generarHojaListaEspera(resultados, ss) {
     const idxFecha = resultados[0].indexOf("Fecha de Postulación");
     const idxNivelPostulado = resultados[0].indexOf("Nivel Postulado");
     const idxEmail = resultados[0].indexOf("Correo Electrónico");
-    logToWebApp("Generando lista de espera por nivel (Siguientes 15 por nivel)...");
+    logToWebApp("Generando lista de espera por nivel (Siguientes 30 por nivel)...");
     // Read existing waitlist to preserve notified dates
     const emailMap = {};
     const existingRowsMap = {};
@@ -412,8 +419,8 @@ function generarHojaListaEspera(resultados, ss) {
                 return pB - pA;
             return new Date(a[idxFecha]).getTime() - new Date(b[idxFecha]).getTime();
         });
-        // 15 spots for waitlist per level
-        const spotsDisponibles = Math.max(0, 15 - yaEnEspera.length);
+        // 30 spots for waitlist per level
+        const spotsDisponibles = Math.max(0, 30 - yaEnEspera.length);
         const nuevosEspera = nuevosCandidatos.slice(0, spotsDisponibles);
         waitlistPorNivel.push(...yaEnEspera, ...nuevosEspera);
     });
@@ -581,15 +588,20 @@ function restaurarHojaSeleccionadosPerdida() {
 68	Guzmán Contreras	Elena Valentina	elena.guzman.c@mail.pucv.cl	20072957-9	Wed Jul 08 2026 23:50:26 GMT-0400 (Chile Standard Time)	Estudiante de pregrado	Instituto y Conservatorio de Música	3	1	0.00	0.50	3	1	3	1	12.00	https://drive.google.com/open?id=1waWuiesXVvMOMhldHoA-WEDw03kU32xr	C1	Válido	C1	Pendiente	Promovido manualmente	10/07/2026
 69	Olivares Fernández	Catalina Ariela	catalina.olivares.f01@mail.pucv.cl	21373766-K	Sun Jul 05 2026 00:54:29 GMT-0400 (hora estándar de Chile)	Estudiante de pregrado	Instituto de Historia	4	1	0.00	0.50	2	0	3	1	11.00	https://drive.google.com/open?id=1DDaAXcJJ9AuQSK2yRiGEnXh1JUoAdAVI	B1+	Válido	B1+	Acepta	Promovido manualmente	10/07/2026
 70	Massú Rubilar	Tahani Belén	tahani.massu.r@mail.pucv.cl	21444409-7	Wed Jul 08 2026 20:46:31 GMT-0400 (Chile Standard Time)	Estudiante de pregrado	Casa Central	4	1	0.00	0.50	3	0	3	1	12.00	https://drive.google.com/open?id=1itL2OA7umpdQXBbUNRAuPUdzBUoKyHP8	C1	Válido	C1	Acepta	Promovido manualmente	10/07/2026
-71	Lillo Salinas	Benjamín Cristóbal	benjamin.lillo.s@mail.pucv.cl	21439154-6	Wed Jul 08 2026 22:32:41 GMT-0400 (Chile Standard Time)	Estudiante de pregrado	Casa Central	4	1	0.00	1.00	3	0	3	1	12.50	https://drive.google.com/open?id=1I0RuZ6g5nzBOBMhO5qRoOBHACMSaR99w	C1	Válido	C1	Acepta\\tPromovido manualmente\\t10/07/2026`;
+71	Lillo Salinas	Benjamín Cristóbal	benjamin.lillo.s@mail.pucv.cl	21439154-6	Wed Jul 08 2026 22:32:41 GMT-0400 (Chile Standard Time)	Estudiante de pregrado	Casa Central	4	1	0.00	1.00	3	0	3	1	12.50	https://drive.google.com/open?id=1I0RuZ6g5nzBOBMhO5qRoOBHACMSaR99w	C1	Válido	C1	Acepta	Promovido manualmente	10/07/2026`;
         const lines = tsvData.split("\n").filter(line => line.trim() !== "");
-        const rows = lines.map(line => line.split("\t"));
+        const rows = lines.map(line => {
+            const parts = line.split("\t");
+            // Insert "Pendiente" for Pago Matrícula at index 22 (between Aceptación [21] and Comentarios [22])
+            parts.splice(22, 0, "Pendiente");
+            return parts;
+        });
         const headers = [
             "Ranking", "Apellido(s)", "Nombre(s)", "Correo Electrónico", "RUT", "Fecha de Postulación",
             "Categoría Postulante", "Sede", "Puntaje Disponibilidad", "Puntaje Tipo", "Puntaje Uso Inglés",
             "Puntaje Intl.", "Puntaje Nivel Inglés", "Puntaje Año Ingreso", "Puntaje Compromiso", "Puntaje Carta",
             "PUNTAJE TOTAL", "Enlace Certificado", "Nivel Postulado", "Verificación Certificado", "Nivel Asignado",
-            "Aceptación", "Comentarios", "Fecha Notificación"
+            "Aceptación", "Pago Matrícula", "Comentarios", "Fecha Notificación"
         ];
         const sheetData = [headers, ...rows];
         const range = sheet.getRange(1, 1, sheetData.length, sheetData[0].length);
@@ -606,16 +618,20 @@ function restaurarHojaSeleccionadosPerdida() {
         const idxAceptacion = headers.indexOf("Aceptación") + 1;
         const idxVerificacion = headers.indexOf("Verificación Certificado") + 1;
         const idxNivel = headers.indexOf("Nivel Asignado") + 1;
-        if (idxAceptacion > 0 && idxVerificacion > 0 && idxNivel > 0 && sheetData.length > 1) {
+        const idxPago = headers.indexOf("Pago Matrícula") + 1;
+        if (idxAceptacion > 0 && idxVerificacion > 0 && idxNivel > 0 && idxPago > 0 && sheetData.length > 1) {
             const ruleAceptacion = SpreadsheetApp.newDataValidation().requireValueInList(['Acepta', 'Rechaza', 'Pendiente'], true).build();
             const ruleVerificacion = SpreadsheetApp.newDataValidation().requireValueInList(['Válido', 'Test de nivel'], true).build();
             const ruleNivel = SpreadsheetApp.newDataValidation().requireValueInList(['B1+', 'B2.1', 'B2.2', 'C1'], true).setAllowInvalid(true).build();
+            const rulePago = SpreadsheetApp.newDataValidation().requireValueInList(['Pagado', 'Pendiente'], true).build();
             const validationRangeAceptacion = sheet.getRange(2, idxAceptacion, sheetData.length - 1, 1);
             const validationRangeVerificacion = sheet.getRange(2, idxVerificacion, sheetData.length - 1, 1);
             const validationRangeNivel = sheet.getRange(2, idxNivel, sheetData.length - 1, 1);
+            const validationRangePago = sheet.getRange(2, idxPago, sheetData.length - 1, 1);
             validationRangeAceptacion.setDataValidation(ruleAceptacion);
             validationRangeVerificacion.setDataValidation(ruleVerificacion);
             validationRangeNivel.setDataValidation(ruleNivel);
+            validationRangePago.setDataValidation(rulePago);
         }
         SpreadsheetApp.flush();
         ui.alert("Restauración Exitosa", "Se ha restaurado la hoja 'Seleccionados' con el listado original.", ui.ButtonSet.OK);
@@ -623,4 +639,105 @@ function restaurarHojaSeleccionadosPerdida() {
     catch (e) {
         ui.alert("Error", "Ocurrió un error al restaurar: " + e.message, ui.ButtonSet.OK);
     }
+}
+/**
+ * Promotes a candidate selected from the "Lista de Espera" sheet to the "Seleccionados" sheet.
+ * Deletes them from "Lista de Espera" and re-orders the remaining rankings.
+ */
+function promoverDesdeListaEspera() {
+    const ss = getSpreadsheet();
+    const activeSheet = ss.getActiveSheet();
+    if (activeSheet.getName() !== CONFIG.SHEETS.WAITLIST) {
+        SpreadsheetApp.getUi().alert("Operación Inválida", "Debes estar en la hoja '" + CONFIG.SHEETS.WAITLIST + "' para promover un postulante.", SpreadsheetApp.getUi().ButtonSet.OK);
+        return;
+    }
+    const activeCell = activeSheet.getActiveCell();
+    const rowNum = activeCell.getRow();
+    if (rowNum === 1) {
+        SpreadsheetApp.getUi().alert("Operación Inválida", "Por favor selecciona una fila de un postulante, no la cabecera.", SpreadsheetApp.getUi().ButtonSet.OK);
+        return;
+    }
+    const lastCol = activeSheet.getLastColumn();
+    const rowData = activeSheet.getRange(rowNum, 1, 1, lastCol).getValues()[0];
+    const headers = activeSheet.getRange(1, 1, 1, lastCol).getDisplayValues()[0];
+    const idxEmail = headers.indexOf("Correo Electrónico");
+    const idxNombre = headers.indexOf("Nombre(s)");
+    const idxApellido = headers.indexOf("Apellido(s)");
+    const idxNivelPostulado = headers.indexOf("Nivel Postulado");
+    if (idxEmail === -1 || idxNombre === -1 || idxApellido === -1 || idxNivelPostulado === -1) {
+        SpreadsheetApp.getUi().alert("Error", "No se encontraron las columnas necesarias en la hoja de Lista de Espera.", SpreadsheetApp.getUi().ButtonSet.OK);
+        return;
+    }
+    const email = String(rowData[idxEmail]).trim();
+    const nombres = String(rowData[idxNombre]).trim();
+    const apellidos = String(rowData[idxApellido]).trim();
+    const nivelPostulado = String(rowData[idxNivelPostulado]).trim();
+    if (!email) {
+        SpreadsheetApp.getUi().alert("Error", "El candidato seleccionado no posee un correo electrónico válido.", SpreadsheetApp.getUi().ButtonSet.OK);
+        return;
+    }
+    const hojaSelected = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
+    if (!hojaSelected) {
+        SpreadsheetApp.getUi().alert("Error", `La hoja '${CONFIG.SHEETS.SELECTED}' no existe.`, SpreadsheetApp.getUi().ButtonSet.OK);
+        return;
+    }
+    const valuesS = hojaSelected.getDataRange().getValues();
+    const headersS = valuesS.shift() || [];
+    const idxCorreoS = headersS.indexOf("Correo Electrónico");
+    if (idxCorreoS !== -1) {
+        const emailsSelected = new Set(valuesS.map(row => String(row[idxCorreoS]).trim().toLowerCase()));
+        if (emailsSelected.has(email.toLowerCase())) {
+            SpreadsheetApp.getUi().alert("Aviso", `El postulante ${nombres} ${apellidos} (${email}) ya se encuentra en la lista de seleccionados.`, SpreadsheetApp.getUi().ButtonSet.OK);
+            return;
+        }
+    }
+    const ui = SpreadsheetApp.getUi();
+    const confirm = ui.alert("Confirmar Promoción de Lista de Espera", `¿Estás seguro/a de promover a ${nombres} ${apellidos} (${email}) al nivel ${nivelPostulado || '[NIVEL NO ASIGNADO]'} de la lista de seleccionados?`, ui.ButtonSet.YES_NO);
+    if (confirm !== ui.Button.YES)
+        return;
+    const nextRanking = hojaSelected.getLastRow();
+    // The waitlist row format: [Ranking, ...resultados[0], Fecha Notificación]
+    // We want to extract findings from ...resultados[0] and build:
+    // [Ranking, ...resultados[0], Verificación Certificado, Nivel Asignado, Aceptación, Pago Matrícula, Comentarios, Fecha Notificación]
+    const evalRowPart = rowData.slice(1, lastCol - 1);
+    const newRow = [
+        nextRanking, // Ranking
+        ...evalRowPart,
+        "Válido", // Verificación Certificado
+        nivelPostulado, // Nivel Asignado
+        "Pendiente", // Aceptación
+        "Pendiente", // Pago Matrícula
+        "Promovido de Lista de Espera", // Comentarios
+        "" // Fecha Notificación
+    ];
+    hojaSelected.appendRow(newRow);
+    // Apply validations for drop-downs
+    const idxAceptacion = headersS.indexOf("Aceptación") + 1;
+    const idxVerificacion = headersS.indexOf("Verificación Certificado") + 1;
+    const idxNivel = headersS.indexOf("Nivel Asignado") + 1;
+    const idxPago = headersS.indexOf("Pago Matrícula") + 1;
+    if (idxAceptacion > 0 && idxVerificacion > 0 && idxNivel > 0 && idxPago > 0) {
+        const ruleAceptacion = SpreadsheetApp.newDataValidation().requireValueInList(['Acepta', 'Rechaza', 'Pendiente'], true).build();
+        const ruleVerificacion = SpreadsheetApp.newDataValidation().requireValueInList(['Válido', 'Test de nivel'], true).build();
+        const ruleNivel = SpreadsheetApp.newDataValidation().requireValueInList(['B1+', 'B2.1', 'B2.2', 'C1'], true).setAllowInvalid(true).build();
+        const rulePago = SpreadsheetApp.newDataValidation().requireValueInList(['Pagado', 'Pendiente'], true).build();
+        const newRowNum = hojaSelected.getLastRow();
+        hojaSelected.getRange(newRowNum, idxAceptacion).setDataValidation(ruleAceptacion);
+        hojaSelected.getRange(newRowNum, idxVerificacion).setDataValidation(ruleVerificacion);
+        hojaSelected.getRange(newRowNum, idxNivel).setDataValidation(ruleNivel);
+        hojaSelected.getRange(newRowNum, idxPago).setDataValidation(rulePago);
+    }
+    // Delete from waitlist
+    activeSheet.deleteRow(rowNum);
+    // Re-index remaining rankings in Lista de Espera
+    const lastRowW = activeSheet.getLastRow();
+    if (lastRowW > 1) {
+        const rangeRank = activeSheet.getRange(2, 1, lastRowW - 1, 1);
+        const ranks = [];
+        for (let r = 1; r <= lastRowW - 1; r++) {
+            ranks.push([r]);
+        }
+        rangeRank.setValues(ranks);
+    }
+    ui.alert("Promoción Exitosa", `Se ha promovido a ${nombres} ${apellidos} de Lista de Espera a Seleccionados.`, ui.ButtonSet.OK);
 }

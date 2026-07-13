@@ -685,10 +685,11 @@
     function renderTables(data) {
       // Selected Table
       const selCont = document.getElementById('seleccionados-table-container');
-      let htmlS = '<table><thead><tr><th>Rank</th><th>Nombre</th><th>Puntaje</th><th>Docs</th><th>Verif</th><th>Nivel</th><th>Estado</th><th>Acción</th></tr></thead><tbody>';
+      let htmlS = '<table><thead><tr><th>Rank</th><th>Nombre</th><th>Puntaje</th><th>Docs</th><th>Verif</th><th>Nivel</th><th>Estado</th><th>Pago</th><th>Acción</th></tr></thead><tbody>';
 
       data.seleccionados.forEach(p => {
         const statusClass = p.aceptacion === 'Acepta' ? 'badge-success' : (p.aceptacion === 'Rechaza' ? 'badge-danger' : 'badge-warning');
+        const paidClass = p.pagoMatricula === 'Pagado' ? 'badge-success' : 'badge-warning';
         htmlS += `<tr>
           <td><strong>${p.ranking}</strong></td>
           <td>${p.nombre} ${p.apellidos}<br><small style="color:var(--text-muted)">${p.correo}</small></td>
@@ -707,6 +708,10 @@
             <option value="C1" ${p.nivel === 'C1' ? 'selected' : ''}>C1</option>
           </select></td>
           <td><span class="badge ${statusClass}">${p.aceptacion}</span></td>
+          <td><select id="pago-${cleanId(p.correo)}">
+            <option value="Pendiente" ${p.pagoMatricula === 'Pendiente' ? 'selected' : ''}>Pendiente</option>
+            <option value="Pagado" ${p.pagoMatricula === 'Pagado' ? 'selected' : ''}>Pagado</option>
+          </select></td>
           <td><button class="btn btn-primary" style="padding:4px 8px; font-size:12px;" onclick="saveStatus('${p.correo}')">💾</button></td>
         </tr>`;
       });
@@ -714,9 +719,16 @@
 
       // Waitlist Table
       const espCont = document.getElementById('espera-table-container');
-      let htmlW = '<table><thead><tr><th>#</th><th>Nombre</th><th>Puntaje</th><th>Correo</th></tr></thead><tbody>';
-      data.listaDeEspera.slice(0, 15).forEach((p, i) => {
-        htmlW += `<tr><td>${i + 1}</td><td>${p.nombre} ${p.apellidos}</td><td>${parseFloat(p.puntaje).toFixed(1)}</td><td>${p.correo}</td></tr>`;
+      let htmlW = '<table><thead><tr><th>Rank</th><th>Nombre</th><th>Puntaje</th><th>Nivel</th><th>Notificado</th></tr></thead><tbody>';
+      data.listaDeEspera.forEach(p => {
+        const notifText = p.fechaNotificacion ? p.fechaNotificacion : 'No';
+        htmlW += `<tr>
+          <td><strong>${p.ranking}</strong></td>
+          <td>${p.nombre} ${p.apellidos}<br><small style="color:var(--text-muted)">${p.correo}</small></td>
+          <td>${parseFloat(p.puntaje || 0).toFixed(1)}</td>
+          <td>${p.nivel}</td>
+          <td>${notifText}</td>
+        </tr>`;
       });
       espCont.innerHTML = htmlW + '</tbody></table>';
     }
@@ -726,13 +738,15 @@
     function saveStatus(correo) {
       const vid = `verif-${cleanId(correo)}`;
       const nid = `nivel-${cleanId(correo)}`;
+      const pid = `pago-${cleanId(correo)}`;
       const v = document.getElementById(vid).value;
       const n = document.getElementById(nid).value;
+      const p = document.getElementById(pid).value;
 
       google.script.run.withSuccessHandler(res => {
         appendLogs([res]);
         loadApplicantData();
-      }).updateApplicantStatus(correo, v, n);
+      }).updateApplicantStatus(correo, v, n, p);
     }
 
     // --- Standard Handlers ---

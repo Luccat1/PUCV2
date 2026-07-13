@@ -20,14 +20,16 @@ function generarListaFinalCurso(): string {
   const idxCorreo = headers.indexOf("Correo Electrónico");
   const idxNivel = headers.indexOf("Nivel Asignado");
   const idxAceptacion = headers.indexOf("Aceptación");
-
   const idxVerificacion = headers.indexOf("Verificación Certificado");
+  const idxPago = headers.indexOf("Pago Matrícula");
 
-  // Filter: (Accepted AND has a Nivel) OR (Verification says Test de nivel)
+  // Filter: Candidate must have Accepted (Aceptación === 'Acepta') AND paid matriculation (Pago Matrícula === 'Pagado')
+  // and either have an assigned level or be scheduled for a placement test.
   const finales = datosS.filter(f => {
-    const isAcceptedCourse = String(f[idxAceptacion]).toLowerCase() === 'acepta' && String(f[idxNivel]).trim() !== "";
-    const isTestDeNivel = String(f[idxVerificacion]).toLowerCase() === 'test de nivel';
-    return isAcceptedCourse || isTestDeNivel;
+    const isAccepted = String(f[idxAceptacion]).toLowerCase() === 'acepta';
+    const isPaid = idxPago !== -1 ? String(f[idxPago]).toLowerCase() === 'pagado' : false;
+    const hasNivelOrTest = String(f[idxNivel]).trim() !== "" || String(f[idxVerificacion]).toLowerCase() === 'test de nivel';
+    return isAccepted && isPaid && hasNivelOrTest;
   });
 
   if (finales.length === 0) return "No hay participantes confirmados para generar la lista final.";
@@ -40,7 +42,8 @@ function generarListaFinalCurso(): string {
       nivel = "PRUEBA DE NIVEL";
     }
     if (!grupos[nivel]) grupos[nivel] = [];
-    grupos[nivel].push([f[idxApellido], f[idxNombre], f[idxCorreo], nivel, ""]); // Empty string for 'Pagó'
+    const pagoVal = idxPago !== -1 && String(f[idxPago]).toLowerCase() === 'pagado' ? 'Sí' : 'No';
+    grupos[nivel].push([f[idxApellido], f[idxNombre], f[idxCorreo], nivel, pagoVal]); // Populate 'Pagó (Sí/No)'
   });
 
   let hojaF = ss.getSheetByName(CONFIG.SHEETS.FINAL_LIST);
