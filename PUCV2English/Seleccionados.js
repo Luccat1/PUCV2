@@ -461,12 +461,12 @@ function generarHojaListaEspera(resultados, ss) {
     }
 }
 /**
- * Regenerates Seleccionados and Waitlist sheets safely from the current evaluation results.
- * Preserves all manual entries and timestamps.
+ * Regenerates the Waitlist sheet safely from the current evaluation results.
+ * Excludes candidates who are already in the 'Seleccionados' sheet.
  */
 function ejecutarRegeneracionDeListas() {
     const ui = SpreadsheetApp.getUi();
-    const confirm = ui.alert("Regenerar Listas", "Esta operación regenerará las hojas 'Seleccionados' y 'Lista de Espera' basándose en los puntajes de 'Evaluación automatizada'.\n\nSe conservarán todos los candidatos actuales, sus estados, comentarios y fechas de notificación, así como los candidatos promovidos manualmente.\n\n¿Deseas continuar?", ui.ButtonSet.YES_NO);
+    const confirm = ui.alert("Regenerar Lista de Espera", "Esta operación regenerará la hoja 'Lista de Espera' basándose en los puntajes de 'Evaluación automatizada'.\n\nSe excluirán todos los candidatos que ya se encuentran en la hoja 'Seleccionados', la cual permanecerá intacta.\n\n¿Deseas continuar?", ui.ButtonSet.YES_NO);
     if (confirm !== ui.Button.YES)
         return;
     try {
@@ -482,12 +482,145 @@ function ejecutarRegeneracionDeListas() {
             ui.alert("Error", "No hay datos en la hoja de evaluación para procesar.", ui.ButtonSet.OK);
             return;
         }
-        generarHojaSeleccionados(resultados, ss);
+        // Only generate the Waitlist sheet, keeping the Selected sheet 100% intact!
         generarHojaListaEspera(resultados, ss);
         SpreadsheetApp.flush();
-        ui.alert("Operación Exitosa", "Se han regenerado las hojas 'Seleccionados' y 'Lista de Espera' de forma correcta, preservando los datos existentes.", ui.ButtonSet.OK);
+        ui.alert("Operación Exitosa", "Se ha regenerado la hoja 'Lista de Espera' de forma correcta, excluyendo a los seleccionados actuales.", ui.ButtonSet.OK);
     }
     catch (e) {
         ui.alert("Error", "Ocurrió un error: " + e.message, ui.ButtonSet.OK);
+    }
+}
+/**
+ * Restores the Seleccionados sheet to its exact state from July 10th.
+ */
+function restaurarHojaSeleccionadosPerdida() {
+    const ui = SpreadsheetApp.getUi();
+    const confirm = ui.alert("Restaurar Hoja Seleccionados", "Esta operación restaurará la hoja 'Seleccionados' al estado exacto previo a la regeneración incorrecta.\n\n¿Deseas continuar?", ui.ButtonSet.YES_NO);
+    if (confirm !== ui.Button.YES)
+        return;
+    try {
+        const ss = getSpreadsheet();
+        let sheet = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
+        if (!sheet) {
+            sheet = ss.insertSheet(CONFIG.SHEETS.SELECTED);
+        }
+        else {
+            sheet.clearConditionalFormatRules();
+            if (sheet.getLastRow() > 0 && sheet.getLastColumn() > 0) {
+                sheet.getRange(1, 1, sheet.getLastRow(), sheet.getLastColumn()).clearContent();
+            }
+        }
+        const tsvData = `1	Leddihn Soto	Paulina Andrea	paulina.leddihn@pucv.cl	8590065-k	Mon Jul 06 2026 14:34:37 GMT-0400 (hora estándar de Chile)	Funcionario	Casa Central	4	2	1.50	0.00	2	0,5	3	2	15.00		B1+	Test de nivel	B1+	Pendiente		10/07/2026
+2	Cruces Devia	Felipe Andrés	felipe.cruces@pucv.cl	19339549-k	Tue Jul 07 2026 11:58:18 GMT-0400 (hora estándar de Chile)	Funcionario	Centro Universitario Rafael Ariztía (FIN)	3	2	2.00	0.00	0	0,5	3	3	13.50		B1+	Test de nivel	B1+	Pendiente		10/07/2026
+3	López Acevedo	Ignacio Javier	ignacio.lopez.a@pucv.cl	19470339-2	Mon Jul 06 2026 14:41:37 GMT-0400 (hora estándar de Chile)	Funcionario	Edificio Isabel Brown Caces (IBC)	3	2	2.75	0.00	0	0,5	3	2	13.25		B1+	Test de nivel	B1+	Acepta		10/07/2026
+4	Gonzalez Olguin	Beatriz Eloisa	beatriz.gonzalez@pucv.cl	15950197-3	Thu Jun 25 2026 08:26:38 GMT-0400 (hora estándar de Chile)	Funcionario	Casa Central	4	2	1.00	0.00	0	0,5	3	2	12.50		B1+	Test de nivel	B1+	Acepta		10/07/2026
+5	Silva Castro	Pia Ignacia	pia.silva.c@mail.pucv.cl	21883877-4	Wed Jul 08 2026 14:15:22 GMT-0400 (hora estándar de Chile)	Estudiante de pregrado	Campus Curauma	4	1	0.00	2.00	0	2	3	1	12.50		B1+	Test de nivel	B1+	Acepta		10/07/2026
+6	Pérez Romero	Anthonia Bélen	anthonia.perez.r@mail.pucv.cl	21951372-0	Wed Jun 24 2026 16:42:17 GMT-0400 (hora estándar de Chile)	Estudiante de pregrado	Casa Central	4	1	0.00	1.50	0	2	3	1	12.00		B1+	Test de nivel	B1+	Pendiente		10/07/2026
+7	Costa Contreras	Fernanda Carmina	fernanda.costa.c@mail.pucv.cl	21795075-9	Tue Jul 07 2026 16:45:09 GMT-0400 (hora estándar de Chile)	Estudiante de pregrado	Escuela de Arquitectura y Diseño (EAD)	4	1	0.00	0.50	2	1	3	1	12.00		B1+	Test de nivel	B1+	Pendiente		10/07/2026
+8	Muñoz Lira	Marcela Silvana	marcela.munoz.l@pucv.cl	16231943-4	Thu Jun 25 2026 17:56:00 GMT-0400 (hora estándar de Chile)	Académico	Centro Universitario María Teresa Brown de Ariztía (Campus Sausalito)	4	2	1.00	1.13	0	0,5	3	0	11.63		B1+	Test de nivel	B1+	Acepta		10/07/2026
+9	Muñoz Orrego	Francisca Antonia	francisca.munoz.o@mail.pucv.cl	21205935-8	Wed Jun 24 2026 18:40:31 GMT-0400 (hora estándar de Chile)	Estudiante de pregrado	Campus Curauma	3	1	0.00	2.00	0	2	3	1	11.50		B1+	Test de nivel	B1+	Acepta		10/07/2026
+10	Cruz Pollak	Elisa Victoria	elisacruzp@gmail.com	21931507-4	Mon Jul 06 2026 14:40:50 GMT-0400 (hora estándar de Chile)	Estudiante de pregrado	Escuela de Arquitectura y Diseño (EAD)	4	1	0.00	1.50	0	1,5	3	1	11.50		B1+	Test de nivel	B1+	Pendiente		10/07/2026
+11	Espinoza Almonacid	Catalina Alejandra	catalina.espinoza.a@mail.pucv.cl	19941408-9	Mon Jul 06 2026 14:53:05 GMT-0400 (hora estándar de Chile)	Estudiante de pregrado	Centro Universitario María Teresa Brown de Ariztía (Campus Sausalito)	4	1	0.00	0.50	2	0,5	3	1	11.50		B1+	Test de nivel	B1+	Acepta		10/07/2026
+12	Schafer Rodríguez	Félix Andrés	felix.schafer.r@mail.pucv.cl	20916787-5	Tue Jul 07 2026 12:05:07 GMT-0400 (hora estándar de Chile)	Estudiante de pregrado	Escuela de Ingeniería de Construcción y Transporte	4	1	0.00	1.00	2	0	3	1	11.50	https://drive.google.com/open?id=1Ct9d-AI0emHh9PXdpRiDkPUkO0r9XnN2	B1+	Válido	B1+	Pendiente		10/07/2026
+13	Escudero Ricotti	Eric Antonio	eric.escudero@pucv.cl	20675914-3	Wed Jun 24 2026 17:08:56 GMT-0400 (hora estándar de Chile)	Estudiante de postgrado	Edificio Isabel Brown Caces (IBC)	4	1,5	1.00	1.13	0	0,5	3	0	11.13		B1+	Test de nivel	B1+	Acepta		10/07/2026
+14	Toledo Giuffre	Catalina Belén	catalina.toledo.g@mail.pucv.cl	20983519-3	Thu Jun 25 2026 17:17:18 GMT-0400 (hora estándar de Chile)	Estudiante de postgrado	Campus Curauma	4	1,5	1.00	1.13	0	0,5	3	0	11.13		B1+	Test de nivel	B1+	Acepta		10/07/2026
+15	carvajal morales	paul ignacio	paul.carvajal@sansano.usm.cl	19268521-4	Tue Jul 07 2026 01:40:32 GMT-0400 (hora estándar de Chile)	Estudiante de postgrado	Casa Central	4	1,5	1.00	1.13	0	0,5	3	0	11.13		B1+	Test de nivel	B1+	Acepta		10/07/2026
+16	Melendez Pizarro	Martina Sofia	martina.melendez.p@mail.pucv.cl	22483771-2	Wed Jun 24 2026 16:30:32 GMT-0400 (hora estándar de Chile)	Estudiante de pregrado	Escuela de Ingeniería Civil	4	1	0.00	1.50	2	0,5	3	1	12.50	https://drive.google.com/open?id=1tCvMrqSvMHTaZ2kpgsysIjseQ1ua_Z7a	B1+	Válido	B1+	Acepta		10/07/2026
+17	Herrero Faúndez	Paula José	paula.herrero.f@mail.pucv.cl	20172564-k	Wed Jun 24 2026 18:46:41 GMT-0400 (hora estándar de Chile)	Estudiante de pregrado	Escuela de Ingeniería Bioquímica (IBQ)	4	1	0.00	1.00	2	1	3	1	12.50	https://drive.google.com/open?id=19cI4BIRJ-W-MLnN95ff3H4B1aKjaPbEM	B2.1	Válido	B1+	Acepta		10/07/2026
+18	Armijo Quiñones	Gabriela Valentina	gabriela.armijo@pucv.cl	17752652-5	Mon Jul 06 2026 15:34:54 GMT-0400 (hora estándar de Chile)	Funcionario	Casa Central	4	2	0.75	0.00	0	0,5	3	2	12.25		B2.1	Test de nivel	B2.1	Acepta		10/07/2026
+19	Pacheco Glaves	Gabriela Fernanda	gabriela.pacheco@pucv.cl	18297431-5	Wed Jun 24 2026 19:20:22 GMT-0400 (hora estándar de Chile)	Académico	Centro Universitario María Teresa Brown de Ariztía (Campus Sausalito)	4	2	1.00	1.13	0	0,5	3	0	11.63		B2.1	Test de nivel	B2.1	Pendiente		10/07/2026
+20	Araya Álvarez	Angel Orlando	angel.araya.a@mail.pucv.cl	22483570-1	Wed Jun 24 2026 16:54:14 GMT-0400 (hora estándar de Chile)	Estudiante de pregrado	Centro Universitario Rafael Ariztía (FIN)	4	1	0.00	0.50	2	0,5	3	1	11.50		B2.1	Test de nivel	B2.1	Acepta		10/07/2026
+21	Guevara Hurtado	José Miguel	jose.guevara.h@mail.pucv.cl	22168798-1	Wed Jul 08 2026 14:06:54 GMT-0400 (hora estándar de Chile)	Estudiante de pregrado	Campus Curauma	4	1	0.00	1.50	0	1,5	3	1	11.50		B2.1	Test de nivel	B2.1	Acepta		10/07/2026
+22	López Jiménez	Tatiana Maribel	tatiana.lopez@pucv.cl	15211380-3	Wed Jun 24 2026 16:42:30 GMT-0400 (hora estándar de Chile)	Académico	Centro Universitario María Teresa Brown de Ariztía (Campus Sausalito)	4	2	1.00	0.75	0	0,5	3	0	11.25		B2.1	Test de nivel	B2.1	Pendiente		10/07/2026
+23	Cardona Menco	Manolo	manolo.cardona.m@mail.pucv.cl	28966142-5	Thu Jun 25 2026 15:53:48 GMT-0400 (hora estándar de Chile)	Estudiante de postgrado	Casa Central	4	1,5	1.00	1.13	0	0,5	3	0	11.13		B2.1	Test de nivel	B2.1	Acepta		10/07/2026
+24	Lizama Mussa	Juan Pablo Jesús	juan.lizama.m@mail.pucv.cl	21482855-3	Wed Jun 24 2026 19:07:24 GMT-0400 (hora estándar de Chile)	Estudiante de pregrado	Centro Universitario María Teresa Brown de Ariztía (Campus Sausalito)	4	1	0.00	0.50	2	0	3	1	11.00	https://drive.google.com/open?id=1oLNWiWUnx-_g4FFefiB8BEQsmUr3OhR7	B2.1	Válido	B1+	Acepta		10/07/2026
+25	Garay Cisternas	Catalina Abril	catalina.garay.c@mail.pucv.cl	21695418-1	Thu Jun 25 2026 15:41:07 GMT-0400 (hora estándar de Chile)	Estudiante de pregrado	Campus Curauma	4	1	0.00	0.50	0	2	3	1	11.00		B2.1	Test de nivel	B2.1	Acepta		10/07/2026
+26	González Cáceres	Valentina Ignacia	gcaceres.valentina@gmail.com	20183553-4	Wed Jul 01 2026 12:34:48 GMT-0400 (hora estándar de Chile)	Estudiante de pregrado	Escuela de Ingeniería Bioquímica (IBQ)	4	1	0.00	0.50	2	0	3	1	11.00	https://drive.google.com/open?id=1rVivLYMNCByUUApK-kxW4dCWn4Kg3NKZ	C1	Válido	C1	Acepta		10/07/2026
+27	Navarro Espinoza	Marcelo Pablo	marcelo.navarro.e@mail.pucv.cl	15930605-4	Wed Jul 08 2026 10:40:31 GMT-0400 (hora estándar de Chile)	Estudiante de postgrado	PUCV Santiago	4	1,5	1.00	0.75	0	0,5	3	0	10.75		B2.1	Test de nivel	B2.1	Pendiente		10/07/2026
+28	Barría Foncea	Camila de los Ángeles	camila.barria.f@mail.pucv.cl	19152557-4	Wed Jun 24 2026 14:29:00 GMT-0400 (hora estándar de Chile)	Estudiante de pregrado	Centro Universitario María Teresa Brown de Ariztía (Campus Sausalito)	3	1	0.00	2.00	0	1	3	1	10.50		B2.1	Test de nivel	B2.1	Pendiente		10/07/2026
+29	Soto Monsalve	Martín Eugenio	martin.soto.m@mail.pucv.cl	21714906-1	Wed Jun 24 2026 16:56:13 GMT-0400 (hora estándar de Chile)	Estudiante de pregrado	Centro Universitario Rafael Ariztía (FIN)	4	1	0.00	1.00	0	1	3	1	10.50		B2.1	Test de nivel	B2.1	Acepta		10/07/2026
+30	Parra Sandoval	Alexis Esteban	alexis.parra.s@mail.pucv.cl	21766058-0	Mon Jul 06 2026 14:57:27 GMT-0400 (hora estándar de Chile)	Estudiante de pregrado	Edificio Isabel Brown Caces (IBC)	3	1	0.00	1.00	0	2	3	1	10.50		B2.1	Test de nivel	B2.1	Acepta		10/07/2026
+31	Álvarez Rojas	Paulina Andrea	paulinaalvarez914@gmail.com	22207470-3	Thu Jun 25 2026 00:59:22 GMT-0400 (hora estándar de Chile)	Estudiante de pregrado	Escuela de Ingeniería Química	4	1	0.00	2.00	3	1,5	3	1	15.00	https://drive.google.com/open?id=1skhADF7QRrof6Cp4lYMR81Wyb5ALm6Ug	C1	Válido	C1	Pendiente		10/07/2026
+32	Vielma Farías	Tomás Alfonso	tomas.vielma@pucv.cl	18391814-1	Thu Jun 25 2026 13:10:20 GMT-0400 (hora estándar de Chile)	Funcionario	Casa Central	4	2	0.75	0.00	0	0,5	3	2	12.25		B2.2	Test de nivel	B2.2	Acepta		10/07/2026
+33	Ulloa Ferrada	Arantza Viviana	arantzaulloa@gmail.com	21128941-4	Mon Jul 06 2026 23:53:00 GMT-0400 (hora estándar de Chile)	Estudiante de pregrado	Campus Curauma	4	1	0.00	2.00	0	1,5	3	1	12.00		B2.2	Test de nivel	B2.2	Acepta		10/07/2026
+34	Rodríguez Rodríguez	Fernando	fernando.rodriguez@pucv.cl	15062098-8	Thu Jun 25 2026 17:17:43 GMT-0400 (hora estándar de Chile)	Académico	Campus Curauma	4	2	1.00	1.13	0	0,5	3	0	11.63		B2.2	Test de nivel	B2.2	Acepta		10/07/2026
+35	Cornejo D'Ottone	Marcela	marcela.cornejo@pucv.cl	13256642-9	Thu Jul 02 2026 11:43:57 GMT-0400 (hora estándar de Chile)	Académico	Campus Curauma	4	2	1.00	1.13	0	0,5	3	0	11.63		B2.2	Test de nivel	B2.2	Acepta		10/07/2026
+36	Menay Huertas	Nicolás Guillermo	nicolas.menay@pucv.cl	18298911-8	Sun Jun 28 2026 02:19:13 GMT-0400 (hora estándar de Chile)	Académico	Instituto de Arte	4	2	1.00	0.75	0	0,5	3	0	11.25		B2.2	Test de nivel	B2.2	Acepta		10/07/2026
+37	Calderón Godoy	Julieta Victoria	julieta.victoria.calderon@gmail.com	21884748-K	Wed Jun 24 2026 12:02:02 GMT-0400 (hora estándar de Chile)	Estudiante de pregrado	Casa Central	4	1	0.00	0.50	0	2	3	1	11.00		B2.2	Test de nivel	B2.2	Acepta		10/07/2026
+38	Villarroel Ávila	Colomba Antonella	colomba.villarroel.a@mail.pucv.cl	22188245-8	Wed Jun 24 2026 16:35:54 GMT-0400 (hora estándar de Chile)	Estudiante de pregrado	Edificio Monseñor Gimpert	4	1	0.00	1.00	0	1,5	3	1	11.00		B2.2	Test de nivel	B2.2	Acepta		10/07/2026
+39	Castillo Guerra	Camila Antonia	camila.castillo.g01@mail.pucv.cl	21122368-5	Wed Jun 24 2026 16:39:31 GMT-0400 (hora estándar de Chile)	Estudiante de pregrado	Casa Central	4	1	0.00	0.50	2	0	3	1	11.00	https://drive.google.com/open?id=1r48MHqQc_FDOfitKE9cURGHeKVoFwhic	C1	Válido	C1	Acepta		10/07/2026
+40	Gajardo Muñoz	Daniel Alexis	daniel.gajardo.m@mail.pucv.cl	21991143-2	Wed Jun 24 2026 17:48:45 GMT-0400 (hora estándar de Chile)	Estudiante de pregrado	Edificio Isabel Brown Caces (IBC)	4	1	0.00	0.50	0	2	3	1	11.00		B2.2	Test de nivel	B2.2	Acepta		10/07/2026
+41	Cabrera Pizarro	Josefina Dominga	josefina.cabrera.p@mail.pucv.cl	22010566-0	Sun Jun 28 2026 14:31:48 GMT-0400 (hora estándar de Chile)	Estudiante de pregrado	Campus Curauma	4	1	0.00	0.50	0	2	3	1	11.00		B2.2	Test de nivel	B2.2	Pendiente		10/07/2026
+42	Leiva Tapia	Valentina Paz	valentina.leiva.t@mail.pucv.cl	21766106-4	Mon Jun 29 2026 08:27:21 GMT-0400 (hora estándar de Chile)	Estudiante de pregrado	Edificio Isabel Brown Caces (IBC)	4	1	0.00	0.50	0	2	3	1	11.00		B2.2	Test de nivel	B2.2	Pendiente		10/07/2026
+43	Quijarro Ampuero	Jose Tomas	jose.quijarro.a@mail.pucv.cl	21990884-9	Mon Jul 06 2026 23:38:45 GMT-0400 (hora estándar de Chile)	Estudiante de pregrado	Campus Curauma	4	1	0.00	0.50	0	2	3	1	11.00		B2.2	Test de nivel	B2.2	Acepta		10/07/2026
+44	Figueroa Ulloa	Catalina Almendra	catalina.figueroa.u@pucv.cl	20843666-K	Thu Jun 25 2026 18:05:03 GMT-0400 (hora estándar de Chile)	Académico	Instituto y Conservatorio de Música	4	2	1.00	0.00	0	0,5	3	0	10.50		B2.2	Test de nivel	B2.2	Acepta		10/07/2026
+45	Gonzalez Mendez	Bryam Eliot	bryam.gonzalez.m@mail.pucv.cl	27073989-k	Sun Jul 05 2026 22:13:13 GMT-0400 (hora estándar de Chile)	Estudiante de postgrado	Edificio Isabel Brown Caces (IBC)	4	1,5	1.00	0.00	0	0,5	3	0	10.00		B2.2	Test de nivel	B2.2	Acepta		10/07/2026
+46	Pavez Jara	Javier Andrés	javier.pavez@pucv.cl	17220212-8	Wed Jun 24 2026 16:17:40 GMT-0400 (hora estándar de Chile)	Funcionario	Escuela de Ingeniería Bioquímica (IBQ)	4	2	2.75	0.00	0	0,5	3	2	14.25		C1	Test de nivel	C1	Acepta		10/07/2026
+47	Mora Pizarro	Nicolás Ignacio	nicolas.mora@pucv.cl	18164398-6	Wed Jul 08 2026 12:29:48 GMT-0400 (hora estándar de Chile)	Funcionario	Campus Curauma	4	2	1.75	0.00	0	0,5	3	3	14.25		C1	Test de nivel	C1	Acepta		10/07/2026
+48	Garcia Muñoz	Andres Sebastian	andres.garcia.m@mail.pucv.cl	23367227-0	Thu Jun 25 2026 20:48:40 GMT-0400 (hora estándar de Chile)	Estudiante de pregrado	Escuela de Ingeniería Química	4	1	0.00	1.50	3	1	3	1	14.00	https://drive.google.com/open?id=1x6P-X8R5uajVDUjNrazDE8HJt1STng8p	C1	Válido	C1	Acepta		10/07/2026
+49	Díaz Purcell	Gabriel Alejandro	gabriel.diaz.p@mail.pucv.cl	21938462-9	Tue Jul 07 2026 23:22:06 GMT-0400 (hora estándar de Chile)	Estudiante de pregrado	Edificio Isabel Brown Caces (IBC)	3	1	0.00	0.50	3	2	3	1	13.00	https://drive.google.com/open?id=1RnTsJ4Fk3h-mLuqWwHEkKLvlMNNRuGhw	C1	Válido	C1	Acepta		10/07/2026
+50	Bravo López	Laura Paz	laura.bravo.l@mail.pucv.cl	21761866-5	Wed Jul 08 2026 03:02:59 GMT-0400 (hora estándar de Chile)	Estudiante de pregrado	Escuela de Ingeniería Bioquímica (IBQ)	4	1	0.00	0.50	3	1	3	1	13.00	https://drive.google.com/open?id=1sIobprk9kVFdHPcBavh7UhtUmeJg5Vpd	C1	Válido	C1	Acepta		10/07/2026
+51	Flores Reyes	Emilia Josefina	emilia.flores.r@mail.pucv.cl	22474145-6	Mon Jul 06 2026 14:34:55 GMT-0400 (hora estándar de Chile)	Estudiante de pregrado	Casa Central	4	1	0.00	0.50	3	0,5	3	1	12.50	https://drive.google.com/open?id=15ign9VXz8uf68bsXYc50Rs2Hd3_oRKJj	C1	Válido	C1	Pendiente		10/07/2026
+52	Oliva Paredes	Exequiel Eduardo	exequiel.oliva@pucv.cl	21525395-3	Mon Jun 29 2026 23:01:36 GMT-0400 (hora estándar de Chile)	Estudiante de postgrado	Centro Universitario Rafael Ariztía (FIN)	3	1,5	1.00	1.13	2	0,5	3	0	12.13	https://drive.google.com/open?id=14OCnIfI96LYMGefVVU_DJYA5YhI1PZc_	B1+	Válido	B1+	Acepta		10/07/2026
+53	Santibáñez González	Benjamín Ignacio	benjamin.santibanez.g@mail.pucv.cl	20949249-0	Wed Jun 24 2026 16:44:39 GMT-0400 (hora estándar de Chile)	Estudiante de pregrado	Escuela de Alimentos	3	1	0.00	0.50	3	0,5	3	1	11.50		C1	Test de nivel	C1	Acepta		10/07/2026
+54	Walter Villa	Francisca Ignacia	francisca.walter.v@mail.pucv.cl	21991485-7	Wed Jun 24 2026 16:32:32 GMT-0400 (hora estándar de Chile)	Estudiante de pregrado	Campus Curauma	4	1	0.00	1.00	0	1,5	3	1	11.00		C1	Test de nivel	C1	Pendiente		10/07/2026
+55	Llancaman Torres	Rayen	rayen.llancaman.t@mail.pucv.cl	20706196-4	Mon Jul 06 2026 16:34:18 GMT-0400 (hora estándar de Chile)	Estudiante de pregrado	Escuela de Ingeniería Bioquímica (IBQ)	4	1	0.00	0.50	2	0	3	1	11.00	https://drive.google.com/open?id=1sjmSUPqvWMvW4anyD8fB3umcmaef_XJF	C1	Válido	C1	Acepta		10/07/2026
+56	Zamora Segura	Francisca Isabel	francisca.zamora.s@mail.pucv.cl	21783814-2	Tue Jul 07 2026 00:16:04 GMT-0400 (hora estándar de Chile)	Estudiante de pregrado	Edificio Isabel Brown Caces (IBC)	4	1	0.00	0.50	0	2	3	1	11.00		C1	Test de nivel	C1	Acepta		10/07/2026
+57	Goldsworthy Vega	Eduardo Andrés	edugoldsworthy@gmail.com	19325577-9	Wed Jun 24 2026 16:54:33 GMT-0400 (hora estándar de Chile)	Estudiante de pregrado	Centro Universitario María Teresa Brown de Ariztía (Campus Sausalito)	4	1	0.00	2.00	0	0	3	1	10.50		C1	Test de nivel	C1	Acepta		10/07/2026
+58	Piña Oyarzún	José Francisco	jose.pina.o@mail.pucv.cl	20483743-0	Thu Jun 25 2026 02:25:12 GMT-0400 (hora estándar de Chile)	Estudiante de pregrado	Centro Universitario Rafael Ariztía (FIN)	4	1	0.00	2.00	0	0	3	1	10.50		C1	Test de nivel	C1	Rechaza		10/07/2026
+59	Villalobos Reyes	Rafaella Almendra	rafaella.villalobos.r@mail.pucv.cl	20957022-K	Mon Jul 06 2026 17:34:04 GMT-0400 (hora estándar de Chile)	Estudiante de pregrado	Instituto y Conservatorio de Música	4	1	0.00	1.00	0	1	3	1	10.50		C1	Test de nivel	C1	Acepta		10/07/2026
+60	Montero Chávez	Gabriel	gabriel.montero.c@mail.pucv.cl	22227914-3	Wed Jul 08 2026 14:32:01 GMT-0400 (hora estándar de Chile)	Estudiante de pregrado	Campus Curauma	2	1	0.00	2.00	0	2	3	1	10.50		C1	Test de nivel	C1	Pendiente		10/07/2026
+61	Molina Segura	Vicente Adolfo	vicente.molina.s@mail.pucv.cl	21127675-4	Tue Jul 07 2026 21:06:58 GMT-0400 (hora estándar de Chile)	Estudiante de pregrado	Edificio Isabel Brown Caces (IBC)	4	1	0.00	0.50	0	0	3	1	9.00		B2.1	Válido	B2.1	Acepta	Promovido manualmente	10/07/2026
+62	Henríquez Fernández	Catalina Alejandra	catalina.henriquez.f@mail.pucv.cl	21636607-7	Wed Jun 24 2026 18:34:20 GMT-0400 (hora estándar de Chile)	Estudiante de pregrado	Escuela de Negocios y Economía	4	1	0.00	0.50	0	1	3	1	10.00		B2.1	Válido	B2.1	Pendiente	Promovido manualmente	10/07/2026
+63	Castro Liempi	Susana Ester	susana.castro.l@mail.pucv.cl	21723857-9	Wed Jun 24 2026 21:47:36 GMT-0400 (hora estándar de Chile)	Estudiante de pregrado	Centro Universitario María Teresa Brown de Ariztía (Campus Sausalito)	4	1	0.00	1.00	0	1	3	1	10.50		B1+	Válido	B1+	Pendiente	Promovido manualmente	10/07/2026
+64	Solorza Astudillo	Mateo Ignacio	mateo.solorza.a@mail.pucv.cl	21959315-5	Wed Jun 24 2026 21:55:25 GMT-0400 (hora estándar de Chile)	Estudiante de pregrado	Escuela de Ingeniería Química	3	1	0.00	0.50	0	2	3	1	10.00		B1+	Válido	B1+	Acepta	Promovido manualmente	10/07/2026
+65	Ortiz Pizarro	Humberto Alonso	humberto.ortiz.p@mail.pucv.cl	22110795-0	Fri Jun 26 2026 01:04:04 GMT-0400 (hora estándar de Chile)	Estudiante de pregrado	Escuela de Ingeniería Química	4	1	0.00	1.00	0	0	3	1	9.50		B2.1	Válido	B2.1	Pendiente	Promovido manualmente	10/07/2026
+66	Espinoza Cid	Esperanza Ayelén	esperanza.espinoza.c@mail.pucv.cl	21668784-1	Wed Jul 01 2026 18:26:37 GMT-0400 (hora estándar de Chile)	Estudiante de pregrado	Edificio Monseñor Gimpert	3	1	0.00	1.00	0	1	3	1	9.50		B2.1	Válido	B2.1	Pendiente	Promovido manualmente	10/07/2026
+67	Pradenas Araya	Valentina Ignacia	valentina.pradenas.a@mail.pucv.cl	21930052-2	Wed Jul 08 2026 19:58:38 GMT-0400 (Chile Standard Time)	Estudiante de pregrado	Campus Curauma	4	1	0.00	0.50	0	2	3	1	11.00		B2.1	Válido	B2.1	Acepta	Promovido manualmente	10/07/2026
+68	Guzmán Contreras	Elena Valentina	elena.guzman.c@mail.pucv.cl	20072957-9	Wed Jul 08 2026 23:50:26 GMT-0400 (Chile Standard Time)	Estudiante de pregrado	Instituto y Conservatorio de Música	3	1	0.00	0.50	3	1	3	1	12.00	https://drive.google.com/open?id=1waWuiesXVvMOMhldHoA-WEDw03kU32xr	C1	Válido	C1	Pendiente	Promovido manualmente	10/07/2026
+69	Olivares Fernández	Catalina Ariela	catalina.olivares.f01@mail.pucv.cl	21373766-K	Sun Jul 05 2026 00:54:29 GMT-0400 (hora estándar de Chile)	Estudiante de pregrado	Instituto de Historia	4	1	0.00	0.50	2	0	3	1	11.00	https://drive.google.com/open?id=1DDaAXcJJ9AuQSK2yRiGEnXh1JUoAdAVI	B1+	Válido	B1+	Acepta	Promovido manualmente	10/07/2026
+70	Massú Rubilar	Tahani Belén	tahani.massu.r@mail.pucv.cl	21444409-7	Wed Jul 08 2026 20:46:31 GMT-0400 (Chile Standard Time)	Estudiante de pregrado	Casa Central	4	1	0.00	0.50	3	0	3	1	12.00	https://drive.google.com/open?id=1itL2OA7umpdQXBbUNRAuPUdzBUoKyHP8	C1	Válido	C1	Acepta	Promovido manualmente	10/07/2026
+71	Lillo Salinas	Benjamín Cristóbal	benjamin.lillo.s@mail.pucv.cl	21439154-6	Wed Jul 08 2026 22:32:41 GMT-0400 (Chile Standard Time)	Estudiante de pregrado	Casa Central	4	1	0.00	1.00	3	0	3	1	12.50	https://drive.google.com/open?id=1I0RuZ6g5nzBOBMhO5qRoOBHACMSaR99w	C1	Válido	C1	Acepta\\tPromovido manualmente\\t10/07/2026`;
+        const lines = tsvData.split("\n").filter(line => line.trim() !== "");
+        const rows = lines.map(line => line.split("\t"));
+        const headers = [
+            "Ranking", "Apellido(s)", "Nombre(s)", "Correo Electrónico", "RUT", "Fecha de Postulación",
+            "Categoría Postulante", "Sede", "Puntaje Disponibilidad", "Puntaje Tipo", "Puntaje Uso Inglés",
+            "Puntaje Intl.", "Puntaje Nivel Inglés", "Puntaje Año Ingreso", "Puntaje Compromiso", "Puntaje Carta",
+            "PUNTAJE TOTAL", "Enlace Certificado", "Nivel Postulado", "Verificación Certificado", "Nivel Asignado",
+            "Aceptación", "Comentarios", "Fecha Notificación"
+        ];
+        const sheetData = [headers, ...rows];
+        const range = sheet.getRange(1, 1, sheetData.length, sheetData[0].length);
+        range.setValues(sheetData);
+        // Apply formatting and validation
+        sheet.setTabColor("#11aa55");
+        sheet.getRange(1, 1, 1, sheetData[0].length)
+            .setBackground("#d9ead3")
+            .setFontColor("#274e13")
+            .setFontWeight("bold");
+        sheet.setFrozenRows(1);
+        sheet.autoResizeColumns(1, sheetData[0].length);
+        // Apply validations for drop-downs
+        const idxAceptacion = headers.indexOf("Aceptación") + 1;
+        const idxVerificacion = headers.indexOf("Verificación Certificado") + 1;
+        const idxNivel = headers.indexOf("Nivel Asignado") + 1;
+        if (idxAceptacion > 0 && idxVerificacion > 0 && idxNivel > 0 && sheetData.length > 1) {
+            const ruleAceptacion = SpreadsheetApp.newDataValidation().requireValueInList(['Acepta', 'Rechaza', 'Pendiente'], true).build();
+            const ruleVerificacion = SpreadsheetApp.newDataValidation().requireValueInList(['Válido', 'Test de nivel'], true).build();
+            const ruleNivel = SpreadsheetApp.newDataValidation().requireValueInList(['B1+', 'B2.1', 'B2.2', 'C1'], true).setAllowInvalid(true).build();
+            const validationRangeAceptacion = sheet.getRange(2, idxAceptacion, sheetData.length - 1, 1);
+            const validationRangeVerificacion = sheet.getRange(2, idxVerificacion, sheetData.length - 1, 1);
+            const validationRangeNivel = sheet.getRange(2, idxNivel, sheetData.length - 1, 1);
+            validationRangeAceptacion.setDataValidation(ruleAceptacion);
+            validationRangeVerificacion.setDataValidation(ruleVerificacion);
+            validationRangeNivel.setDataValidation(ruleNivel);
+        }
+        SpreadsheetApp.flush();
+        ui.alert("Restauración Exitosa", "Se ha restaurado la hoja 'Seleccionados' con el listado original.", ui.ButtonSet.OK);
+    }
+    catch (e) {
+        ui.alert("Error", "Ocurrió un error al restaurar: " + e.message, ui.ButtonSet.OK);
     }
 }
