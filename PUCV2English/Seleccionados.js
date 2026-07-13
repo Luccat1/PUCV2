@@ -236,3 +236,83 @@ function procesarRechazoDesdeWebApp(correo) {
     logToWebApp(`Procesando rechazo de ${correo}. La lista de espera debe ser activada manualmente.`);
     // Rejection email is sent in WebApp.ts through the confirmation flow.
 }
+/**
+ * Promotes the currently selected applicant in the active sheet to the Selected sheet.
+ */
+function promoverCandidatoActivo() {
+    const ss = getSpreadsheet();
+    const activeSheet = ss.getActiveSheet();
+    if (activeSheet.getName() !== CONFIG.SHEETS.OUTPUT) {
+        SpreadsheetApp.getUi().alert("Operación Inválida", "Debes estar en la hoja '" + CONFIG.SHEETS.OUTPUT + "' para promover un postulante.", SpreadsheetApp.getUi().ButtonSet.OK);
+        return;
+    }
+    const activeCell = activeSheet.getActiveCell();
+    const rowNum = activeCell.getRow();
+    if (rowNum === 1) {
+        SpreadsheetApp.getUi().alert("Operación Inválida", "Por favor selecciona una fila de un postulante, no la cabecera.", SpreadsheetApp.getUi().ButtonSet.OK);
+        return;
+    }
+    const lastCol = activeSheet.getLastColumn();
+    const rowData = activeSheet.getRange(rowNum, 1, 1, lastCol).getValues()[0];
+    const headers = activeSheet.getRange(1, 1, 1, lastCol).getDisplayValues()[0];
+    const idxEmail = headers.indexOf("Correo Electrónico");
+    const idxNombre = headers.indexOf("Nombre(s)");
+    const idxApellido = headers.indexOf("Apellido(s)");
+    const idxNivelPostulado = headers.indexOf("Nivel Postulado");
+    if (idxEmail === -1 || idxNombre === -1 || idxApellido === -1 || idxNivelPostulado === -1) {
+        SpreadsheetApp.getUi().alert("Error", "No se encontraron las columnas necesarias en la hoja de evaluación.", SpreadsheetApp.getUi().ButtonSet.OK);
+        return;
+    }
+    const email = String(rowData[idxEmail]).trim();
+    const nombres = String(rowData[idxNombre]).trim();
+    const apellidos = String(rowData[idxApellido]).trim();
+    const nivelPostulado = String(rowData[idxNivelPostulado]).trim();
+    if (!email) {
+        SpreadsheetApp.getUi().alert("Error", "El candidato seleccionado no posee un correo electrónico válido.", SpreadsheetApp.getUi().ButtonSet.OK);
+        return;
+    }
+    const hojaSelected = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
+    if (!hojaSelected) {
+        SpreadsheetApp.getUi().alert("Error", `La hoja '${CONFIG.SHEETS.SELECTED}' no existe.`, SpreadsheetApp.getUi().ButtonSet.OK);
+        return;
+    }
+    const valuesS = hojaSelected.getDataRange().getValues();
+    const headersS = valuesS.shift() || [];
+    const idxCorreoS = headersS.indexOf("Correo Electrónico");
+    if (idxCorreoS !== -1) {
+        const emailsSelected = new Set(valuesS.map(row => String(row[idxCorreoS]).trim().toLowerCase()));
+        if (emailsSelected.has(email.toLowerCase())) {
+            SpreadsheetApp.getUi().alert("Aviso", `El postulante ${nombres} ${apellidos} (${email}) ya se encuentra en la lista de seleccionados.`, SpreadsheetApp.getUi().ButtonSet.OK);
+            return;
+        }
+    }
+    const ui = SpreadsheetApp.getUi();
+    const confirm = ui.alert("Confirmar Promoción", `¿Estás seguro/a de promover manualmente a ${nombres} ${apellidos} (${email}) al nivel ${nivelPostulado || '[NIVEL NO ASIGNADO]'} en la lista de seleccionados?`, ui.ButtonSet.YES_NO);
+    if (confirm !== ui.Button.YES)
+        return;
+    const nextRanking = hojaSelected.getLastRow();
+    const newRow = [
+        nextRanking, // Ranking
+        ...rowData,
+        "Válido", // Verificación Certificado
+        nivelPostulado, // Nivel Asignado
+        "Pendiente", // Aceptación
+        "Promovido manualmente", // Comentarios
+        "" // Fecha Notificación
+    ];
+    hojaSelected.appendRow(newRow);
+    // Apply validations for drop-downs
+    const idxAceptacion = headersS.indexOf("Aceptación") + 1;
+    const idxVerificacion = headersS.indexOf("Verificación Certificado") + 1;
+    const idxNivel = headersS.indexOf("Nivel Asignado") + 1;
+    if (idxAceptacion > 0 && idxVerificacion > 0 && idxNivel > 0) {
+        const ruleAceptacion = SpreadsheetApp.newDataValidation().requireValueInList(['Acepta', 'Rechaza', 'Pendiente'], true).build();
+        const ruleVerificacion = SpreadsheetApp.newDataValidation().requireValueInList(['Válido', 'Test de nivel'], true).build();
+        const ruleNivel = SpreadsheetApp.newDataValidation().requireValueInList(['B1+', 'B2.1', 'B2.2', 'C1'], true).setAllowInvalid(true).build();
+        const newRowNum = hojaSelected.getLastRow();
+        hojaSelected.getRange(newRowNum, idxAceptacion).setDataValidation(ruleAceptacion);
+        hojaSelected.getRange(newRowNum, idxVerificacion).setDataValidation(ruleVerificacion);
+        hojaSelected.getRange(newRowNum, idxNivel).setDataValidation(ruleNivel);
+    }
+    ui.alert("Promoción Exitosa", `Se ha promovido a ${nombres} ${apellidos} al nivel ${nivelPostulado} de seleccionados.`, ui.ButtonSet.OK);
+}

@@ -8,6 +8,7 @@
  * @returns {GoogleAppsScript.HTML.HtmlOutput} The rendered HTML content.
  */
 function doGet(e: GoogleAppsScript.Events.DoGet): GoogleAppsScript.HTML.HtmlOutput {
+  cargarConfiguracionDesdeHoja();
   const action = e.parameter.action;
   const token = e.parameter.token;
 
@@ -32,7 +33,7 @@ function doGet(e: GoogleAppsScript.Events.DoGet): GoogleAppsScript.HTML.HtmlOutp
  * @returns {GoogleAppsScript.HTML.HtmlOutput} The confirmation page.
  */
 function crearPaginaConfirmacion(accion: string, nombre: string, exito: boolean, mensaje: string, paymentUrl?: string): GoogleAppsScript.HTML.HtmlOutput {
-  const logoUrl = "https://www.pucv.cl/uuaa/vriea/dircom/manual-de-marca-pucv-2022/logo-pucv-color.png";
+  const logoUrl = "https://www.pucv.cl/pucv/site/artic/20220615/imag/foto_0000000120220615160256/logo_header.png";
   const color = exito ? (accion === 'accept' ? "#4CAF50" : "#f44336") : "#ff9800";
 
   let paymentButtonHtml = "";
@@ -40,7 +41,7 @@ function crearPaginaConfirmacion(accion: string, nombre: string, exito: boolean,
     paymentButtonHtml = `
       <div style="margin: 25px 0 10px 0;">
         <a href="${paymentUrl}" target="_blank" style="background-color: #0055a2; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.15);">
-          💳 Proceder al Pago de Matrícula
+          &#128179; Proceder al Pago de Matrícula
         </a>
       </div>
       <p style="font-size: 0.85em; color: #666;">Nota: Tienes un plazo de 3 días para completar el pago.</p>

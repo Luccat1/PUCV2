@@ -67,6 +67,10 @@
   <div id="state-preview" style="display:none">
     <p><strong>Confirma el envío antes de proceder:</strong></p>
     <div id="preview-text" class="preview-box"></div>
+    <div style="margin: 15px 0;">
+      <input type="checkbox" id="chk-draft" style="width: 16px; height: 16px; vertical-align: middle; cursor: pointer;">
+      <label for="chk-draft" style="display: inline; font-weight: normal; font-size: 14px; margin: 0 0 0 6px; cursor: pointer; color: #495057; vertical-align: middle;">Crear como borradores en Gmail (no enviar realmente)</label>
+    </div>
     <div class="btn-group">
       <button class="btn-secondary" onclick="showForm()">← Volver</button>
       <button id="btn-confirm" class="btn-primary" onclick="confirmarEnvio()">Enviar correos</button>
@@ -168,6 +172,7 @@
     }
 
     function confirmarEnvio() {
+      var asDraft = document.getElementById('chk-draft').checked;
       document.getElementById('btn-confirm').disabled = true;
       document.getElementById('confirm-spinner').style.display = '';
 
@@ -188,7 +193,7 @@
           box.textContent = 'Error al enviar: ' + err.message;
           box.className = 'result-box result-err';
         })
-        .enviarCorreosInicioClases();
+        .enviarCorreosInicioClases(asDraft);
     }
   </script>
 </body>

@@ -30,14 +30,14 @@ function doGet(e) {
  * @returns {GoogleAppsScript.HTML.HtmlOutput} The confirmation page.
  */
 function crearPaginaConfirmacion(accion, nombre, exito, mensaje, paymentUrl) {
-    const logoUrl = "https://www.pucv.cl/uuaa/vriea/dircom/manual-de-marca-pucv-2022/logo-pucv-color.png";
+    const logoUrl = "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e2/Escudo_de_la_Pontificia_Universidad_Cat%C3%B3lica_de_Valpara%C3%ADso.svg/250px-Escudo_de_la_Pontificia_Universidad_Cat%C3%B3lica_de_Valpara%C3%ADso.svg.png";
     const color = exito ? (accion === 'accept' ? "#4CAF50" : "#f44336") : "#ff9800";
     let paymentButtonHtml = "";
     if (exito && accion === 'accept' && paymentUrl) {
         paymentButtonHtml = `
       <div style="margin: 25px 0 10px 0;">
         <a href="${paymentUrl}" target="_blank" style="background-color: #0055a2; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.15);">
-          💳 Proceder al Pago de Matrícula
+          &#128179; Proceder al Pago de Matrícula
         </a>
       </div>
       <p style="font-size: 0.85em; color: #666;">Nota: Tienes un plazo de 3 días para completar el pago.</p>

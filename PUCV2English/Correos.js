@@ -79,10 +79,14 @@ function previewEmailBatch(type) {
  * @param type The category of recipients to notify.
  * @returns {string} Status message for the UI.
  */
-function sendEmailBatch(type) {
-    const recipients = getRecipients(type);
+function sendEmailBatch(type, asDraft = false, limit = 0) {
+    cargarConfiguracionDesdeHoja();
+    let recipients = getRecipients(type);
     if (recipients.length === 0)
         return "No hay destinatarios pendientes para enviar '" + type + "'.";
+    if (limit > 0) {
+        recipients = recipients.slice(0, limit);
+    }
     // Gmail Quota Check
     // QUAL-01 verified: MailApp.getRemainingDailyQuota() is the only GAS quota API. GmailApp has no quota method.
     const quota = MailApp.getRemainingDailyQuota();
@@ -124,12 +128,19 @@ function sendEmailBatch(type) {
                 htmlBody.urlRechazar = obtenerUrlConfirmacionConToken(token, 'reject');
             }
             const finishedHtml = htmlBody.evaluate().getContent();
-            GmailApp.sendEmail(r.email, subject, "", {
-                htmlBody: finishedHtml
-            });
-            // Update notification date for idempotency
-            if (hojaS && idxNotificado !== undefined && idxNotificado !== -1) {
-                hojaS.getRange(r.index, idxNotificado + 1).setValue(new Date());
+            if (asDraft) {
+                GmailApp.createDraft(r.email, subject, "", {
+                    htmlBody: finishedHtml
+                });
+            }
+            else {
+                GmailApp.sendEmail(r.email, subject, "", {
+                    htmlBody: finishedHtml
+                });
+                // Update notification date for idempotency only when sending real emails
+                if (hojaS && idxNotificado !== undefined && idxNotificado !== -1) {
+                    hojaS.getRange(r.index, idxNotificado + 1).setValue(new Date());
+                }
             }
             count++;
         }
@@ -138,16 +149,35 @@ function sendEmailBatch(type) {
             ultimosErrores.push(`[${r.email}]: ${e.message}`);
         }
     });
+    const verb = asDraft ? "crearon" : "enviaron";
+    const noun = asDraft ? "borradores" : "correos";
     if (ultimosErrores.length > 0) {
-        return `Se enviaron ${count} correos.\n\nSin embargo, hubo ${ultimosErrores.length} errores. Algunos de ellos son:\n${ultimosErrores.slice(0, 3).join('\n')}`;
+        return `Se ${verb} ${count} ${noun}.\n\nSin embargo, hubo ${ultimosErrores.length} errores. Algunos de ellos son:\n${ultimosErrores.slice(0, 3).join('\n')}`;
     }
-    return `Se enviaron ${count} correos exitosamente para el lote '${type}'.`;
+    return `Se ${verb} ${count} ${noun} exitosamente para el lote '${type}'.`;
 }
 /**
  * Sends a single test email.
  */
 function sendTestEmail(targetEmail, type) {
     try {
+        cargarConfiguracionDesdeHoja();
+        if (type === 'CADENA_COMPLETA') {
+            const types = [
+                'SELECTED',
+                'TEST_LEVEL_ONLY',
+                'HAND_PICKED',
+                'WAITLIST',
+                'NOT_SELECTED',
+                'CONFIRM_ACCEPT',
+                'CONFIRM_REJECT',
+                'CLASS_START'
+            ];
+            types.forEach(t => {
+                sendTestEmail(targetEmail, t);
+            });
+            return `Cadena completa de ${types.length} correos de prueba enviada a ${targetEmail}`;
+        }
         let templateName = 'CorreoSeleccionado';
         let subject = "[TEST] Resultado Postulación PUCV";
         if (type === 'TEST_LEVEL_ONLY') {
@@ -191,12 +221,13 @@ function sendTestEmail(targetEmail, type) {
         const token = generarToken(targetEmail);
         htmlBody.urlAceptar = obtenerUrlConfirmacionConToken(token, 'accept');
         htmlBody.urlRechazar = obtenerUrlConfirmacionConToken(token, 'reject');
-        // Add dummy variables for CorreoInicioClases template
-        htmlBody.catedra = "Lunes y Miércoles 14:30 - 16:00";
-        htmlBody.ayudantia = "Viernes 14:30 - 16:00";
+        // Add dummy variables for CorreoInicioClases template backed by program data config
+        const levelHorario = PROGRAM_DATA.HORARIOS["B2.1"] || PROGRAM_DATA.HORARIOS["Default"];
+        htmlBody.catedra = levelHorario ? levelHorario.catedra : "Lunes y Miércoles 14:30 - 16:00";
+        htmlBody.ayudantia = levelHorario ? levelHorario.ayudantia : "Viernes 14:30 - 16:00";
         htmlBody.sala = "Sala 2-3 (Casa Central)";
-        htmlBody.fechaInicio = "Lunes, 30 de Marzo";
-        htmlBody.fechaTermino = "Viernes, 10 de Julio";
+        htmlBody.fechaInicio = PROGRAM_DATA.FECHA_INICIO || "Lunes, 30 de Marzo";
+        htmlBody.fechaTermino = PROGRAM_DATA.FECHA_TERMINO || "Viernes, 10 de Julio";
         const finishedHtml = htmlBody.evaluate().getContent();
         GmailApp.sendEmail(targetEmail, subject, "", {
             htmlBody: finishedHtml
@@ -220,6 +251,7 @@ function calcularFechaLimite(fechaInicio, dias) {
  * Sends a confirmation email to the applicant after they accept/reject their spot.
  */
 function enviarCorreoConfirmacion(correo, tipoConfirmacion) {
+    cargarConfiguracionDesdeHoja();
     const ss = getSpreadsheet();
     const hojaS = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
     if (!hojaS)

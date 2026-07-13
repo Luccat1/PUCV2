@@ -12,6 +12,7 @@ function onOpen() {
         .addItem('📊 Evaluar Postulaciones', 'abrirDialogoEvaluacion')
         .addItem('🔄 Reevaluar Todo desde Cero', 'ejecutarReevaluacionCompleta')
         .addItem('📋 Generar Lista Final', 'ejecutarGenerarListaFinal')
+        .addItem('👤 Promover Candidato Activo', 'promoverCandidatoActivo')
         .addSeparator()
         .addItem('⚙️ Configurar Pesos', 'abrirSidebarConfig')
         .addItem('👁️ Revisar Postulaciones', 'abrirSidebarRevision')
@@ -65,13 +66,27 @@ function ejecutarGenerarListaFinal() {
 function confirmarYEnviarCorreos(tipo) {
     const ui = SpreadsheetApp.getUi();
     const vistaPrevia = previewEmailBatch(tipo);
-    const respuesta = ui.alert('Confirmar Envío de Correos', vistaPrevia + '\n\n¿Estás SEGURO de que deseas enviar estos correos REALMENTE?', ui.ButtonSet.YES_NO);
+    const respuesta = ui.alert('Confirmar Envío de Correos', vistaPrevia + '\n\n¿Cómo deseas proceder con el envío?\n\n' +
+        '- Presiona SÍ para enviar los correos REALMENTE a los candidatos.\n' +
+        '- Presiona NO para crear estos correos como BORRADORES en tu Gmail.\n' +
+        '- Presiona CANCELAR para abortar la operación.', ui.ButtonSet.YES_NO_CANCEL);
     if (respuesta === ui.Button.YES) {
-        const resultado = sendEmailBatch(tipo);
+        const resultado = sendEmailBatch(tipo, false);
         ui.alert('Resultado', resultado, ui.ButtonSet.OK);
     }
+    else if (respuesta === ui.Button.NO) {
+        const muestraRespuesta = ui.alert('Límite de Borradores', '¿Deseas crear borradores para TODOS los destinatarios pendientes o solo para una MUESTRA de prueba (máximo 5)?\n\n' +
+            '- Presiona SÍ para crear un máximo de 5 borradores (Recomendado para revisar).\n' +
+            '- Presiona NO para crear borradores para todos.\n' +
+            '- Presiona CANCELAR para abortar.', ui.ButtonSet.YES_NO_CANCEL);
+        if (muestraRespuesta === ui.Button.CANCEL)
+            return;
+        const limit = muestraRespuesta === ui.Button.YES ? 5 : 0;
+        const resultado = sendEmailBatch(tipo, true, limit);
+        ui.alert('Resultado de Borradores', resultado, ui.ButtonSet.OK);
+    }
     else {
-        ui.alert('Cancelado', 'El envío de correos ha sido cancelado.', ui.ButtonSet.OK);
+        ui.alert('Cancelado', 'La operación ha sido cancelada.', ui.ButtonSet.OK);
     }
 }
 function enviarCorreosSeleccionados() { confirmarYEnviarCorreos('SELECTED'); }

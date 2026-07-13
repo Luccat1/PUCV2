@@ -166,7 +166,8 @@ function renderCorreoInicioClases(vars: ICorreoInicioClasesVars): string {
  * GAS execution (sala values live in PROGRAM_DATA.HORARIOS[nivel].sala).
  * @returns {string} Status message for the dialog UI.
  */
-function enviarCorreosInicioClases(): string {
+function enviarCorreosInicioClases(asDraft: boolean = false): string {
+  cargarConfiguracionDesdeHoja();
   const recipients = getRecipientsInicioClases();
   if (recipients.length === 0) return "No hay estudiantes pendientes de notificación de inicio de clases.";
 
@@ -207,14 +208,18 @@ function enviarCorreosInicioClases(): string {
         fechaTermino: PROGRAM_DATA.FECHA_TERMINO,
       });
 
-      GmailApp.sendEmail(r.email, subject, "", { htmlBody });
+      if (asDraft) {
+        GmailApp.createDraft(r.email, subject, "", { htmlBody });
+      } else {
+        GmailApp.sendEmail(r.email, subject, "", { htmlBody });
 
-      // Write sala and notification timestamp only after successful send
-      if (idxSala !== -1) {
-        hoja.getRange(r.rowNum, idxSala + 1).setValue(sala);
-      }
-      if (idxNotif !== -1) {
-        hoja.getRange(r.rowNum, idxNotif + 1).setValue(new Date());
+        // Write sala and notification timestamp only after successful send
+        if (idxSala !== -1) {
+          hoja.getRange(r.rowNum, idxSala + 1).setValue(sala);
+        }
+        if (idxNotif !== -1) {
+          hoja.getRange(r.rowNum, idxNotif + 1).setValue(new Date());
+        }
       }
 
       count++;
@@ -224,9 +229,11 @@ function enviarCorreosInicioClases(): string {
     }
   });
 
+  const verb = asDraft ? "crearon" : "enviaron";
+  const noun = asDraft ? "borradores" : "correos";
   if (errores.length > 0) {
-    return `Se enviaron ${count} correos de inicio de clases.\n\nHubo ${errores.length} error(es):\n${errores.slice(0, 3).join("\n")}`;
+    return `Se ${verb} ${count} ${noun} de inicio de clases.\n\nHubo ${errores.length} error(es):\n${errores.slice(0, 3).join("\n")}`;
   }
 
-  return `Se enviaron ${count} correos de inicio de clases exitosamente.`;
+  return `Se ${verb} ${count} ${noun} de inicio de clases exitosamente.`;
 }

@@ -232,7 +232,10 @@ function cargarConfiguracionDesdeHoja(): void {
 
   const idxCriterio = headers.indexOf("Criterio");
   const idxPerfil = headers.indexOf("Perfil");
-  const idxPeso = headers.indexOf("Peso");
+  let idxPeso = headers.indexOf("Peso");
+  if (idxPeso === -1) {
+    idxPeso = headers.indexOf("Peso/Valor");
+  }
 
   if (idxCriterio === -1 || idxPerfil === -1 || idxPeso === -1) return;
 
@@ -265,7 +268,7 @@ function cargarDatosPrograma(): void {
   const hojaConfig = ss.getSheetByName(CONFIG.SHEETS.CONFIG);
   if (!hojaConfig) return;
 
-  const datosConfig = hojaConfig.getDataRange().getValues();
+  const datosConfig = hojaConfig.getDataRange().getDisplayValues();
 
   // Assuming the first row is headers, skip it for data processing
   const headers = datosConfig.shift();
