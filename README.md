@@ -1,174 +1,184 @@
-# PUCV2English v5.0.2 — Sistema de Gestión Automatizada
+# PUCV2English v5.1.0 — Sistema de Gestión Automatizada
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
 [![Platform](https://img.shields.io/badge/Platform-Google%20Apps%20Script-green.svg)](https://developers.google.com/apps-script)
 
-**PUCV2English** es un ecosistema modular desarrollado en **TypeScript** para la gestión profesional de postulaciones al Programa de Inglés PUCV. El sistema automatiza el ciclo completo: desde la evaluación masiva con criterios ponderados, hasta la gestión de matrícula vía dashboard y la comunicación automatizada con los postulantes.
+**PUCV2English** es un ecosistema modular desarrollado en **TypeScript** para la gestión profesional de postulaciones al Programa de Inglés PUCV. El sistema automatiza el ciclo completo: desde la evaluación masiva con criterios ponderados, hasta la gestión de matrícula, lista de espera, control de pagos y comunicación automatizada con los postulantes.
 
-> **Novedad v5.0.2:**
-> *   **Corrección de Puntajes**: Solucionados los espacios en blanco adicionales en nombres de columnas de configuración (`CONFIG.COLUMNS`) que causaban pérdida de puntaje de Disponibilidad y Compromiso.
-> *   **Eliminación de Duplicados**: Incorporado control de deduplicación de postulantes en caliente.
-> *   **Filtro de Incompletos**: Descartado y marcado automático de postulaciones corruptas o incompletas.
-> *   **Optimización de Tokens**: Unificado a un solo token por postulante para evitar acumulación huérfana de propiedades.
-> *   **Reevaluación desde Menú**: Añadido comando superior `🔄 Reevaluar Todo desde Cero` para limpieza y recálculo masivo.
-> *   *Migración v5.0.1:* Migración completa de monolito JavaScript (1.6k loc) a arquitectura modular profesional tipado estricto.
+> **Novedad v5.1.0 (Julio 2026):**
+> * **Lista de Espera Ampliada**: Hoja física `"Lista de Espera"` con capacidad de hasta 30 candidatos por nivel (120 total).
+> * **Control de Pagos**: Columna `"Pago Matrícula"` con dropdown interactivo en `"Seleccionados"`. La Lista Final exige `Acepta` + `Pagado`.
+> * **Promoción desde Lista de Espera**: Función de un clic para promover al siguiente candidato de la lista de espera a seleccionados.
+> * **Correo de Cierre de Espera**: Nueva plantilla `CorreoEsperaSinCupo` para notificar a la lista de espera cuando el proceso concluye sin vacantes.
+> * **Modo Borrador Gmail**: Opción de crear correos como borradores antes de enviarlos realmente para revisión previa.
+> * **Seleccionados Protegidos**: La hoja `"Seleccionados"` ya no se sobreescribe al regenerar; las promociones manuales se preservan.
+> * **Exclusión Segura**: Los correos de rechazo excluyen automáticamente a seleccionados y lista de espera.
 
 ---
 
 ## ✨ Características Principales
 
-    -   **`1. Evaluar Nuevas Postulaciones`**: Ejecuta el proceso de evaluación manualmente. La interfaz se refrescará sola al terminar.
-    -   **`2. Generar Lista Final del Curso`**: Crea la lista definitiva de participantes que han aceptado.
-    -   **`3. Enviar Notificaciones`**: Envía los correos de selección a los candidatos.
-    -   **Tablas de Gestión:** Revisa los certificados y actualiza el estado de los postulantes directamente desde la web.
+### 📊 Evaluación Automatizada
+- **Procesamiento Incremental**: Evalúa solo postulaciones nuevas usando la columna `"Estado de Procesamiento"`.
+- **Deduplicación**: Detecta y descarta automáticamente postulaciones duplicadas por correo electrónico.
+- **Filtro de Incompletos**: Marca y omite postulaciones sin datos esenciales (correo, RUT o nombre).
+- **Pesos Configurables**: Todos los criterios de puntuación son ajustables desde la hoja `"Configuración"` o el sidebar lateral.
+
+### 📈 Dashboard y Ranking
+- **Dashboard Dinámico**: Métricas en tiempo real por categoría, sede, año de ingreso y distribución por nivel.
+- **Ranking de Seleccionados**: Top 15 por nivel (B1+, B2.1, B2.2, C1) con empates resueltos por antigüedad de postulación.
+- **Formato Condicional**: Filas coloreadas automáticamente según estado (verde = Acepta, rojo = Rechaza).
+
+### 📋 Gestión de Seleccionados y Lista de Espera
+- **Columnas de Gestión Interactivas**: Dropdowns para `Verificación Certificado`, `Nivel Asignado`, `Aceptación` y `Pago Matrícula`.
+- **Lista de Espera Física**: Hoja `"Lista de Espera"` con hasta 30 candidatos por nivel, preservando fechas de notificación.
+- **Promoción Manual**: Botón para promover al siguiente candidato de la lista de espera a seleccionados con un clic.
+- **Protección de Datos**: La hoja `"Seleccionados"` está congelada — las regeneraciones automáticas solo actualizan la lista de espera.
+- **Restauración de Emergencia**: Función `restaurarHojaSeleccionadosPerdida` para recuperar datos en caso de pérdida accidental.
+
+### ✉️ Sistema de Correos Automatizados
+El sistema soporta **6 tipos de envío masivo** y **2 correos de confirmación automática**:
+
+| Tipo de Lote | Plantilla HTML | Descripción |
+|---|---|---|
+| `SELECTED` | `CorreoSeleccionado` | Invitación a seleccionados con certificado válido |
+| `TEST_LEVEL_ONLY` | `CorreoTestNivel` | Convocatoria a test de nivel para candidatos sin certificado |
+| `HAND_PICKED` | `CorreoHandPicked` | Invitación a candidatos seleccionados manualmente fuera de plazo |
+| `WAITLIST` | `CorreoListaEspera` | Aviso de ingreso a la lista de espera |
+| `WAITLIST_REJECTED` | `CorreoEsperaSinCupo` | Cierre del proceso — sin vacantes disponibles |
+| `NO_SELECTED` | `CorreoNoSeleccionado` | Rechazo (excluye automáticamente a seleccionados y lista de espera) |
+
+**Correos Automáticos de Confirmación:**
+- `CorreoConfirmacionAcepta`: Se envía al aceptar, incluye link de pago y plazo dinámico de 3 días.
+- `CorreoConfirmacionRechaza`: Se envía al rechazar el cupo.
+
+**Funcionalidades Adicionales:**
+- **Modo Borrador**: Crear correos como borradores de Gmail antes de enviar (con opción de limitar a 5 muestras).
+- **Tokens UUID**: Cada postulante recibe enlaces únicos de aceptar/rechazar de un solo uso.
+- **Fecha Límite Dinámica**: El plazo se calcula automáticamente desde la fecha de envío del correo.
+- **Idempotencia**: Los correos no se duplican gracias a columnas de control de fecha de notificación.
+- **Verificación de Cuota Gmail**: Se valida la cuota disponible antes de cada envío masivo.
+
+### 📋 Lista Final e Inicio de Clases
+- **Filtro Estricto**: Solo candidatos con `Aceptación = "Acepta"` **y** `Pago Matrícula = "Pagado"` entran a la lista final.
+- **Inicio de Clases**: Diálogo interactivo para asignar salas por nivel y enviar correos de bienvenida con horarios y fechas.
+
+### 🛡️ Robustez y Seguridad
+- **Control de Concurrencia**: `LockService` previene ejecuciones simultáneas.
+- **Manejo de Errores por Fila**: Bloques `try...catch` aíslan errores sin detener el procesamiento completo.
+- **Sandbox de Pruebas**: Tokens de confirmación inválidos operan en modo seguro sin afectar datos reales.
 
 ---
 
-## 🧩 Lógica de Puntuación
+## ⚙️ Arquitectura del Sistema
 
-El puntaje total es la suma de varias áreas, con pesos ajustables desde la hoja `Configuración`.
+El código está organizado de forma modular en TypeScript con compilación a JavaScript para Google Apps Script.
 
-- **Disponibilidad (máx 4 pts):** 1 punto por cada respuesta afirmativa a preguntas de compromiso.
-- **Tipo de Postulante (máx 2 pts):** `Académico/Funcionario` (2), `Postgrado` (1.5), `Otro` (1).
-- **Uso del Inglés (ponderado):** Lógica diferenciada que premia aspiraciones en pregrado y actividades de investigación/docencia en académicos/postgrado.
-- **Internacionalización (ponderado):** Asigna puntaje según la etapa del proceso y análisis de palabras clave.
-- **Nivel de Inglés (máx 5 pts):** Mapea certificaciones (C1, B2.2, etc.) a un puntaje.
-- **Año de Ingreso (máx 2 pts):** Premia a estudiantes a mitad de carrera y a profesionales con mayor antigüedad.
-- **Compromiso (máx 3 pts):** 1 punto por cada declaración de compromiso aceptada.
-- **Carta de Respaldo (ponderado):** Evalúa el respaldo de la jefatura y la adjunción de documentos, con menor peso para estudiantes.
-  - Disponibilidad, compromiso y veracidad.
-  - Tipo de postulante (académico, funcionario, postgrado, etc.).
-  - Frecuencia y tipo de uso del inglés en el ámbito profesional.
-  - Planes y estado de procesos de internacionalización.
-  - Nivel de certificación de inglés y año de ingreso.
-
-### 📈 **Visualización de Datos y Ranking**
-
-- **Dashboard Dinámico:** Genera y actualiza en tiempo real la hoja `Dashboard` con:
-  - **Métricas Generales:** Total de postulantes, puntaje promedio, máximo y mínimo.
-  - **Desgloses Detallados:** Estadísticas por categoría, sede y año de ingreso.
-  - **Análisis Cruzado:** Relación Sede vs. Categoría.
-  - **Gráfico Interactivo:** Distribución de postulantes por sede.
-- **Ranking de Seleccionados:** Crea y ordena la hoja `Seleccionados` con el **Top 15 por nivel** (hasta 60 cupos en total).
-  - **Columnas de Gestión:** Incluye campos para `Verificación Certificado` y `Nivel Asignado`.
-  - **Estado Interactivo:** Envía las invitaciones con menú desplegable (`Acepta`, `Rechaza`, `Pendiente`) y formato condicional que colorea la fila según el estado.
-
-### 🛡️ **Optimización y Robustez**
-
-- **Procesamiento Incremental:** Utiliza una columna `Estado de Procesamiento` para marcar las filas ya evaluadas. Esto evita trabajo redundante y hace que el script sea altamente eficiente, procesando solo las postulaciones nuevas.
-- **Manejo de Errores por Fila:** Implementa bloques `try...catch` que aíslan los errores. Si una fila contiene datos incorrectos, la marca con un mensaje de error y continúa con las demás, asegurando que el script nunca se detenga por una sola postulación defectuosa.
-- **Control de Concurrencia:** Usa `LockService` para prevenir que ejecuciones simultáneas (ej. si llegan varias postulaciones a la vez) corrompan los datos, garantizando la integridad de la información.
-
-### ✉️ **Flujo de Trabajo Integrado**
-
-- **Notificaciones por Correo:** Incluye una función para enviar correos de notificación a todos los postulantes que aparecen en la hoja `Seleccionados`, con un cuadro de diálogo de confirmación para evitar envíos accidentales.
-- **Panel de Control Web:** Proporciona una interfaz de usuario a través de una aplicación web privada para ejecutar manualmente funciones clave como el análisis del ranking y el envío de notificaciones, solucionando problemas de ejecución en entornos con múltiples cuentas de Google.
-
----
-
-## ⚙️ Arquitectura del Script
-
-    -   El código está estructurado para ser modular, mantenible y robusto.
-    -   **`CONFIG` (Objeto Global):** Centraliza todos los nombres de hojas y columnas importantes en un único objeto. Esto facilita enormemente el mantenimiento: si se renombra una hoja, solo hay que cambiarlo en un lugar.
-
-```javascript
-    const CONFIG = {
-      WEB_APP_URL: "https://script.google.com/.../exec",
-      SHEETS: {
-        INPUT: "Respuestas de formulario 1",
-        OUTPUT: "Evaluación automatizada",
-        DASHBOARD: "Dashboard",
-        SELECTED: "Seleccionados",
-        FINAL_LIST: "Lista Final Curso"
-      },
-      // ...
-    };
+```
+src/
+├── Config.ts              # Configuración global, tipos e interfaces
+├── Evaluacion.ts          # Motor de evaluación y cálculo de puntajes
+├── Seleccionados.ts       # Gestión de seleccionados, lista de espera y promoción
+├── Correos.ts             # Motor de envío de correos masivos y unitarios
+├── ListaFinal.ts          # Generación de la lista final del curso
+├── InicioClases.ts        # Notificaciones de inicio de clases
+├── WebApp.ts              # Panel de control web y endpoints de confirmación
+├── Dashboard.ts           # Generación del dashboard estadístico
+├── Menu.ts                # Menú personalizado de Google Sheets
+├── Utils.ts               # Funciones de soporte transversales
+├── TestInicioClases.ts    # Tests para inicio de clases
+├── CorreoSeleccionado.html
+├── CorreoTestNivel.html
+├── CorreoHandPicked.html
+├── CorreoListaEspera.html
+├── CorreoEsperaSinCupo.html
+├── CorreoNoSeleccionado.html
+├── CorreoConfirmacionAcepta.html
+├── CorreoConfirmacionRechaza.html
+├── CorreoInicioClases.html
+├── DialogSalas.html
+├── DialogConfirmEval.html
+├── SidebarConfig.html
+├── SidebarRevision.html
+├── index.html             # Interfaz del panel de control web
+├── appsscript.json
+└── tsconfig.json
 ```
 
-- **`evaluarPostulacionesPUCV2()` (Función Principal):** Orquesta todo el proceso.
-    1. **Bloqueo (`LockService`):** Adquiere un bloqueo para garantizar una única ejecución.
-    2. **Lectura de Datos:** Obtiene todas las filas de la hoja de respuestas.
-    3. **Iteración y Procesamiento:** Recorre cada fila, omitiendo las ya procesadas. Dentro de un bloque `try...catch`:
-        - Calcula los puntajes parciales usando funciones auxiliares (`calcularPuntaje...`).
-        - Suma los puntajes y almacena el resultado.
-        - Marca la fila como procesada con la fecha actual.
-    4. **Escritura de Resultados:** Limpia y escribe los datos en la hoja `Evaluación automatizada`.
-    5. **Generación de Hojas Derivadas:** Llama a las funciones para crear/actualizar el `Dashboard` y la lista de `Seleccionados`.
-    6. **Liberación del Bloqueo:** Libera el bloqueo para permitir futuras ejecuciones.
+### Objeto CONFIG
 
-- **Funciones de Cálculo (`calcularPuntaje...`):** Cada criterio de puntuación (tipo de postulante, uso de inglés, etc.) tiene su propia función. Esto aísla la lógica y facilita su modificación.
-
-- **Funciones del Dashboard (`generarYActualizarDashboard`, `calcularEstadisticas`):** Un conjunto de funciones modulares se encarga de calcular todas las métricas y de construir la hoja del dashboard, incluyendo el gráfico.
-
-- **`doGet()` y Funciones de Web App:** El script implementa una aplicación web simple (`doGet`) que sirve como panel de control para ejecutar manualmente las tareas administrativas.
+```javascript
+const CONFIG = {
+  WEB_APP_URL: "https://script.google.com/.../exec",
+  SHEETS: {
+    INPUT: "Respuestas de formulario 1",
+    OUTPUT: "Evaluación automatizada",
+    DASHBOARD: "Dashboard",
+    SELECTED: "Seleccionados",
+    WAITLIST: "Lista de Espera",
+    FINAL_LIST: "Lista Final Curso",
+    CONFIG: "Configuración"
+  },
+  COLUMNS: {
+    NOTIFICATION_DATE: "Fecha Notificación",
+    PROCESSING_STATUS: "Estado de Procesamiento",
+    // ... más columnas
+  }
+};
+```
 
 ---
 
 ## 🚀 Guía de Instalación y Configuración
 
-Sigue estos pasos para poner en marcha el sistema.
-
 ### **Paso 1: Crear un Script Independiente**
 
 1. **Crear Hoja de Cálculo:** Crea un nuevo **Google Sheet**. Este será tu centro de operaciones.
 2. **Crear Formulario:** Crea un **Google Form** para recibir las postulaciones.
-3. **Vincular Formulario:** Dentro del formulario, ve a la pestaña "Respuestas" y haz clic en el icono de Google Sheets para vincularlo a la hoja que creaste. Las respuestas se guardarán en una nueva pestaña, normalmente llamada `Respuestas de formulario 1`.
+3. **Vincular Formulario:** Dentro del formulario, ve a la pestaña "Respuestas" y haz clic en el icono de Google Sheets para vincularlo. Las respuestas se guardarán en la pestaña `Respuestas de formulario 1`.
 
 ### **Paso 2: Configurar la Hoja de Respuestas**
 
 1. En la hoja `Respuestas de formulario 1`, ve a la primera columna vacía a la derecha.
-2. Nombra el encabezado de esta nueva columna exactamente: `Estado de Procesamiento`.
+2. Nombra el encabezado exactamente: `Estado de Procesamiento`.
     > **Importante:** El nombre debe ser idéntico. El script usará esta columna para saber qué filas ya ha procesado.
 
-### **Paso 3: Instalar el Script**
+### **Paso 3: Compilar y Preparar los Archivos**
 
-1. En tu Google Sheet, ve a `Extensiones` > `Apps Script`. Se abrirá el editor de código.
-2. Ve a la página de inicio de Google Apps Script: script.google.com.
-3. Haz clic en **Nuevo proyecto**.
-4. Borra cualquier código de ejemplo que aparezca.
-5. Ejecuta `npm run build` localmente y utiliza el script de despliegue `deploy.sh` (o copia manual) para generar el contenido compilado en la carpeta `PUCV2English/`.
-6. Copia todo el contenido de los archivos JS y plantillas HTML ubicados dentro de la carpeta **`PUCV2English/`** y pégalos en nuevos archivos correspondientes dentro de tu editor de Apps Script (asegurando ponerles el mismo nombre).
-7. **Configura la URL de la Web App:** En el archivo `Config.js`, localiza la propiedad `WEB_APP_URL` al inicio del script en la constante `CONFIG`:
+1. Asegúrate de tener Node.js instalado. Ejecuta en la raíz del proyecto:
+   ```bash
+   npm install
+   npm run build
+   ```
+2. Copia los archivos compilados y las plantillas HTML a la carpeta de producción:
+   ```bash
+   # Los archivos .js se copian desde dist/ a PUCV2English/
+   # Los archivos .html se copian desde src/ a PUCV2English/
+   ```
 
-```javascript
-    const CONFIG = {
-      WEB_APP_URL: "https://script.google.com/.../exec",
-      // ...
-    };
-```
+### **Paso 4: Subir a Google Apps Script**
 
-    Reemplaza ese valor con la URL publicada de tu Web App obtenida en el Paso 5.
-8. Guarda el proyecto (icono de disquete 💾).
+1. En tu Google Sheet, ve a `Extensiones` > `Apps Script`.
+2. Crea un archivo nuevo por cada archivo `.js` y `.html` de la carpeta `PUCV2English/`.
+3. Copia y pega el contenido de cada archivo con el mismo nombre (sin extensión).
+4. En `Config.js`, actualiza la propiedad `WEB_APP_URL` con la URL de tu Web App publicada.
+5. Guarda el proyecto.
 
-### **Paso 4: Configurar el Activador (Trigger)**
+### **Paso 5: Configurar el Activador (Trigger)**
 
-Para que el script se ejecute automáticamente con cada nueva postulación, necesitas un activador.
+1. En el editor de Apps Script, haz clic en **Activadores** (⏰).
+2. Haz clic en **+ Añadir activador**:
+   - **Función:** `evaluarPostulacionesPUCV2`
+   - **Fuente del evento:** `Desde una hoja de cálculo`
+   - **Tipo de evento:** `Al enviar un formulario`
+3. Guarda y autoriza los permisos.
 
-1. En el editor de Apps Script, haz clic en el icono de **Activadores** (reloj ⏰) en el panel izquierdo.
-2. Haz clic en **+ Añadir activador** en la esquina inferior derecha.
-3. Configúralo con las siguientes opciones:
-    - **Función que se debe ejecutar:** `evaluarPostulacionesPUCV2`
-    - **Implementación que se debe ejecutar:** `Principal`
-    - **Selecciona la fuente del evento:** `Desde una hoja de cálculo`
-    - **Selecciona el tipo de evento:** `Al enviar un formulario`
-4. Haz clic en **Guardar**.
-5. **Autorizar Permisos:** Google te pedirá que autorices los permisos para que el script pueda modificar tus hojas de cálculo y ejecutarse automáticamente. Concede los permisos necesarios.
+### **Paso 6: Implementar el Panel de Control Web**
 
----
-
-### **Paso 5: Implementar el Panel de Control Web**
-
-Para las tareas manuales, usarás una aplicación web privada.
-
-1. En el editor de Apps Script, haz clic en el botón azul **Implementar** y selecciona **Nueva implementación**.
-2. Haz clic en el icono de engranaje (⚙️) y selecciona **Aplicación web**.
-3. Configura las siguientes opciones:
-    - **Descripción:** `Panel de Control de Evaluación PUCV`.
-    - **Ejecutar como:** `Yo (tu.correo@electronico.com)`.
-    - **Quién tiene acceso:** `Solo yo`.
-4. Haz clic en **Implementar**.
-5. **Autoriza los permisos** cuando se te solicite.
-6. **Copia la URL de la aplicación web** que se te proporciona. Guárdala en tus marcadores. Esta URL es tu panel de control para las tareas manuales.
+1. Haz clic en **Implementar** > **Nueva implementación** > **Aplicación web**.
+2. Configura: Ejecutar como `Yo`, Acceso `Solo yo`.
+3. Copia la URL generada — este es tu panel de control para tareas manuales.
+    > ⚠️ Si usas múltiples cuentas de Google, abre la URL en una ventana de incógnito.
 
 ---
 
@@ -176,43 +186,67 @@ Para las tareas manuales, usarás una aplicación web privada.
 
 ### Ejecución Automática
 
-Una vez configurado el activador, el sistema es **100% autónomo**. Cada vez que un usuario envíe el formulario:
+Una vez configurado el activador, el sistema es **100% autónomo**:
+1. El script `evaluarPostulacionesPUCV2` se ejecuta con cada formulario enviado.
+2. Procesa únicamente la nueva fila.
+3. Actualiza `"Evaluación automatizada"`, `"Dashboard"` y `"Lista de Espera"`.
+4. La hoja `"Seleccionados"` se preserva sin cambios automáticos.
 
-1. El script `evaluarPostulacionesPUCV2` se ejecutará.
-2. Procesará **únicamente la nueva fila**.
-3. Añadirá el resultado a la hoja `Evaluación automatizada`.
-4. Regenerará por completo las hojas `Dashboard` y `Seleccionados`.
-5. Marcará la fila en `Respuestas de formulario 1` como procesada.
+### Menú de Google Sheets
 
-### Ejecución Manual
+El menú superior `PUCV2English` ofrece las siguientes opciones:
 
-Puedes ejecutar análisis o enviar notificaciones desde tu panel de control web.
+| Opción | Descripción |
+|---|---|
+| 📊 Evaluar Postulaciones | Ejecuta la evaluación manual de postulaciones pendientes |
+| 🔄 Reevaluar Todo desde Cero | Limpia y recalcula todos los puntajes |
+| 📋 Generar Lista Final | Crea la hoja `"Lista Final Curso"` |
+| 🔄 Regenerar Lista de Espera | Regenera la lista de espera sin afectar seleccionados |
+| 👤 Promover desde Lista de Espera | Mueve al candidato seleccionado de la lista de espera a seleccionados |
+| ⚠️ Restaurar Hoja Seleccionados | Recupera los datos de seleccionados en caso de pérdida |
+| ⚙️ Configurar Pesos | Abre el sidebar para ajustar los parámetros de ponderación |
+| 👁️ Revisar Postulaciones | Abre el sidebar de revisión de certificados |
+| 📈 Ver Dashboard | Abre el panel de control web |
 
-1. **Abre la URL de la aplicación web** que guardaste durante la implementación.
-    > **⚠️ ¡Importante si usas múltiples cuentas de Google!**
-    > Debido a un bug conocido de Google, debes abrir esta URL en una **ventana de incógnito** o en un perfil de navegador donde **únicamente** hayas iniciado sesión con la cuenta propietaria del script. De lo contrario, podrías ver un error de "No se puede abrir el archivo".
+**Submenú 📧 Enviar Correos:**
 
-2. Usa los botones en la página:
-    - **`Analizar Equilibrio del Ranking`**: Ejecuta la función de análisis y muestra un reporte detallado directamente en la página.
-    - **`Enviar Notificaciones a Seleccionados`**: Ejecuta la función de envío de correos. La página te pedirá una confirmación antes de proceder.
+| Opción | Descripción |
+|---|---|
+| ✅ Seleccionados | Envía invitaciones a candidatos con certificado válido |
+| 🧪 Test de Nivel | Notifica a candidatos que deben rendir prueba de nivelación |
+| 💎 Hand Picked | Invita a candidatos seleccionados manualmente |
+| ⏳ Lista de Espera | Notifica ingreso a la lista de espera |
+| ⏳ Cierre Lista de Espera (Sin Cupo) | Notifica cierre definitivo del proceso a la lista de espera |
+| ❌ No Seleccionados | Envía correos de rechazo (excluye seleccionados y lista de espera) |
+| 👁️ Vista Previa Siguiente | Muestra el próximo candidato de la lista de espera |
+| ✉️ Enviar Correo de Prueba | Envía un correo de prueba a una dirección específica |
+| 🏫 Inicio de Clases | Abre el diálogo de asignación de salas y envío de bienvenida |
 
 ### Gestión de Seleccionados
 
 1. Ve a la hoja **`Seleccionados`**.
-2. Revisa la lista de preseleccionados (Top 15 por nivel de inglés, hasta 60 en total).
-3. Usa las columnas `Verificación Certificado` y `Nivel Asignado` para tus anotaciones.
-4. Cuando un postulante confirme, cambia el estado en la columna `Aceptación`. La fila cambiará de color automáticamente para una mejor visualización.
+2. Revisa y verifica los certificados usando la columna `Verificación Certificado`.
+3. Ajusta el `Nivel Asignado` si corresponde.
+4. Monitorea la columna `Aceptación` (se actualiza automáticamente al responder el correo).
+5. Registra el estado de pago en la columna `Pago Matrícula` (`Pagado`/`Pendiente`).
+
+### Promoción desde Lista de Espera
+
+1. Ve a la hoja **`Lista de Espera`**.
+2. Selecciona la fila del candidato que deseas promover.
+3. Haz clic en `PUCV2English` > `👤 Promover desde Lista de Espera`.
+4. Confirma la promoción. El candidato se moverá a `"Seleccionados"` y se eliminará de la lista de espera.
 
 ---
 
 ## 🧩 Lógica de Puntuación
 
-El puntaje total es la suma de varias áreas. La lógica está centralizada en el objeto `SCORING_PARAMS` y en funciones de cálculo específicas para facilitar su ajuste.
+El puntaje total es la suma de varias áreas, con pesos ajustables desde la hoja `Configuración`:
 
 - **Disponibilidad (máx 4 pts):** 1 punto por cada respuesta afirmativa a preguntas de compromiso de tiempo.
 - **Tipo de Postulante (máx 2 pts):** `Académico/Funcionario` (2), `Postgrado` (1.5), `Otro` (1).
-- **Uso del Inglés (máx 4 pts):** Pondera frecuencia, tipo de actividades y análisis de palabras clave en respuestas abiertas.
-- **Internacionalización (máx 5 pts):** Asigna puntaje según la etapa del proceso (ej. "carta de aceptación" otorga más puntos) y análisis de palabras clave sobre sus planes.
+- **Uso del Inglés (máx 4 pts):** Pondera frecuencia, tipo de actividades y análisis de palabras clave.
+- **Internacionalización (máx 5 pts):** Asigna puntaje según la etapa del proceso y análisis de palabras clave.
 - **Nivel de Inglés (máx 5 pts):** Mapea certificaciones (C1, B2.2, etc.) a un puntaje.
 - **Año de Ingreso (máx 2 pts):** Da más puntaje a años de ingreso más recientes.
 - **Compromiso (máx 3 pts):** 1 punto por cada declaración de compromiso aceptada.

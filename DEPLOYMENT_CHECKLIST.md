@@ -1,8 +1,6 @@
-# 📋 PUCV2English Deployment Checklist
+# 📋 PUCV2English v5.1.0 Deployment Checklist
 
-## Phase 1: Correo Inicio de Clases (Class-Start Emails)
-
-**Generated:** 2026-03-19
+**Updated:** 2026-07-13
 **Status:** Ready for Google Apps Script deployment
 
 ---
@@ -15,33 +13,42 @@ All files have been compiled and copied to `PUCV2English/` folder.
 
 Upload each file as a separate **Script** file in Google Apps Script editor:
 
-| File | Size | Last Updated | Status |
-|------|------|---|---|
-| `Config.js` | 5.9 KB | 2026-03-19 | ✓ Ready |
-| `Utils.js` | 3.1 KB | 2026-03-19 | ✓ Ready |
-| `Correos.js` | 7.3 KB | 2026-03-19 | ✓ Ready |
-| `ListaFinal.js` | 3.1 KB | 2026-03-19 | ✓ Ready (Updated for Phase 1) |
-| `Evaluacion.js` | 20.4 KB | 2026-03-19 | ✓ Ready |
-| `Seleccionados.js` | 5.6 KB | 2026-03-19 | ✓ Ready |
-| **`InicioClases.js`** | **8.6 KB** | **2026-03-19** | **✓ NEW (Phase 1)** |
-| **`Menu.js`** | **5.6 KB** | **2026-03-19** | **✓ UPDATED (Phase 1)** |
-| `Dashboard.js` | 6.1 KB | 2026-03-19 | ✓ Ready |
-| `WebApp.js` | 16.9 KB | 2026-03-19 | ✓ Ready |
-| **`TestInicioClases.js`** | **5.1 KB** | **2026-03-19** | **✓ NEW (Phase 1)** |
+| File | Purpose | Status |
+|------|---------|--------|
+| `Config.js` | Configuración global y tipos | ✓ Ready |
+| `Utils.js` | Funciones de soporte | ✓ Ready |
+| `Correos.js` | Motor de correos (6 lotes + borradores) | ✓ Updated |
+| `ListaFinal.js` | Generación de lista final (filtro Acepta+Pagado) | ✓ Updated |
+| `Evaluacion.js` | Motor de evaluación de postulaciones | ✓ Ready |
+| `Seleccionados.js` | Seleccionados, Lista de Espera y Promoción | ✓ Updated |
+| `InicioClases.js` | Notificaciones de inicio de clases | ✓ Ready |
+| `Menu.js` | Menú personalizado de Google Sheets | ✓ Updated |
+| `Dashboard.js` | Generación del dashboard estadístico | ✓ Ready |
+| `WebApp.js` | Panel de control web y endpoints de confirmación | ✓ Updated |
+| `TestInicioClases.js` | Tests para inicio de clases | ✓ Ready |
 
-### HTML Files (7 total)
+### HTML Files (12 total)
 
 Upload each file as a separate **HTML** file in Google Apps Script editor:
 
 | File | Purpose | Status |
 |------|---------|--------|
-| `index.html` | Main web app dashboard | ✓ Ready |
-| **`DialogSalas.html`** | **Classroom entry modal (Phase 1)** | **✓ NEW** |
-| **`CorreoInicioClases.html`** | **Email template (Phase 1)** | **✓ NEW** |
-| `CorreoSeleccionado.html` | Selected student email | ✓ Ready |
-| `CorreoTestNivel.html` | Level test email | ✓ Ready |
-| `CorreoListaEspera.html` | Waitlist email | ✓ Ready |
-| `CorreoNoSeleccionado.html` | Not selected email | ✓ Ready |
+| `index.html` | Panel de control web (dashboard administrativo) | ✓ Updated |
+| `DialogSalas.html` | Modal de entrada de salas por nivel | ✓ Ready |
+| `DialogConfirmEval.html` | Diálogo de confirmación de evaluación | ✓ Ready |
+| `SidebarConfig.html` | Sidebar de configuración de pesos | ✓ Ready |
+| `SidebarRevision.html` | Sidebar de revisión de postulaciones | ✓ Ready |
+| `CorreoSeleccionado.html` | Correo de selección (con token de aceptar/rechazar) | ✓ Ready |
+| `CorreoTestNivel.html` | Correo para convocatoria a test de nivel | ✓ Ready |
+| `CorreoHandPicked.html` | Correo para candidatos seleccionados manualmente | ✓ Ready |
+| `CorreoListaEspera.html` | Correo de aviso de ingreso a lista de espera | ✓ Ready |
+| **`CorreoEsperaSinCupo.html`** | **Correo de cierre (sin vacantes) para lista de espera** | **✓ NEW** |
+| `CorreoNoSeleccionado.html` | Correo de rechazo (excluye seleccionados y lista de espera) | ✓ Ready |
+| `CorreoInicioClases.html` | Correo de bienvenida con horarios y salas | ✓ Ready |
+
+> **Nota:** Los correos de confirmación automática (`CorreoConfirmacionAcepta.html` y `CorreoConfirmacionRechaza.html`) también deben ser subidos como archivos HTML.
+
+**Total de archivos HTML a subir: 14** (12 listados arriba + 2 de confirmación)
 
 ---
 
@@ -63,35 +70,32 @@ For each `.js` file in the table above:
 2. Select **Script**
 3. Name it **exactly** as shown (without `.js` extension)
    - Example: `Config`, `InicioClases`, `Menu` (not `Config.js`)
-4. Open file in text editor: `PUCV2English/{filename}.js`
+4. Open file from: `PUCV2English/{filename}.js`
 5. **Select all** (Ctrl+A) and **copy** entire content
 6. **Paste** into Google Apps Script editor
 7. **Save** (Ctrl+S)
 8. Repeat for all 11 files
 
 **Order recommendation:**
-- `Config` (contains constants)
+- `Config` (constants first)
 - `Utils` (utility functions)
 - `Correos` (email module)
 - `ListaFinal` (sheet reading)
-- `Evaluacion`, `Seleccionados`, `Dashboard`, `WebApp` (existing modules)
-- **`InicioClases`** (Phase 1 new)
-- **`Menu`** (Phase 1 updated)
-- **`TestInicioClases`** (Phase 1 new - tests)
+- `Evaluacion`, `Seleccionados`, `Dashboard`, `WebApp`
+- `InicioClases`, `Menu`, `TestInicioClases`
 
 ### Step 3: Upload HTML Files
 
-For each `.html` file in the table above:
+For each `.html` file:
 
 1. Click the **[+] New File** button
 2. Select **HTML**
 3. Name it **exactly** as shown (without `.html` extension)
-   - Example: `DialogSalas`, `CorreoInicioClases` (not with `.html`)
-4. Open file in text editor: `PUCV2English/{filename}.html`
-5. **Select all** (Ctrl+A) and **copy** entire content
-6. **Paste** into Google Apps Script HTML editor
+4. Open file from: `PUCV2English/{filename}.html`
+5. **Select all** and **copy** entire content
+6. **Paste** into HTML editor
 7. **Save** (Ctrl+S)
-8. Repeat for all 7 files
+8. Repeat for all 14 files
 
 ---
 
@@ -99,102 +103,62 @@ For each `.html` file in the table above:
 
 After uploading all files:
 
-1. In GAS editor, find the **Run** dropdown (top toolbar)
+1. In GAS editor, find the **Run** dropdown
 2. Select: `testGetNivelesActivos`
-3. Click **Run** button (▶)
+3. Click **Run** (▶)
 4. Check **Executions** panel (View > Executions)
-5. Look for successful execution in the log
 
 Expected output:
 ```
 testGetNivelesActivos: OK — Niveles activos: ["B1+","B2.1","B2.2","C1"]
 ```
 
-If you see this → **Upload successful!** ✓
-
 ---
 
 ## 📋 Manual Testing (In Google Sheets)
 
-After uploading, test Phase 1 features in the Google Sheet:
-
-### Test 1: Menu Item Visible
-
+### Test 1: Menu Visible
 ```
 ✓ Refresh the Google Sheet (Ctrl+Shift+F5)
 ✓ Click menu: "PUCV2English"
-✓ Hover over: "📧 Enviar Correos"
-✓ Verify: "🏫 Inicio de Clases" option appears at bottom
+✓ Verify all options appear including "👤 Promover desde Lista de Espera"
+✓ Hover over "📧 Enviar Correos" and verify "⏳ Cierre Lista de Espera (Sin Cupo)" appears
 ```
 
-### Test 2: Dialog Opens
-
+### Test 2: Draft Mode
 ```
-✓ Click: PUCV2English > 📧 Enviar Correos > 🏫 Inicio de Clases
-✓ Wait 2-3 seconds
-✓ Verify: Modal dialog appears with loading message "Cargando niveles activos..."
-```
-
-### Test 3: Levels Load
-
-```
-✓ Wait for dialog to transition to form state
-✓ Verify: Shows checkboxes for active levels (B1+, B2.1, B2.2, C1)
-✓ Only levels with unnotified students in "Lista Final Curso" should appear
+✓ Click: PUCV2English > 📧 Enviar Correos > ✅ Seleccionados
+✓ At the confirmation dialog, click "NO" to create drafts
+✓ Choose "SÍ" to limit to 5 sample drafts
+✓ Check Gmail drafts folder for the preview emails
 ```
 
-### Test 4: Sala Validation
-
+### Test 3: Waitlist Promotion
 ```
-✓ Leave one sala field empty
-✓ Click "Continuar" button
-✓ Expected: Error message "Debe ingresar una sala para cada nivel"
-```
-
-### Test 5: Preview Display
-
-```
-✓ Fill all sala fields (e.g., "Sala 101", "Sala 102", etc.)
-✓ Click "Continuar"
-✓ Verify: Modal transitions to PREVIEW state
-✓ Shows: "Nivel → Sala" mapping (e.g., "B1+ → Sala 101")
+✓ Open "Lista de Espera" sheet
+✓ Select a row with a candidate
+✓ Click: PUCV2English > 👤 Promover desde Lista de Espera
+✓ Verify candidate moves to "Seleccionados" and is removed from waitlist
 ```
 
-### Test 6: Send Emails
-
+### Test 4: Payment Tracking
 ```
-✓ Review the preview
-✓ Click "Enviar Correos" button
-✓ Wait 10-30 seconds (depends on student count)
-✓ Expected: Success message "Éxito: N correos enviados"
+✓ Open "Seleccionados" sheet
+✓ Verify "Pago Matrícula" column with Pagado/Pendiente dropdown
+✓ Change a value and verify it persists
 ```
 
-### Test 7: Email Content (In Student Inbox)
-
-Check a student's email to verify it contains:
-
-- ✓ Student name
-- ✓ Nivel (Level)
-- ✓ Horario (Schedule: cátedra + ayudantía)
-- ✓ Sala (Classroom)
-- ✓ Fechas (Start and end dates)
-
-### Test 8: Column Updates (In "Lista Final Curso" Sheet)
-
+### Test 5: Final List Generation
 ```
-✓ Open "Lista Final Curso" sheet
-✓ Verify "Sala" column: populated with entered classrooms
-✓ Verify "Notificado Inicio" column: timestamp or marker for sent students
+✓ Click: PUCV2English > 📋 Generar Lista Final
+✓ Verify only candidates with Acepta + Pagado appear in "Lista Final Curso"
 ```
 
-### Test 9: Idempotency (Run Again)
-
+### Test 6: Waitlist Closure Emails
 ```
-✓ Click: PUCV2English > 📧 Enviar Correos > 🏫 Inicio de Clases
-✓ Leave sala values the same (or change them)
-✓ Complete the flow again
-✓ Expected: "Éxito: 0 correos enviados" (NO duplicates to already-notified students)
-✓ Verify: "Notificado Inicio" column unchanged (already has timestamp)
+✓ Click: PUCV2English > 📧 Enviar Correos > ⏳ Cierre Lista de Espera (Sin Cupo)
+✓ Choose draft mode to preview
+✓ Verify "Fecha Notificación Cierre" column updates in "Lista de Espera"
 ```
 
 ---
@@ -203,55 +167,37 @@ Check a student's email to verify it contains:
 
 | Problem | Solution |
 |---------|----------|
-| **"Function not found" error** | Verify all 11 `.js` files uploaded correctly in order (Config first) |
-| **Dialog doesn't open** | Refresh sheet (Ctrl+Shift+F5), check browser console for errors |
-| **"getNivelesActivos is not defined"** | Ensure `Config.js` and `InicioClases.js` both uploaded |
-| **Email not received** | Check spam folder, verify email addresses in "Lista Final Curso" |
+| **"Function not found" error** | Verify all 11 `.js` files uploaded correctly (Config first) |
+| **Dialog doesn't open** | Refresh sheet (Ctrl+Shift+F5), check browser console |
+| **"No hay destinatarios"** | Check idempotency columns — candidates may already have notification dates |
+| **Email not received** | Check spam folder, verify email addresses |
 | **"MailApp error" in logs** | Verify workspace account has email quota available |
-| **Dialog appears but no levels show** | Check that "Lista Final Curso" sheet has data and some students lack notification timestamp |
-
----
-
-## 📚 Key Files (Reference)
-
-If you need to troubleshoot or understand the code:
-
-- **Implementation:** `src/InicioClases.ts` (core logic)
-- **Server functions:** `dist/InicioClases.js` (compiled)
-- **Dialog UI:** `PUCV2English/DialogSalas.html` (4-step form)
-- **Email template:** `PUCV2English/CorreoInicioClases.html` (7 variables)
-- **Menu entry:** `dist/Menu.js` (line 28: "Inicio de Clases")
-- **Tests:** `dist/TestInicioClases.js` (4 test functions)
+| **Column count mismatch** | Ensure the target sheet is empty before restoration |
+| **Promoted candidate not in SELECTED lote** | Check if their `Verificación Certificado` is `"Test de nivel"` — use `🧪 Test de Nivel` instead |
 
 ---
 
 ## 📦 Deployment Summary
 
-- **Total files:** 18 (11 JavaScript + 7 HTML)
-- **New files (Phase 1):** 3 (InicioClases.js, TestInicioClases.js, DialogSalas.html, CorreoInicioClases.html)
-- **Updated files (Phase 1):** 1 (Menu.js - added "Inicio de Clases" option)
-- **Build status:** ✓ TypeScript compilation 0 errors
+- **Total files:** 25 (11 JavaScript + 14 HTML)
+- **New files (v5.1.0):** 1 (`CorreoEsperaSinCupo.html`)
+- **Updated files (v5.1.0):** 5 (`Correos.js`, `Seleccionados.js`, `Menu.js`, `WebApp.js`, `ListaFinal.js`)
+- **Build command:** `npm run build` (TypeScript compilation, 0 errors)
 - **Ready for production:** Yes, after manual testing ✓
 
 ---
 
-## 🎯 What's Implemented (Phase 1)
+## 🎯 What's Implemented (v5.1.0)
 
-✅ Admin can open a dialog showing all active class levels
-✅ Admin enters classroom number for each level
-✅ System displays confirmation preview (level → classroom mapping)
-✅ Admin can abort and go back to edit classrooms
-✅ System sends personalized class-start emails to all confirmed students
-✅ Email includes: name, level, schedule, classroom, program dates
-✅ Classroom persisted to "Lista Final Curso" sheet
-✅ Idempotency guard: re-running skips already-notified students
-✅ Menu item accessible from "Enviar Correos" submenu
-✅ Quota check uses correct GAS API (MailApp.getRemainingDailyQuota)
-
----
-
-**Ready to deploy?** 🚀
-
-Start with Step 1 above, upload all files, then run the quick test.
-
-Good luck!
+✅ Physical waitlist sheet ("Lista de Espera") with 30 candidates per level
+✅ Payment tracking column ("Pago Matrícula") with interactive dropdown
+✅ Strict final list filter: Acepta + Pagado required
+✅ Manual promotion from waitlist to selected with one click
+✅ Waitlist closure email template (CorreoEsperaSinCupo)
+✅ Independent closure notification date column
+✅ Gmail draft mode for email preview before sending
+✅ Secure exclusion: NO_SELECTED skips selected and waitlist candidates
+✅ Dynamic deadline calculation (3 days from send date)
+✅ Protected "Seleccionados" sheet (not overwritten on regeneration)
+✅ Emergency restoration function for lost data
+✅ Expanded menu with all new administrative options
