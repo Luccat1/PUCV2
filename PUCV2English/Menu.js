@@ -25,6 +25,7 @@ function onOpen() {
         .addItem('🧪 Test de Nivel', 'enviarCorreosTestNivel')
         .addItem('💎 Hand Picked (Extratemporáneos)', 'enviarCorreosHandPicked')
         .addItem('⏳ Lista de Espera', 'enviarCorreosEspera')
+        .addItem('⏳ Cierre Lista de Espera (Sin Cupo)', 'enviarCorreosEsperaRechazada')
         .addItem('❌ No Seleccionados', 'enviarCorreosNoSeleccionados')
         .addSeparator()
         .addItem('👁️ Vista Previa Siguiente (Lista de Espera)', 'mostrarVistaPreviaProximo')
@@ -96,6 +97,7 @@ function enviarCorreosSeleccionados() { confirmarYEnviarCorreos('SELECTED'); }
 function enviarCorreosTestNivel() { confirmarYEnviarCorreos('TEST_LEVEL_ONLY'); }
 function enviarCorreosHandPicked() { confirmarYEnviarCorreos('HAND_PICKED'); }
 function enviarCorreosEspera() { confirmarYEnviarCorreos('WAITLIST'); }
+function enviarCorreosEsperaRechazada() { confirmarYEnviarCorreos('WAITLIST_REJECTED'); }
 function enviarCorreosNoSeleccionados() { confirmarYEnviarCorreos('NO_SELECTED'); }
 function ejecutarAnalisisDesdeMenu() {
     const report = getAnalysisReport();

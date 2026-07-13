@@ -72,6 +72,30 @@ function getRecipients(type) {
             return p.email && p.nombre && p.nivel && (!p.notificado || p.notificado === "");
         });
     }
+    if (type === 'WAITLIST_REJECTED') {
+        const hoja = ss.getSheetByName(CONFIG.SHEETS.WAITLIST);
+        if (!hoja)
+            throw new Error(`Hoja ${CONFIG.SHEETS.WAITLIST} no encontrada.`);
+        const datos = hoja.getDataRange().getValues();
+        const headers = datos.shift();
+        const idxCorreo = headers.indexOf("Correo Electrónico");
+        const idxNombre = headers.indexOf("Nombre(s)");
+        const idxNivel = headers.indexOf("Nivel Postulado");
+        const idxNotificadoCierre = headers.indexOf("Fecha Notificación Cierre");
+        if (idxCorreo === -1 || idxNombre === -1 || idxNivel === -1 || idxNotificadoCierre === -1) {
+            throw new Error(`Faltan columnas necesarias en la hoja de Lista de Espera.`);
+        }
+        return datos.map((row, i) => ({
+            index: i + 2, // 1-indexed + header row
+            nombre: row[idxNombre],
+            email: row[idxCorreo],
+            nivel: row[idxNivel],
+            notificadoCierre: row[idxNotificadoCierre]
+        })).filter(p => {
+            // Idempotency: skip if already notified of closure rejection
+            return p.email && p.nombre && p.nivel && (!p.notificadoCierre || p.notificadoCierre === "");
+        });
+    }
     if (type === 'NO_SELECTED') {
         const hojaOutput = ss.getSheetByName(CONFIG.SHEETS.OUTPUT);
         const hojaSelected = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
@@ -140,10 +164,12 @@ function sendEmailBatch(type, asDraft = false, limit = 0) {
         return `ERROR: Cuota de Gmail insuficiente. Te quedan ${quota} envíos y quieres enviar ${recipients.length}.`;
     }
     const ss = getSpreadsheet();
-    const sheetName = type === 'WAITLIST' ? CONFIG.SHEETS.WAITLIST : CONFIG.SHEETS.SELECTED;
+    const isWaitlist = (type === 'WAITLIST' || type === 'WAITLIST_REJECTED');
+    const sheetName = isWaitlist ? CONFIG.SHEETS.WAITLIST : CONFIG.SHEETS.SELECTED;
     const hojaS = ss.getSheetByName(sheetName);
     const headersS = hojaS?.getDataRange().getValues()[0];
-    const idxNotificado = headersS?.indexOf(CONFIG.COLUMNS.NOTIFICATION_DATE);
+    const colName = type === 'WAITLIST_REJECTED' ? "Fecha Notificación Cierre" : CONFIG.COLUMNS.NOTIFICATION_DATE;
+    const idxNotificado = headersS?.indexOf(colName);
     let count = 0;
     let ultimosErrores = [];
     recipients.forEach(r => {
@@ -156,6 +182,10 @@ function sendEmailBatch(type, asDraft = false, limit = 0) {
             }
             else if (type === 'WAITLIST') {
                 templateName = 'CorreoListaEspera';
+            }
+            else if (type === 'WAITLIST_REJECTED') {
+                templateName = 'CorreoEsperaSinCupo';
+                subject = "Cierre de Proceso - Lista de Espera PUCV2English";
             }
             else if (type === 'NO_SELECTED') {
                 templateName = 'CorreoNoSeleccionado';
@@ -184,8 +214,8 @@ function sendEmailBatch(type, asDraft = false, limit = 0) {
                 GmailApp.sendEmail(r.email, subject, "", {
                     htmlBody: finishedHtml
                 });
-                // Update notification date for idempotency only when sending real emails
-                if (hojaS && idxNotificado !== undefined && idxNotificado !== -1) {
+                // Update notification date for idempotency only when sending real emails (skip for NO_SELECTED since it's not tracked on SELECTED sheet)
+                if (type !== 'NO_SELECTED' && hojaS && idxNotificado !== undefined && idxNotificado !== -1) {
                     hojaS.getRange(r.index, idxNotificado + 1).setValue(new Date());
                 }
             }

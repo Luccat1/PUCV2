@@ -77,6 +77,33 @@ function getRecipients(type: string): any[] {
     });
   }
 
+  if (type === 'WAITLIST_REJECTED') {
+    const hoja = ss.getSheetByName(CONFIG.SHEETS.WAITLIST);
+    if (!hoja) throw new Error(`Hoja ${CONFIG.SHEETS.WAITLIST} no encontrada.`);
+    const datos = hoja.getDataRange().getValues();
+    const headers = datos.shift()!;
+
+    const idxCorreo = headers.indexOf("Correo Electrónico");
+    const idxNombre = headers.indexOf("Nombre(s)");
+    const idxNivel = headers.indexOf("Nivel Postulado");
+    const idxNotificadoCierre = headers.indexOf("Fecha Notificación Cierre");
+
+    if (idxCorreo === -1 || idxNombre === -1 || idxNivel === -1 || idxNotificadoCierre === -1) {
+      throw new Error(`Faltan columnas necesarias en la hoja de Lista de Espera.`);
+    }
+
+    return datos.map((row, i) => ({
+      index: i + 2, // 1-indexed + header row
+      nombre: row[idxNombre],
+      email: row[idxCorreo],
+      nivel: row[idxNivel],
+      notificadoCierre: row[idxNotificadoCierre]
+    })).filter(p => {
+      // Idempotency: skip if already notified of closure rejection
+      return p.email && p.nombre && p.nivel && (!p.notificadoCierre || p.notificadoCierre === "");
+    });
+  }
+
   if (type === 'NO_SELECTED') {
     const hojaOutput = ss.getSheetByName(CONFIG.SHEETS.OUTPUT);
     const hojaSelected = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
@@ -154,10 +181,12 @@ function sendEmailBatch(type: string, asDraft: boolean = false, limit: number = 
   }
 
   const ss = getSpreadsheet();
-  const sheetName = type === 'WAITLIST' ? CONFIG.SHEETS.WAITLIST : CONFIG.SHEETS.SELECTED;
+  const isWaitlist = (type === 'WAITLIST' || type === 'WAITLIST_REJECTED');
+  const sheetName = isWaitlist ? CONFIG.SHEETS.WAITLIST : CONFIG.SHEETS.SELECTED;
   const hojaS = ss.getSheetByName(sheetName);
   const headersS = hojaS?.getDataRange().getValues()[0];
-  const idxNotificado = headersS?.indexOf(CONFIG.COLUMNS.NOTIFICATION_DATE);
+  const colName = type === 'WAITLIST_REJECTED' ? "Fecha Notificación Cierre" : CONFIG.COLUMNS.NOTIFICATION_DATE;
+  const idxNotificado = headersS?.indexOf(colName);
 
   let count = 0;
   let ultimosErrores: string[] = [];
@@ -172,6 +201,9 @@ function sendEmailBatch(type: string, asDraft: boolean = false, limit: number = 
         subject = "Test de Nivel - Programas de Inglés PUCV";
       } else if (type === 'WAITLIST') {
         templateName = 'CorreoListaEspera';
+      } else if (type === 'WAITLIST_REJECTED') {
+        templateName = 'CorreoEsperaSinCupo';
+        subject = "Cierre de Proceso - Lista de Espera PUCV2English";
       } else if (type === 'NO_SELECTED') {
         templateName = 'CorreoNoSeleccionado';
       } else if (type === 'HAND_PICKED') {
@@ -202,8 +234,8 @@ function sendEmailBatch(type: string, asDraft: boolean = false, limit: number = 
           htmlBody: finishedHtml
         });
 
-        // Update notification date for idempotency only when sending real emails
-        if (hojaS && idxNotificado !== undefined && idxNotificado !== -1) {
+        // Update notification date for idempotency only when sending real emails (skip for NO_SELECTED since it's not tracked on SELECTED sheet)
+        if (type !== 'NO_SELECTED' && hojaS && idxNotificado !== undefined && idxNotificado !== -1) {
           hojaS.getRange(r.index, idxNotificado + 1).setValue(new Date());
         }
       }

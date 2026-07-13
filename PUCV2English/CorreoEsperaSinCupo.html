@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <base target="_top">
+  <style>
+    body {
+      font-family: 'Roboto', Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+      color: #333333;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #ffffff;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .header {
+      text-align: center;
+      padding-bottom: 20px;
+      border-bottom: 2px solid #0055a2;
+    }
+
+    .header img {
+      max-width: 150px;
+    }
+
+    .content {
+      padding: 20px 0;
+      line-height: 1.7;
+    }
+
+    .content h3 {
+      color: #003366;
+    }
+
+    .footer {
+      text-align: center;
+      padding-top: 20px;
+      border-top: 1px solid #eeeeee;
+      font-size: 12px;
+      color: #777777;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="header">
+      <img src="https://www.pucv.cl/pucv/site/artic/20220615/imag/foto_0000000120220615160256/logo_header.png" alt="Logo PUCV">
+    </div>
+    <div class="content">
+      <h3>Cierre de Proceso - Lista de Espera PUCV2English</h3>
+      <p>Estimado/a <?= nombre ?>,</p>
+      
+      <p>Junto con saludar, nos dirigimos a ti para informarte sobre el estado final de tu postulación a la quinta versión del programa <strong>PUCV2English</strong>, en el cual te encontrabas en Lista de Espera.</p>
+
+      <p>Te informamos que el período de matrícula ha concluido y la totalidad de los cupos disponibles para el nivel asignado (<strong><?= nivel ?></strong>) han sido completados por los postulantes seleccionados.</p>
+
+      <p>Por este motivo, lamentablemente no ha sido posible promover tu postulación a un cupo activo en esta oportunidad.</p>
+
+      <p>Agradecemos sinceramente tu interés, comprensión y paciencia a lo largo de este proceso de selección. Te animamos a mantener tu motivación por aprender y perfeccionar el idioma inglés, y te invitamos cordialmente a participar en nuestras próximas convocatorias.</p>
+      
+      <br>
+      <p>Saludos cordiales,<br>Coordinación PUCV2English</p>
+    </div>
+    <div class="footer">
+      <p>Pontificia Universidad Católica de Valparaíso</p>
+      <p>Este es un correo generado automáticamente. Si tienes consultas, puedes responder a esta dirección.</p>
+    </div>
+  </div>
+</body>
+
+</html>

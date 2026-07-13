@@ -395,7 +395,7 @@ function generarHojaListaEspera(resultados: any[][], ss: GoogleAppsScript.Spread
   logToWebApp("Generando lista de espera por nivel (Siguientes 30 por nivel)...");
 
   // Read existing waitlist to preserve notified dates
-  const emailMap: Record<string, { fechaNotif: string }> = {};
+  const emailMap: Record<string, { fechaNotif: string, fechaCierre: string }> = {};
   const existingRowsMap: Record<string, any[]> = {};
 
   let sheet = ss.getSheetByName(CONFIG.SHEETS.WAITLIST);
@@ -405,13 +405,15 @@ function generarHojaListaEspera(resultados: any[][], ss: GoogleAppsScript.Spread
       const headersW = existingValues[0];
       const idxEmailW = headersW.indexOf("Correo Electrónico");
       const idxNotifW = headersW.indexOf("Fecha Notificación");
+      const idxCierreW = headersW.indexOf("Fecha Notificación Cierre");
 
       if (idxEmailW !== -1) {
         existingValues.slice(1).forEach(row => {
           const email = String(row[idxEmailW]).trim().toLowerCase();
           if (email) {
             emailMap[email] = {
-              fechaNotif: idxNotifW !== -1 ? String(row[idxNotifW]) : ""
+              fechaNotif: idxNotifW !== -1 ? String(row[idxNotifW]) : "",
+              fechaCierre: idxCierreW !== -1 ? String(row[idxCierreW]) : ""
             };
             const endIdx = idxNotifW !== -1 ? idxNotifW : row.length;
             const resultRowPart = row.slice(1, endIdx);
@@ -504,7 +506,7 @@ function generarHojaListaEspera(resultados: any[][], ss: GoogleAppsScript.Spread
   });
 
   const rankedData = waitlistPorNivel.map((f, i) => [i + 1, ...f]);
-  const headersW = ["Ranking", ...resultados[0], "Fecha Notificación"];
+  const headersW = ["Ranking", ...resultados[0], "Fecha Notificación", "Fecha Notificación Cierre"];
 
   const idxEmailInW = headersW.indexOf("Correo Electrónico");
 
@@ -513,7 +515,8 @@ function generarHojaListaEspera(resultados: any[][], ss: GoogleAppsScript.Spread
     const existing = emailMap[email];
     return [
       ...f,
-      existing ? existing.fechaNotif : ""
+      existing ? existing.fechaNotif : "",
+      existing ? existing.fechaCierre : ""
     ];
   })];
 
@@ -811,10 +814,10 @@ function promoverDesdeListaEspera(): void {
 
   const nextRanking = hojaSelected.getLastRow();
   
-  // The waitlist row format: [Ranking, ...resultados[0], Fecha Notificación]
+  // The waitlist row format: [Ranking, ...resultados[0], Fecha Notificación, Fecha Notificación Cierre]
   // We want to extract findings from ...resultados[0] and build:
   // [Ranking, ...resultados[0], Verificación Certificado, Nivel Asignado, Aceptación, Pago Matrícula, Comentarios, Fecha Notificación]
-  const evalRowPart = rowData.slice(1, lastCol - 1); 
+  const evalRowPart = rowData.slice(1, lastCol - 2); 
 
   const newRow = [
     nextRanking, // Ranking

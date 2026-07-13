@@ -345,12 +345,14 @@ function generarHojaListaEspera(resultados, ss) {
             const headersW = existingValues[0];
             const idxEmailW = headersW.indexOf("Correo Electrónico");
             const idxNotifW = headersW.indexOf("Fecha Notificación");
+            const idxCierreW = headersW.indexOf("Fecha Notificación Cierre");
             if (idxEmailW !== -1) {
                 existingValues.slice(1).forEach(row => {
                     const email = String(row[idxEmailW]).trim().toLowerCase();
                     if (email) {
                         emailMap[email] = {
-                            fechaNotif: idxNotifW !== -1 ? String(row[idxNotifW]) : ""
+                            fechaNotif: idxNotifW !== -1 ? String(row[idxNotifW]) : "",
+                            fechaCierre: idxCierreW !== -1 ? String(row[idxCierreW]) : ""
                         };
                         const endIdx = idxNotifW !== -1 ? idxNotifW : row.length;
                         const resultRowPart = row.slice(1, endIdx);
@@ -435,14 +437,15 @@ function generarHojaListaEspera(resultados, ss) {
         return pB - pA;
     });
     const rankedData = waitlistPorNivel.map((f, i) => [i + 1, ...f]);
-    const headersW = ["Ranking", ...resultados[0], "Fecha Notificación"];
+    const headersW = ["Ranking", ...resultados[0], "Fecha Notificación", "Fecha Notificación Cierre"];
     const idxEmailInW = headersW.indexOf("Correo Electrónico");
     const sheetData = [headersW, ...rankedData.map(f => {
             const email = idxEmailInW !== -1 ? String(f[idxEmailInW]).trim().toLowerCase() : "";
             const existing = emailMap[email];
             return [
                 ...f,
-                existing ? existing.fechaNotif : ""
+                existing ? existing.fechaNotif : "",
+                existing ? existing.fechaCierre : ""
             ];
         })];
     if (!sheet) {
@@ -696,10 +699,10 @@ function promoverDesdeListaEspera() {
     if (confirm !== ui.Button.YES)
         return;
     const nextRanking = hojaSelected.getLastRow();
-    // The waitlist row format: [Ranking, ...resultados[0], Fecha Notificación]
+    // The waitlist row format: [Ranking, ...resultados[0], Fecha Notificación, Fecha Notificación Cierre]
     // We want to extract findings from ...resultados[0] and build:
     // [Ranking, ...resultados[0], Verificación Certificado, Nivel Asignado, Aceptación, Pago Matrícula, Comentarios, Fecha Notificación]
-    const evalRowPart = rowData.slice(1, lastCol - 1);
+    const evalRowPart = rowData.slice(1, lastCol - 2);
     const newRow = [
         nextRanking, // Ranking
         ...evalRowPart,
