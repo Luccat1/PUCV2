@@ -14,6 +14,7 @@ const CONFIG = {
         DASHBOARD: "Dashboard",
         CONFIG: "Configuración",
         SELECTED: "Seleccionados",
+        WAITLIST: "Lista de Espera",
         FINAL_LIST: "Lista Final Curso"
     },
     COLUMNS: {

@@ -207,6 +207,7 @@ function evaluarPostulacionesPUCV2(): string {
     // Update UI components
     logToWebApp("Generando hoja de seleccionados y dashboard...");
     generarHojaSeleccionados(resultados, ss); // From Seleccionados.ts
+    generarHojaListaEspera(resultados, ss); // From Seleccionados.ts
     generarYActualizarDashboard(resultados, ss, datos, indiceColumnas); // From Dashboard.ts
 
     SpreadsheetApp.flush();
@@ -625,6 +626,15 @@ function ejecutarReevaluacionCompleta(): void {
       hojaSeleccionados.clearConditionalFormatRules();
       if (hojaSeleccionados.getLastRow() > 0 && hojaSeleccionados.getLastColumn() > 0) {
         hojaSeleccionados.getRange(1, 1, hojaSeleccionados.getLastRow(), hojaSeleccionados.getLastColumn()).clearContent();
+      }
+    }
+
+    // 3.5. Limpiar hoja de Lista de Espera
+    const hojaWaitlist = ss.getSheetByName(CONFIG.SHEETS.WAITLIST);
+    if (hojaWaitlist) {
+      hojaWaitlist.clearConditionalFormatRules();
+      if (hojaWaitlist.getLastRow() > 0 && hojaWaitlist.getLastColumn() > 0) {
+        hojaWaitlist.getRange(1, 1, hojaWaitlist.getLastRow(), hojaWaitlist.getLastColumn()).clearContent();
       }
     }
 

@@ -22,6 +22,7 @@ interface IConfig {
     DASHBOARD: string;
     CONFIG: string;
     SELECTED: string;
+    WAITLIST: string;
     FINAL_LIST: string;
   };
   COLUMNS: Record<string, string>;
@@ -116,6 +117,7 @@ const CONFIG: IConfig = {
     DASHBOARD: "Dashboard",
     CONFIG: "Configuración",
     SELECTED: "Seleccionados",
+    WAITLIST: "Lista de Espera",
     FINAL_LIST: "Lista Final Curso"
   },
   COLUMNS: {

@@ -372,3 +372,203 @@ function promoverCandidatoActivo(): void {
 
   ui.alert("Promoción Exitosa", `Se ha promovido a ${nombres} ${apellidos} al nivel ${nivelPostulado} de seleccionados.`, ui.ButtonSet.OK);
 }
+
+/**
+ * Generates the "Lista de Espera" sheet with ranking.
+ * @param resultados The processed evaluation results array.
+ * @param ss The target Spreadsheet.
+ */
+function generarHojaListaEspera(resultados: any[][], ss: GoogleAppsScript.Spreadsheet.Spreadsheet): void {
+  const datosPostulantes = resultados.slice(1);
+  const idxTotal = resultados[0].indexOf("PUNTAJE TOTAL");
+  const idxFecha = resultados[0].indexOf("Fecha de Postulación");
+  const idxNivelPostulado = resultados[0].indexOf("Nivel Postulado");
+  const idxEmail = resultados[0].indexOf("Correo Electrónico");
+
+  logToWebApp("Generando lista de espera por nivel (Siguientes 15 por nivel)...");
+
+  // Read existing waitlist to preserve notified dates
+  const emailMap: Record<string, { fechaNotif: string }> = {};
+  const existingRowsMap: Record<string, any[]> = {};
+
+  let sheet = ss.getSheetByName(CONFIG.SHEETS.WAITLIST);
+  if (sheet) {
+    const existingValues = sheet.getDataRange().getValues();
+    if (existingValues.length > 1) {
+      const headersW = existingValues[0];
+      const idxEmailW = headersW.indexOf("Correo Electrónico");
+      const idxNotifW = headersW.indexOf("Fecha Notificación");
+
+      if (idxEmailW !== -1) {
+        existingValues.slice(1).forEach(row => {
+          const email = String(row[idxEmailW]).trim().toLowerCase();
+          if (email) {
+            emailMap[email] = {
+              fechaNotif: idxNotifW !== -1 ? String(row[idxNotifW]) : ""
+            };
+            const endIdx = idxNotifW !== -1 ? idxNotifW : row.length;
+            const resultRowPart = row.slice(1, endIdx);
+            existingRowsMap[email] = resultRowPart;
+          }
+        });
+      }
+    }
+  }
+
+  // Get current Selected candidates (don't put them on the waitlist)
+  const hojaSelected = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
+  const emailsSelected = new Set<string>();
+  if (hojaSelected) {
+    const valuesS = hojaSelected.getDataRange().getValues();
+    if (valuesS.length > 1) {
+      const headS = valuesS[0];
+      const idxCorreoS = headS.indexOf("Correo Electrónico");
+      if (idxCorreoS !== -1) {
+        valuesS.slice(1).forEach(row => {
+          const email = String(row[idxCorreoS]).trim().toLowerCase();
+          if (email) emailsSelected.add(email);
+        });
+      }
+    }
+  }
+
+  const niveles = ["B1+", "B2.1", "B2.2", "C1"];
+  const waitlistPorNivel: any[][] = [];
+
+  niveles.forEach(nivel => {
+    // Candidates who applied to this level and are NOT selected
+    const candidatesInResults = datosPostulantes.filter(f => {
+      const nivelPost = idxNivelPostulado !== -1 ? String(f[idxNivelPostulado]).trim() : "";
+      const email = idxEmail !== -1 ? String(f[idxEmail]).trim().toLowerCase() : "";
+      return nivelPost === nivel && !emailsSelected.has(email);
+    });
+
+    // Candidates already in waitlist for this level
+    const alreadyWaitlistedEmails = Object.keys(emailMap).filter(email => {
+      // Find candidate's level
+      const matchInResults = datosPostulantes.find(f => idxEmail !== -1 && String(f[idxEmail]).trim().toLowerCase() === email);
+      if (matchInResults) {
+        const nivelPost = idxNivelPostulado !== -1 ? String(matchInResults[idxNivelPostulado]).trim() : "";
+        return nivelPost === nivel;
+      }
+      return false;
+    });
+
+    const yaEnEspera: any[][] = [];
+    alreadyWaitlistedEmails.forEach(email => {
+      const matchInResults = datosPostulantes.find(f => idxEmail !== -1 && String(f[idxEmail]).trim().toLowerCase() === email);
+      if (matchInResults) {
+        yaEnEspera.push(matchInResults);
+      } else if (existingRowsMap[email]) {
+        yaEnEspera.push(existingRowsMap[email]);
+      }
+    });
+
+    // New candidates for waitlist
+    const nuevosCandidatos = candidatesInResults.filter(f => {
+      const email = idxEmail !== -1 ? String(f[idxEmail]).trim().toLowerCase() : "";
+      return !emailMap[email];
+    });
+
+    // Sort new candidates by score desc, date asc
+    nuevosCandidatos.sort((a, b) => {
+      const pB = parseFloat(b[idxTotal] || 0);
+      const pA = parseFloat(a[idxTotal] || 0);
+      if (pB !== pA) return pB - pA;
+      return new Date(a[idxFecha]).getTime() - new Date(b[idxFecha]).getTime();
+    });
+
+    // 15 spots for waitlist per level
+    const spotsDisponibles = Math.max(0, 15 - yaEnEspera.length);
+    const nuevosEspera = nuevosCandidatos.slice(0, spotsDisponibles);
+
+    waitlistPorNivel.push(...yaEnEspera, ...nuevosEspera);
+  });
+
+  // Sort by level, then score desc
+  waitlistPorNivel.sort((a, b) => {
+    const nivelA = idxNivelPostulado !== -1 ? String(a[idxNivelPostulado]).trim() : "";
+    const nivelB = idxNivelPostulado !== -1 ? String(b[idxNivelPostulado]).trim() : "";
+    if (nivelA !== nivelB) return nivelA.localeCompare(nivelB);
+
+    const pB = parseFloat(b[idxTotal] || 0);
+    const pA = parseFloat(a[idxTotal] || 0);
+    return pB - pA;
+  });
+
+  const rankedData = waitlistPorNivel.map((f, i) => [i + 1, ...f]);
+  const headersW = ["Ranking", ...resultados[0], "Fecha Notificación"];
+
+  const idxEmailInW = headersW.indexOf("Correo Electrónico");
+
+  const sheetData = [headersW, ...rankedData.map(f => {
+    const email = idxEmailInW !== -1 ? String(f[idxEmailInW]).trim().toLowerCase() : "";
+    const existing = emailMap[email];
+    return [
+      ...f,
+      existing ? existing.fechaNotif : ""
+    ];
+  })];
+
+  if (!sheet) {
+    sheet = ss.insertSheet(CONFIG.SHEETS.WAITLIST);
+  } else {
+    sheet.clearConditionalFormatRules();
+    if (sheet.getLastRow() > 0 && sheet.getLastColumn() > 0) {
+      sheet.getRange(1, 1, sheet.getLastRow(), sheet.getLastColumn()).clearContent();
+    }
+  }
+
+  if (sheetData.length > 0) {
+    const range = sheet.getRange(1, 1, sheetData.length, sheetData[0].length);
+    range.setValues(sheetData);
+    
+    // Formatting
+    sheet.setTabColor("#ff9900"); // Orange for Waitlist
+    sheet.getRange(1, 1, 1, sheetData[0].length)
+      .setBackground("#ffe599")
+      .setFontColor("#7f6000")
+      .setFontWeight("bold");
+    sheet.setFrozenRows(1);
+    sheet.autoResizeColumns(1, sheetData[0].length);
+  }
+}
+
+/**
+ * Regenerates Seleccionados and Waitlist sheets safely from the current evaluation results.
+ * Preserves all manual entries and timestamps.
+ */
+function ejecutarRegeneracionDeListas(): void {
+  const ui = SpreadsheetApp.getUi();
+  const confirm = ui.alert(
+    "Regenerar Listas",
+    "Esta operación regenerará las hojas 'Seleccionados' y 'Lista de Espera' basándose en los puntajes de 'Evaluación automatizada'.\n\nSe conservarán todos los candidatos actuales, sus estados, comentarios y fechas de notificación, así como los candidatos promovidos manualmente.\n\n¿Deseas continuar?",
+    ui.ButtonSet.YES_NO
+  );
+  if (confirm !== ui.Button.YES) return;
+
+  try {
+    const ss = getSpreadsheet();
+    cargarConfiguracionDesdeHoja();
+
+    const hojaO = ss.getSheetByName(CONFIG.SHEETS.OUTPUT);
+    if (!hojaO) {
+      ui.alert("Error", `La hoja '${CONFIG.SHEETS.OUTPUT}' no existe. Por favor realiza una evaluación primero.`, ui.ButtonSet.OK);
+      return;
+    }
+
+    const resultados = hojaO.getDataRange().getValues();
+    if (resultados.length < 2) {
+      ui.alert("Error", "No hay datos en la hoja de evaluación para procesar.", ui.ButtonSet.OK);
+      return;
+    }
+
+    generarHojaSeleccionados(resultados, ss);
+    generarHojaListaEspera(resultados, ss);
+
+    SpreadsheetApp.flush();
+    ui.alert("Operación Exitosa", "Se han regenerado las hojas 'Seleccionados' y 'Lista de Espera' de forma correcta, preservando los datos existentes.", ui.ButtonSet.OK);
+  } catch (e: any) {
+    ui.alert("Error", "Ocurrió un error: " + e.message, ui.ButtonSet.OK);
+  }
+}

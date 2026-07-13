@@ -13,6 +13,7 @@ function onOpen() {
         .addItem('🔄 Reevaluar Todo desde Cero', 'ejecutarReevaluacionCompleta')
         .addItem('📋 Generar Lista Final', 'ejecutarGenerarListaFinal')
         .addItem('👤 Promover Candidato Activo', 'promoverCandidatoActivo')
+        .addItem('🔄 Regenerar Seleccionados y Lista de Espera', 'ejecutarRegeneracionDeListas')
         .addSeparator()
         .addItem('⚙️ Configurar Pesos', 'abrirSidebarConfig')
         .addItem('👁️ Revisar Postulaciones', 'abrirSidebarRevision')

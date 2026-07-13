@@ -50,19 +50,73 @@ function getRecipients(type: string): any[] {
     });
   }
 
-  if (type === 'WAITLIST' || type === 'NO_SELECTED') {
-    const hoja = ss.getSheetByName(CONFIG.SHEETS.OUTPUT); // Assuming they stay here for now
-    if (!hoja) throw new Error(`Hoja ${CONFIG.SHEETS.OUTPUT} no encontrada.`);
+  if (type === 'WAITLIST') {
+    const hoja = ss.getSheetByName(CONFIG.SHEETS.WAITLIST);
+    if (!hoja) throw new Error(`Hoja ${CONFIG.SHEETS.WAITLIST} no encontrada.`);
     const datos = hoja.getDataRange().getValues();
     const headers = datos.shift()!;
 
-    // In AUTO_EVAL, they are marked in the Status column (to be defined/confirmed)
-    // For now, let's assume getRecipients logic for these types is based on a specific criteria
-    // or that we have a dedicated sheet for them if refactored.
-    // Based on original logic, they might still be in the main list but filtered.
-    // Let's implement basic filtering if they are not picked for SELECTED.
-    // (This part might need adjustment based on how the list is generated)
-    return []; // Placeholder for now as per plan 3.2
+    const idxCorreo = headers.indexOf("Correo Electrónico");
+    const idxNombre = headers.indexOf("Nombre(s)");
+    const idxNivel = headers.indexOf("Nivel Postulado");
+    const idxNotificado = headers.indexOf("Fecha Notificación");
+
+    if (idxCorreo === -1 || idxNombre === -1 || idxNivel === -1 || idxNotificado === -1) {
+      throw new Error(`Faltan columnas necesarias en la hoja de Lista de Espera.`);
+    }
+
+    return datos.map((row, i) => ({
+      index: i + 2, // 1-indexed + header row
+      nombre: row[idxNombre],
+      email: row[idxCorreo],
+      nivel: row[idxNivel],
+      notificado: row[idxNotificado]
+    })).filter(p => {
+      // Idempotency: skip if already notified
+      return p.email && p.nombre && p.nivel && (!p.notificado || p.notificado === "");
+    });
+  }
+
+  if (type === 'NO_SELECTED') {
+    const hojaOutput = ss.getSheetByName(CONFIG.SHEETS.OUTPUT);
+    const hojaSelected = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
+    const hojaWaitlist = ss.getSheetByName(CONFIG.SHEETS.WAITLIST);
+    if (!hojaOutput || !hojaSelected || !hojaWaitlist) {
+      throw new Error("Faltan hojas de evaluación, seleccionados o lista de espera.");
+    }
+
+    const valuesOutput = hojaOutput.getDataRange().getValues();
+    const headersOutput = valuesOutput.shift()!;
+    const idxCorreoOut = headersOutput.indexOf("Correo Electrónico");
+    const idxNombreOut = headersOutput.indexOf("Nombre(s)");
+    const idxNivelOut = headersOutput.indexOf("Nivel Postulado");
+
+    if (idxCorreoOut === -1 || idxNombreOut === -1 || idxNivelOut === -1) {
+      throw new Error(`Faltan columnas esenciales en la hoja de evaluación.`);
+    }
+
+    const valS = hojaSelected.getDataRange().getValues();
+    const headS = valS.shift() || [];
+    const idxS = headS.indexOf("Correo Electrónico");
+    const emailsSelected = new Set(valS.map(row => String(row[idxS]).trim().toLowerCase()));
+
+    const valW = hojaWaitlist.getDataRange().getValues();
+    const headW = valW.shift() || [];
+    const idxW = headW.indexOf("Correo Electrónico");
+    const emailsWaitlist = new Set(valW.map(row => String(row[idxW]).trim().toLowerCase()));
+
+    return valuesOutput
+      .filter(row => {
+        const email = String(row[idxCorreoOut]).trim().toLowerCase();
+        return email && !emailsSelected.has(email) && !emailsWaitlist.has(email);
+      })
+      .map((row, i) => ({
+        index: i + 2,
+        nombre: row[idxNombreOut],
+        email: row[idxCorreoOut],
+        nivel: row[idxNivelOut],
+        notificado: false
+      }));
   }
 
   return [];
@@ -100,7 +154,8 @@ function sendEmailBatch(type: string, asDraft: boolean = false, limit: number = 
   }
 
   const ss = getSpreadsheet();
-  const hojaS = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
+  const sheetName = type === 'WAITLIST' ? CONFIG.SHEETS.WAITLIST : CONFIG.SHEETS.SELECTED;
+  const hojaS = ss.getSheetByName(sheetName);
   const headersS = hojaS?.getDataRange().getValues()[0];
   const idxNotificado = headersS?.indexOf(CONFIG.COLUMNS.NOTIFICATION_DATE);
 

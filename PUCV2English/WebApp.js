@@ -9,6 +9,7 @@
  * @returns {GoogleAppsScript.HTML.HtmlOutput} The rendered HTML content.
  */
 function doGet(e) {
+    cargarConfiguracionDesdeHoja();
     const action = e.parameter.action;
     const token = e.parameter.token;
     if (action && token) {
@@ -30,7 +31,7 @@ function doGet(e) {
  * @returns {GoogleAppsScript.HTML.HtmlOutput} The confirmation page.
  */
 function crearPaginaConfirmacion(accion, nombre, exito, mensaje, paymentUrl) {
-    const logoUrl = "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e2/Escudo_de_la_Pontificia_Universidad_Cat%C3%B3lica_de_Valpara%C3%ADso.svg/250px-Escudo_de_la_Pontificia_Universidad_Cat%C3%B3lica_de_Valpara%C3%ADso.svg.png";
+    const logoUrl = "https://www.pucv.cl/pucv/site/artic/20220615/imag/foto_0000000120220615160256/logo_header.png";
     const color = exito ? (accion === 'accept' ? "#4CAF50" : "#f44336") : "#ff9800";
     let paymentButtonHtml = "";
     if (exito && accion === 'accept' && paymentUrl) {
