@@ -10,6 +10,29 @@ El versionado sigue [Semantic Versioning](https://semver.org/lang/es/).
 
 ---
 
+## [2.5.0] — 2026-07-15
+
+### Añadido
+- **Módulo Prueba de Nivel (CEPT)** — Sistema completo para gestionar el Cambridge English Placement Test:
+  - **`Placement.ts`** — Módulo nuevo (484 líneas) con el flujo completo del placement test.
+  - **`sincronizarPlacement()`** — Sincroniza candidatos elegibles desde `"Seleccionados"` a la hoja `"Prueba de Nivel"`. Un candidato es elegible cuando `Verificación Certificado = "Test de nivel"`, `Aceptación = "Acepta"` y `Pago Matrícula = "Pagado"`.
+  - **Hoja `"Prueba de Nivel"`** — Hoja automática con columnas: `user id`, `password`, `institutional id`, `nombre`, `correo`, `Puntaje`, `Nivel`, `Enviar Inicial`, `Enviar Recordatorio`, `Enviar Nuevo Código`, `Reminder Status`.
+  - **3 modos de envío de correo**: Inicial (credenciales CEPT), Recordatorio, Nuevo Código.
+  - **4 métodos de entrega**: `ENVIAR_REAL`, `BORRADOR_TODO`, `BORRADOR_MUESTRA` (máx 5), `TEST_AUTOSEND`.
+  - **`CorreoPlacementTest.html`** — Template HTML para el correo de credenciales del test (249 líneas).
+  - **`DialogPlacementConfig.html`** — Diálogo modal para configurar URL del test, fecha límite y método de entrega (256 líneas).
+  - **`CONFIG.SHEETS.PLACEMENT`** — Nueva clave `"Prueba de Nivel"` en Config.
+  - **`CONFIG.PLACEMENT_PDF_NAME`** — Referencia al PDF de instrucciones del placement.
+  - **Sub-menú `🧪 Prueba de Nivel (CEPT)`** — 4 nuevas opciones en el menú de Google Sheets:
+    - `🔄 Sincronizar Candidatos a Test`
+    - `📧 Enviar Credenciales Iniciales`
+    - `🔔 Enviar Recordatorios`
+    - `✉️ Enviar Nuevos Códigos`
+  - **Deduplicación**: Los candidatos ya presentes en la hoja (por email) no se duplican al sincronizar.
+  - **Checkboxes pre-marcados**: Nuevos candidatos se agregan con `Enviar Inicial` pre-ticked.
+
+---
+
 ## [2.4.0] — 2026-07-13
 
 ### Añadido

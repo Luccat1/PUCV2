@@ -1,4 +1,4 @@
-# 📋 PUCV2English v2.4.0 Deployment Checklist
+# 📋 PUCV2English v2.5.0 Deployment Checklist
 
 **Updated:** 2026-07-16
 **Status:** Ready for Google Apps Script deployment
@@ -17,14 +17,15 @@ Upload each file as a separate **Script** file in Google Apps Script editor:
 |------|---------|--------|
 | `Config.js` | Configuración global y tipos | ✓ Ready |
 | `Utils.js` | Funciones de soporte | ✓ Ready |
-| `Correos.js` | Motor de correos (6 lotes + borradores) | ✓ Updated |
-| `ListaFinal.js` | Generación de lista final (filtro Acepta+Pagado) | ✓ Updated |
+| `Correos.js` | Motor de correos (6 lotes + borradores) | ✓ Ready |
+| `ListaFinal.js` | Generación de lista final (filtro Acepta+Pagado) | ✓ Ready |
 | `Evaluacion.js` | Motor de evaluación de postulaciones | ✓ Ready |
-| `Seleccionados.js` | Seleccionados, Lista de Espera y Promoción | ✓ Updated |
+| `Seleccionados.js` | Seleccionados, Lista de Espera y Promoción | ✓ Ready |
 | `InicioClases.js` | Notificaciones de inicio de clases | ✓ Ready |
+| **`Placement.js`** | **Cambridge English Placement Test (CEPT) workflow** | **✓ NEW** |
 | `Menu.js` | Menú personalizado de Google Sheets | ✓ Updated |
 | `Dashboard.js` | Generación del dashboard estadístico | ✓ Ready |
-| `WebApp.js` | Panel de control web y endpoints de confirmación | ✓ Updated |
+| `WebApp.js` | Panel de control web y endpoints de confirmación | ✓ Ready |
 | `TestInicioClases.js` | Tests para inicio de clases | ✓ Ready |
 
 ### HTML Files (12 total)
@@ -42,13 +43,15 @@ Upload each file as a separate **HTML** file in Google Apps Script editor:
 | `CorreoTestNivel.html` | Correo para convocatoria a test de nivel | ✓ Ready |
 | `CorreoHandPicked.html` | Correo para candidatos seleccionados manualmente | ✓ Ready |
 | `CorreoListaEspera.html` | Correo de aviso de ingreso a lista de espera | ✓ Ready |
-| **`CorreoEsperaSinCupo.html`** | **Correo de cierre (sin vacantes) para lista de espera** | **✓ NEW** |
+| `CorreoEsperaSinCupo.html` | Correo de cierre (sin vacantes) para lista de espera | ✓ Ready |
 | `CorreoNoSeleccionado.html` | Correo de rechazo (excluye seleccionados y lista de espera) | ✓ Ready |
 | `CorreoInicioClases.html` | Correo de bienvenida con horarios y salas | ✓ Ready |
+| **`CorreoPlacementTest.html`** | **Correo de credenciales CEPT (user/password/URL)** | **✓ NEW** |
+| **`DialogPlacementConfig.html`** | **Diálogo de configuración del placement test** | **✓ NEW** |
 
 > **Nota:** Los correos de confirmación automática (`CorreoConfirmacionAcepta.html` y `CorreoConfirmacionRechaza.html`) también deben ser subidos como archivos HTML.
 
-**Total de archivos HTML a subir: 14** (12 listados arriba + 2 de confirmación)
+**Total de archivos HTML a subir: 16** (14 listados arriba + 2 de confirmación)
 
 ---
 
@@ -179,25 +182,22 @@ testGetNivelesActivos: OK — Niveles activos: ["B1+","B2.1","B2.2","C1"]
 
 ## 📦 Deployment Summary
 
-- **Total files:** 25 (11 JavaScript + 14 HTML)
-- **New files (v2.4.0):** 1 (`CorreoEsperaSinCupo.html`)
-- **Updated files (v2.4.0):** 5 (`Correos.js`, `Seleccionados.js`, `Menu.js`, `WebApp.js`, `ListaFinal.js`)
+- **Total files:** 28 (12 JavaScript + 16 HTML)
+- **New files (v2.5.0):** 3 (`Placement.js`, `CorreoPlacementTest.html`, `DialogPlacementConfig.html`)
+- **Updated files (v2.5.0):** 1 (`Menu.js` — sub-menú CEPT + Config.js)
 - **Build command:** `npm run build` (TypeScript compilation, 0 errors)
 - **Ready for production:** Yes, after manual testing ✓
 
 ---
 
-## 🎯 What's Implemented (v2.4.0)
+## 🎯 What's Implemented (v2.5.0)
 
-✅ Physical waitlist sheet ("Lista de Espera") with 30 candidates per level
-✅ Payment tracking column ("Pago Matrícula") with interactive dropdown
-✅ Strict final list filter: Acepta + Pagado required
-✅ Manual promotion from waitlist to selected with one click
-✅ Waitlist closure email template (CorreoEsperaSinCupo)
-✅ Independent closure notification date column
-✅ Gmail draft mode for email preview before sending
-✅ Secure exclusion: NO_SELECTED skips selected and waitlist candidates
-✅ Dynamic deadline calculation (3 days from send date)
-✅ Protected "Seleccionados" sheet (not overwritten on regeneration)
-✅ Emergency restoration function for lost data
-✅ Expanded menu with all new administrative options
+✅ Cambridge English Placement Test (CEPT) module — `Placement.ts`
+✅ `"Prueba de Nivel"` sheet auto-created with deduplication and checkboxes
+✅ 3 email modes: Initial credentials, Reminder, New credentials
+✅ 4 delivery methods: Live send, All drafts, Sample drafts (5), Test autosend
+✅ `CorreoPlacementTest.html` template for CEPT credential emails
+✅ `DialogPlacementConfig.html` for configuring test URL and deadline
+✅ Sub-menu `🧪 Prueba de Nivel (CEPT)` in Google Sheets with 4 options
+
+*(All features from v2.4.0 remain active — see [CHANGELOG.md](CHANGELOG.md))*

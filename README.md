@@ -1,10 +1,15 @@
-# PUCV2 / PUCV2English v2.4.0 — Sistema de Gestión Automatizada
+# PUCV2 / PUCV2English v2.5.0 — Sistema de Gestión Automatizada
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
 [![Platform](https://img.shields.io/badge/Platform-Google%20Apps%20Script-green.svg)](https://developers.google.com/apps-script)
 
 **PUCV2English** es un ecosistema modular desarrollado en **TypeScript** para la gestión profesional de postulaciones al Programa de Inglés PUCV. El sistema automatiza el ciclo completo: desde la evaluación masiva con criterios ponderados, hasta la gestión de matrícula, lista de espera, control de pagos y comunicación automatizada con los postulantes.
 
+> **Novedades v2.5.0 (Julio 2026):**
+> * **Módulo Prueba de Nivel (CEPT)** — Sistema completo para gestionar el Cambridge English Placement Test: sincronización de candidatos, envío de credenciales iniciales, recordatorios y nuevos códigos.
+> * **Hoja `"Prueba de Nivel"`** — Hoja automática con credenciales CEPT y control de envíos por checkbox.
+> * **Sub-menú `🧪 Prueba de Nivel (CEPT)`** — 4 nuevas opciones de gestión del placement test en el menú.
+>
 > **Novedades v2.4.0 (Julio 2026):**
 > * **Lista de Espera Ampliada**: Hoja física `"Lista de Espera"` con capacidad de hasta 30 candidatos por nivel (120 total).
 > * **Control de Pagos**: Columna `"Pago Matrícula"` con dropdown interactivo en `"Seleccionados"`. La Lista Final exige `Acepta` + `Pagado`.
@@ -85,6 +90,7 @@ src/
 ├── Correos.ts             # Motor de envío de correos masivos y unitarios
 ├── ListaFinal.ts          # Generación de la lista final del curso
 ├── InicioClases.ts        # Notificaciones de inicio de clases
+├── Placement.ts           # Cambridge English Placement Test (CEPT) workflow
 ├── WebApp.ts              # Panel de control web y endpoints de confirmación
 ├── Dashboard.ts           # Generación del dashboard estadístico
 ├── Menu.ts                # Menú personalizado de Google Sheets
@@ -99,6 +105,8 @@ src/
 ├── CorreoConfirmacionAcepta.html
 ├── CorreoConfirmacionRechaza.html
 ├── CorreoInicioClases.html
+├── CorreoPlacementTest.html   # Correo de credenciales CEPT
+├── DialogPlacementConfig.html # Diálogo de configuración del placement test
 ├── DialogSalas.html
 ├── DialogConfirmEval.html
 ├── SidebarConfig.html
@@ -224,6 +232,15 @@ El menú superior `PUCV2English` ofrece las siguientes opciones:
 | 👁️ Vista Previa Siguiente | Muestra el próximo candidato de la lista de espera |
 | ✉️ Enviar Correo de Prueba | Envía un correo de prueba a una dirección específica |
 | 🏫 Inicio de Clases | Abre el diálogo de asignación de salas y envío de bienvenida |
+
+**Submenú 🧪 Prueba de Nivel (CEPT):**
+
+| Opción | Descripción |
+|---|---|
+| 🔄 Sincronizar Candidatos a Test | Copia candidatos elegibles (`Test de nivel` + `Acepta` + `Pagado`) a la hoja `"Prueba de Nivel"` |
+| 📧 Enviar Credenciales Iniciales | Abre diálogo para configurar URL del CEPT y enviar credenciales por primera vez |
+| 🔔 Enviar Recordatorios | Envía recordatorio a candidatos que aún no han completado el test |
+| ✉️ Enviar Nuevos Códigos | Reenvía credenciales actualizadas a candidatos que lo solicitan |
 
 ### Gestión de Seleccionados
 
