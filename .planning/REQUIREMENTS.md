@@ -7,13 +7,13 @@
 
 ### Inicio de Clases (Correo a Estudiantes)
 
-- [ ] **INICIO-01**: Admin puede abrir un diálogo que solicita la sala de clases por cada nivel activo antes de enviar correos
-- [ ] **INICIO-02**: El diálogo muestra una confirmación del mapeo nivel → sala antes de proceder
-- [ ] **INICIO-03**: El sistema envía correos individuales de inicio de clases a todos los participantes confirmados en "Lista Final Curso"
-- [ ] **INICIO-04**: El correo incluye nombre del estudiante, nivel asignado, horario (cátedra y ayudantía), sala de clases, y fechas de inicio/término del programa
-- [ ] **INICIO-05**: La sala de clases ingresada se guarda en la columna correspondiente de "Lista Final Curso"
-- [ ] **INICIO-06**: El sistema marca a cada estudiante notificado (columna "Notificado Inicio") y omite estudiantes ya notificados en re-ejecuciones
-- [ ] **INICIO-07**: El envío está disponible desde el submenú "Enviar Correos" del menú PUCV2English
+- [x] **INICIO-01**: Admin puede abrir un diálogo que solicita la sala de clases por cada nivel activo antes de enviar correos — verificado: `src/Menu.ts:183` (`abrirDialogoInicioClases()`) abre `DialogSalas.html`
+- [x] **INICIO-02**: El diálogo muestra una confirmación del mapeo nivel → sala antes de proceder — verificado: `src/DialogSalas.html:67-77` (estado PREVIEW con botón Back)
+- [x] **INICIO-03**: El sistema envía correos individuales de inicio de clases a todos los participantes confirmados en "Lista Final Curso" — verificado: `src/InicioClases.ts:169-231` (`enviarCorreosInicioClases()`)
+- [x] **INICIO-04**: El correo incluye nombre del estudiante, nivel asignado, horario (cátedra y ayudantía), sala de clases, y fechas de inicio/término del programa — verificado: `src/CorreoInicioClases.html:40-56`
+- [x] **INICIO-05**: La sala de clases ingresada se guarda en la columna correspondiente de "Lista Final Curso" — verificado: `src/Config.ts:162` (`COLUMNS.SALA`), `src/InicioClases.ts:213-214`
+- [x] **INICIO-06**: El sistema marca a cada estudiante notificado (columna "Notificado Inicio") y omite estudiantes ya notificados en re-ejecuciones — verificado: `src/Config.ts:161` (`COLUMNS.INICIO_NOTIFICATION_DATE`), `src/InicioClases.ts:129,216-217`
+- [x] **INICIO-07**: El envío está disponible desde el submenú "Enviar Correos" del menú PUCV2English — verificado: `src/Menu.ts:34`
 
 ### Informe Ejecutivo PDF
 
@@ -25,7 +25,7 @@
 
 ### Calidad y Correcciones
 
-- [ ] **QUAL-01**: La verificación de cuota de correo usa `GmailApp.getRemainingDailyQuota()` en lugar de `MailApp.getRemainingDailyQuota()` en todo el codebase
+- [x] **QUAL-01**: La verificación de cuota de correo usa `GmailApp.getRemainingDailyQuota()` en lugar de `MailApp.getRemainingDailyQuota()` en todo el codebase — **cerrado sin cambio de código**: `GmailApp.getRemainingDailyQuota()` no existe en la API de GAS; `MailApp.getRemainingDailyQuota()` (ya presente en `Correos.ts` línea 178) es la única API de cuota válida. Verificado en Phase 1 (`01-VERIFICATION.md`), comentario de verificación agregado en el código.
 
 ## v2 Requirements
 
@@ -52,19 +52,19 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INICIO-01 | Phase 1 | Pending |
-| INICIO-02 | Phase 1 | Pending |
-| INICIO-03 | Phase 1 | Pending |
-| INICIO-04 | Phase 1 | Pending |
-| INICIO-05 | Phase 1 | Pending |
-| INICIO-06 | Phase 1 | Pending |
-| INICIO-07 | Phase 1 | Pending |
+| INICIO-01 | Phase 1 | Verified |
+| INICIO-02 | Phase 1 | Verified |
+| INICIO-03 | Phase 1 | Verified |
+| INICIO-04 | Phase 1 | Verified |
+| INICIO-05 | Phase 1 | Verified |
+| INICIO-06 | Phase 1 | Verified |
+| INICIO-07 | Phase 1 | Verified |
 | PDF-01 | Phase 2 | Pending |
 | PDF-02 | Phase 2 | Pending |
 | PDF-03 | Phase 2 | Pending |
 | PDF-04 | Phase 2 | Pending |
 | PDF-05 | Phase 2 | Pending |
-| QUAL-01 | Phase 1 | Pending |
+| QUAL-01 | Phase 1 | Verified (no code change needed) |
 
 **Coverage:**
 - v1 requirements: 13 total
