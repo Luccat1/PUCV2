@@ -1,4 +1,8 @@
-# Milestone Audit: v5.0
+# Milestone Audit: v1.0 (ex-v5.0)
+
+> [!NOTE]
+> Este documento usa la numeración original `v5.0`. La versión canónica equivalente es **v1.0.0**
+> (ver [CHANGELOG.md](../CHANGELOG.md) para la historia completa de re-numerado).
 
 **Audited:** 2026-03-04
 

@@ -1,4 +1,4 @@
-# Flujo Lógico y Operación de Scripts (PUCV2English v5.1.0)
+# Flujo Lógico y Operación de Scripts (PUCV2English v2.4.0)
 
 Este documento detalla la arquitectura, requerimientos y secuencia de ejecución del sistema modular **PUCV2English**, diseñado para la gestión y evaluación automatizada de postulaciones.
 
