@@ -1,0 +1,6 @@
+/Users/lucianocataldo/Documents/Proyectos/PUCV2/src/DialogConfirmEval.html
+/Users/lucianocataldo/Documents/Proyectos/PUCV2/src/DialogPlacementConfig.html
+/Users/lucianocataldo/Documents/Proyectos/PUCV2/src/DialogSalas.html
+/Users/lucianocataldo/Documents/Proyectos/PUCV2/src/SidebarConfig.html
+/Users/lucianocataldo/Documents/Proyectos/PUCV2/src/SidebarRevision.html
+/Users/lucianocataldo/Documents/Proyectos/PUCV2/src/index.html

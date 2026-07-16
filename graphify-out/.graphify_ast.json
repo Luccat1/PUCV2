@@ -565,7 +565,7 @@
       "label": "PLACEMENT_COL",
       "file_type": "code",
       "source_file": "PUCV2English/Placement.js",
-      "source_location": "L32",
+      "source_location": "L34",
       "_origin": "ast"
     },
     {
@@ -573,7 +573,7 @@
       "label": "sincronizarPlacement()",
       "file_type": "code",
       "source_file": "PUCV2English/Placement.js",
-      "source_location": "L56",
+      "source_location": "L60",
       "_origin": "ast"
     },
     {
@@ -581,7 +581,7 @@
       "label": "abrirDialogoPlacementInicial()",
       "file_type": "code",
       "source_file": "PUCV2English/Placement.js",
-      "source_location": "L138",
+      "source_location": "L150",
       "_origin": "ast"
     },
     {
@@ -589,7 +589,7 @@
       "label": "abrirDialogoPlacementRecordatorio()",
       "file_type": "code",
       "source_file": "PUCV2English/Placement.js",
-      "source_location": "L144",
+      "source_location": "L156",
       "_origin": "ast"
     },
     {
@@ -597,7 +597,7 @@
       "label": "abrirDialogoPlacementNuevoCodigo()",
       "file_type": "code",
       "source_file": "PUCV2English/Placement.js",
-      "source_location": "L150",
+      "source_location": "L162",
       "_origin": "ast"
     },
     {
@@ -605,7 +605,7 @@
       "label": "saveConfigAndProcessPlacement()",
       "file_type": "code",
       "source_file": "PUCV2English/Placement.js",
-      "source_location": "L160",
+      "source_location": "L172",
       "_origin": "ast"
     },
     {
@@ -613,7 +613,7 @@
       "label": "_processPlacementEmails()",
       "file_type": "code",
       "source_file": "PUCV2English/Placement.js",
-      "source_location": "L170",
+      "source_location": "L182",
       "_origin": "ast"
     },
     {
@@ -621,7 +621,7 @@
       "label": "_sendTestAutoSend()",
       "file_type": "code",
       "source_file": "PUCV2English/Placement.js",
-      "source_location": "L298",
+      "source_location": "L310",
       "_origin": "ast"
     },
     {
@@ -629,7 +629,7 @@
       "label": "_abrirDialogoPlacement()",
       "file_type": "code",
       "source_file": "PUCV2English/Placement.js",
-      "source_location": "L335",
+      "source_location": "L347",
       "_origin": "ast"
     },
     {
@@ -637,7 +637,7 @@
       "label": "_initPlacementSheet()",
       "file_type": "code",
       "source_file": "PUCV2English/Placement.js",
-      "source_location": "L345",
+      "source_location": "L357",
       "_origin": "ast"
     },
     {
@@ -645,7 +645,7 @@
       "label": "_getCheckboxColForMode()",
       "file_type": "code",
       "source_file": "PUCV2English/Placement.js",
-      "source_location": "L356",
+      "source_location": "L372",
       "_origin": "ast"
     },
     {
@@ -653,7 +653,7 @@
       "label": "_buildSubject()",
       "file_type": "code",
       "source_file": "PUCV2English/Placement.js",
-      "source_location": "L364",
+      "source_location": "L380",
       "_origin": "ast"
     },
     {
@@ -661,7 +661,7 @@
       "label": "_buildPlainBody()",
       "file_type": "code",
       "source_file": "PUCV2English/Placement.js",
-      "source_location": "L371",
+      "source_location": "L387",
       "_origin": "ast"
     },
     {
@@ -961,7 +961,7 @@
       "_origin": "ast"
     },
     {
-      "id": "deploy_simple",
+      "id": "c_users_usuario_documents_code_pucv_pucv2_deploy_simple_sh",
       "label": "deploy-simple.sh",
       "file_type": "code",
       "source_file": "deploy-simple.sh",
@@ -973,7 +973,7 @@
       "_origin": "ast"
     },
     {
-      "id": "deploy_simple_sh__entry",
+      "id": "c_users_usuario_documents_code_pucv_pucv2_deploy_simple_sh__entry",
       "label": "deploy-simple.sh script",
       "file_type": "code",
       "source_file": "deploy-simple.sh",
@@ -985,7 +985,7 @@
       "_origin": "ast"
     },
     {
-      "id": "deploy",
+      "id": "c_users_usuario_documents_code_pucv_pucv2_deploy_sh",
       "label": "deploy.sh",
       "file_type": "code",
       "source_file": "deploy.sh",
@@ -997,7 +997,7 @@
       "_origin": "ast"
     },
     {
-      "id": "deploy_sh__entry",
+      "id": "c_users_usuario_documents_code_pucv_pucv2_deploy_sh__entry",
       "label": "deploy.sh script",
       "file_type": "code",
       "source_file": "deploy.sh",
@@ -1993,7 +1993,7 @@
       "label": "PLACEMENT_COL",
       "file_type": "code",
       "source_file": "src/Placement.ts",
-      "source_location": "L34",
+      "source_location": "L36",
       "_origin": "ast"
     },
     {
@@ -2001,7 +2001,7 @@
       "label": "sincronizarPlacement()",
       "file_type": "code",
       "source_file": "src/Placement.ts",
-      "source_location": "L60",
+      "source_location": "L64",
       "_origin": "ast"
     },
     {
@@ -2009,7 +2009,7 @@
       "label": "abrirDialogoPlacementInicial()",
       "file_type": "code",
       "source_file": "src/Placement.ts",
-      "source_location": "L153",
+      "source_location": "L167",
       "_origin": "ast"
     },
     {
@@ -2017,7 +2017,7 @@
       "label": "abrirDialogoPlacementRecordatorio()",
       "file_type": "code",
       "source_file": "src/Placement.ts",
-      "source_location": "L160",
+      "source_location": "L174",
       "_origin": "ast"
     },
     {
@@ -2025,7 +2025,7 @@
       "label": "abrirDialogoPlacementNuevoCodigo()",
       "file_type": "code",
       "source_file": "src/Placement.ts",
-      "source_location": "L167",
+      "source_location": "L181",
       "_origin": "ast"
     },
     {
@@ -2033,7 +2033,7 @@
       "label": "saveConfigAndProcessPlacement()",
       "file_type": "code",
       "source_file": "src/Placement.ts",
-      "source_location": "L178",
+      "source_location": "L192",
       "_origin": "ast"
     },
     {
@@ -2041,7 +2041,7 @@
       "label": "_processPlacementEmails()",
       "file_type": "code",
       "source_file": "src/Placement.ts",
-      "source_location": "L196",
+      "source_location": "L210",
       "_origin": "ast"
     },
     {
@@ -2049,7 +2049,7 @@
       "label": "_sendTestAutoSend()",
       "file_type": "code",
       "source_file": "src/Placement.ts",
-      "source_location": "L335",
+      "source_location": "L349",
       "_origin": "ast"
     },
     {
@@ -2057,7 +2057,7 @@
       "label": "_abrirDialogoPlacement()",
       "file_type": "code",
       "source_file": "src/Placement.ts",
-      "source_location": "L375",
+      "source_location": "L389",
       "_origin": "ast"
     },
     {
@@ -2065,7 +2065,7 @@
       "label": "_initPlacementSheet()",
       "file_type": "code",
       "source_file": "src/Placement.ts",
-      "source_location": "L388",
+      "source_location": "L402",
       "_origin": "ast"
     },
     {
@@ -2073,7 +2073,7 @@
       "label": "_getCheckboxColForMode()",
       "file_type": "code",
       "source_file": "src/Placement.ts",
-      "source_location": "L400",
+      "source_location": "L420",
       "_origin": "ast"
     },
     {
@@ -2081,7 +2081,7 @@
       "label": "_buildSubject()",
       "file_type": "code",
       "source_file": "src/Placement.ts",
-      "source_location": "L409",
+      "source_location": "L429",
       "_origin": "ast"
     },
     {
@@ -2089,7 +2089,7 @@
       "label": "_buildPlainBody()",
       "file_type": "code",
       "source_file": "src/Placement.ts",
-      "source_location": "L417",
+      "source_location": "L437",
       "_origin": "ast"
     },
     {
@@ -3546,7 +3546,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "PUCV2English/Placement.js",
-      "source_location": "L32",
+      "source_location": "L34",
       "weight": 1.0,
       "_origin": "ast"
     },
@@ -3556,7 +3556,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "PUCV2English/Placement.js",
-      "source_location": "L56",
+      "source_location": "L60",
       "weight": 1.0,
       "_origin": "ast"
     },
@@ -3566,7 +3566,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "PUCV2English/Placement.js",
-      "source_location": "L138",
+      "source_location": "L150",
       "weight": 1.0,
       "_origin": "ast"
     },
@@ -3576,7 +3576,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "PUCV2English/Placement.js",
-      "source_location": "L144",
+      "source_location": "L156",
       "weight": 1.0,
       "_origin": "ast"
     },
@@ -3586,7 +3586,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "PUCV2English/Placement.js",
-      "source_location": "L150",
+      "source_location": "L162",
       "weight": 1.0,
       "_origin": "ast"
     },
@@ -3596,7 +3596,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "PUCV2English/Placement.js",
-      "source_location": "L160",
+      "source_location": "L172",
       "weight": 1.0,
       "_origin": "ast"
     },
@@ -3606,7 +3606,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "PUCV2English/Placement.js",
-      "source_location": "L170",
+      "source_location": "L182",
       "weight": 1.0,
       "_origin": "ast"
     },
@@ -3616,7 +3616,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "PUCV2English/Placement.js",
-      "source_location": "L298",
+      "source_location": "L310",
       "weight": 1.0,
       "_origin": "ast"
     },
@@ -3626,7 +3626,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "PUCV2English/Placement.js",
-      "source_location": "L335",
+      "source_location": "L347",
       "weight": 1.0,
       "_origin": "ast"
     },
@@ -3636,7 +3636,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "PUCV2English/Placement.js",
-      "source_location": "L345",
+      "source_location": "L357",
       "weight": 1.0,
       "_origin": "ast"
     },
@@ -3646,7 +3646,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "PUCV2English/Placement.js",
-      "source_location": "L356",
+      "source_location": "L372",
       "weight": 1.0,
       "_origin": "ast"
     },
@@ -3656,7 +3656,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "PUCV2English/Placement.js",
-      "source_location": "L364",
+      "source_location": "L380",
       "weight": 1.0,
       "_origin": "ast"
     },
@@ -3666,7 +3666,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "PUCV2English/Placement.js",
-      "source_location": "L371",
+      "source_location": "L387",
       "weight": 1.0,
       "_origin": "ast"
     },
@@ -3677,7 +3677,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "PUCV2English/Placement.js",
-      "source_location": "L67",
+      "source_location": "L71",
       "weight": 1.0,
       "_origin": "ast"
     },
@@ -3688,7 +3688,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "PUCV2English/Placement.js",
-      "source_location": "L139",
+      "source_location": "L151",
       "weight": 1.0,
       "_origin": "ast"
     },
@@ -3699,7 +3699,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "PUCV2English/Placement.js",
-      "source_location": "L145",
+      "source_location": "L157",
       "weight": 1.0,
       "_origin": "ast"
     },
@@ -3710,7 +3710,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "PUCV2English/Placement.js",
-      "source_location": "L151",
+      "source_location": "L163",
       "weight": 1.0,
       "_origin": "ast"
     },
@@ -3721,7 +3721,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "PUCV2English/Placement.js",
-      "source_location": "L165",
+      "source_location": "L177",
       "weight": 1.0,
       "_origin": "ast"
     },
@@ -3732,7 +3732,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "PUCV2English/Placement.js",
-      "source_location": "L182",
+      "source_location": "L194",
       "weight": 1.0,
       "_origin": "ast"
     },
@@ -3743,7 +3743,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "PUCV2English/Placement.js",
-      "source_location": "L192",
+      "source_location": "L204",
       "weight": 1.0,
       "_origin": "ast"
     },
@@ -3754,7 +3754,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "PUCV2English/Placement.js",
-      "source_location": "L258",
+      "source_location": "L270",
       "weight": 1.0,
       "_origin": "ast"
     },
@@ -3765,7 +3765,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "PUCV2English/Placement.js",
-      "source_location": "L259",
+      "source_location": "L271",
       "weight": 1.0,
       "_origin": "ast"
     },
@@ -3776,7 +3776,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "PUCV2English/Placement.js",
-      "source_location": "L314",
+      "source_location": "L326",
       "weight": 1.0,
       "_origin": "ast"
     },
@@ -4188,8 +4188,8 @@
       "_origin": "ast"
     },
     {
-      "source": "deploy_simple",
-      "target": "deploy_simple_sh__entry",
+      "source": "c_users_usuario_documents_code_pucv_pucv2_deploy_simple_sh",
+      "target": "c_users_usuario_documents_code_pucv_pucv2_deploy_simple_sh__entry",
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "deploy-simple.sh",
@@ -4198,8 +4198,8 @@
       "_origin": "ast"
     },
     {
-      "source": "deploy",
-      "target": "deploy_sh__entry",
+      "source": "c_users_usuario_documents_code_pucv_pucv2_deploy_sh",
+      "target": "c_users_usuario_documents_code_pucv_pucv2_deploy_sh__entry",
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "deploy.sh",
@@ -5541,7 +5541,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/Placement.ts",
-      "source_location": "L34",
+      "source_location": "L36",
       "weight": 1.0,
       "_origin": "ast"
     },
@@ -5551,7 +5551,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/Placement.ts",
-      "source_location": "L60",
+      "source_location": "L64",
       "weight": 1.0,
       "_origin": "ast"
     },
@@ -5561,7 +5561,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/Placement.ts",
-      "source_location": "L153",
+      "source_location": "L167",
       "weight": 1.0,
       "_origin": "ast"
     },
@@ -5571,7 +5571,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/Placement.ts",
-      "source_location": "L160",
+      "source_location": "L174",
       "weight": 1.0,
       "_origin": "ast"
     },
@@ -5581,7 +5581,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/Placement.ts",
-      "source_location": "L167",
+      "source_location": "L181",
       "weight": 1.0,
       "_origin": "ast"
     },
@@ -5591,7 +5591,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/Placement.ts",
-      "source_location": "L178",
+      "source_location": "L192",
       "weight": 1.0,
       "_origin": "ast"
     },
@@ -5601,7 +5601,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/Placement.ts",
-      "source_location": "L196",
+      "source_location": "L210",
       "weight": 1.0,
       "_origin": "ast"
     },
@@ -5611,7 +5611,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/Placement.ts",
-      "source_location": "L335",
+      "source_location": "L349",
       "weight": 1.0,
       "_origin": "ast"
     },
@@ -5621,7 +5621,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/Placement.ts",
-      "source_location": "L375",
+      "source_location": "L389",
       "weight": 1.0,
       "_origin": "ast"
     },
@@ -5631,7 +5631,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/Placement.ts",
-      "source_location": "L388",
+      "source_location": "L402",
       "weight": 1.0,
       "_origin": "ast"
     },
@@ -5641,7 +5641,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/Placement.ts",
-      "source_location": "L400",
+      "source_location": "L420",
       "weight": 1.0,
       "_origin": "ast"
     },
@@ -5651,7 +5651,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/Placement.ts",
-      "source_location": "L409",
+      "source_location": "L429",
       "weight": 1.0,
       "_origin": "ast"
     },
@@ -5661,7 +5661,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/Placement.ts",
-      "source_location": "L417",
+      "source_location": "L437",
       "weight": 1.0,
       "_origin": "ast"
     },
@@ -5672,7 +5672,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/Placement.ts",
-      "source_location": "L72",
+      "source_location": "L76",
       "weight": 1.0,
       "_origin": "ast"
     },
@@ -5683,7 +5683,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/Placement.ts",
-      "source_location": "L154",
+      "source_location": "L168",
       "weight": 1.0,
       "_origin": "ast"
     },
@@ -5694,7 +5694,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/Placement.ts",
-      "source_location": "L161",
+      "source_location": "L175",
       "weight": 1.0,
       "_origin": "ast"
     },
@@ -5705,7 +5705,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/Placement.ts",
-      "source_location": "L168",
+      "source_location": "L182",
       "weight": 1.0,
       "_origin": "ast"
     },
@@ -5716,7 +5716,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/Placement.ts",
-      "source_location": "L189",
+      "source_location": "L203",
       "weight": 1.0,
       "_origin": "ast"
     },
@@ -5727,7 +5727,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/Placement.ts",
-      "source_location": "L210",
+      "source_location": "L224",
       "weight": 1.0,
       "_origin": "ast"
     },
@@ -5738,7 +5738,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/Placement.ts",
-      "source_location": "L223",
+      "source_location": "L237",
       "weight": 1.0,
       "_origin": "ast"
     },
@@ -5749,7 +5749,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/Placement.ts",
-      "source_location": "L290",
+      "source_location": "L304",
       "weight": 1.0,
       "_origin": "ast"
     },
@@ -5760,7 +5760,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/Placement.ts",
-      "source_location": "L291",
+      "source_location": "L305",
       "weight": 1.0,
       "_origin": "ast"
     },
@@ -5771,7 +5771,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/Placement.ts",
-      "source_location": "L352",
+      "source_location": "L366",
       "weight": 1.0,
       "_origin": "ast"
     },
