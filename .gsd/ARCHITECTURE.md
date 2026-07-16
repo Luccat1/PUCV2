@@ -1,4 +1,4 @@
-# Arquitectura del Sistema — v5.0
+# Arquitectura del Sistema — v2.4.0
 
 ## Resumen Ejecutivo
 
@@ -68,9 +68,11 @@ graph TD
 
 ---
 
-## Deuda Técnica v5.0
+## Deuda Técnica
 
-- [ ] **Tests Unitarios:** A pesar de la modularidad, no existen tests automatizados para la lógica de puntuación.
+- [ ] **Tests Unitarios:** No existen tests automatizados para la lógica de puntuación.
 - [x] **Email Quota Guard:** Implementado en `Correos.ts` con chequeo preventivo antes de envíos en batch.
 - [ ] **Cache Service:** La carga de datos en la Web App podría optimizarse usando `CacheService` para las estadísticas más pesadas.
-- [ ] **Error UI:** Los errores del servidor en la Web App se muestran solo en consola/logs; falta una UI de error más amigable para el usuario.
+- [ ] **Error UI:** Los errores del servidor en la Web App se muestran solo en consola/logs; falta una UI de error más amigable.
+- [x] **Batch Email Bilingüe:** Soporte completo para PUCV2 (español) y PUCV2English (inglés) desde v2.2.0.
+- [x] **Waitlist + Payment Control:** Hoja física de lista de espera y control de pago de matrícula desde v2.4.0.

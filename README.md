@@ -1,11 +1,11 @@
-# PUCV2English v5.1.0 — Sistema de Gestión Automatizada
+# PUCV2 / PUCV2English v2.4.0 — Sistema de Gestión Automatizada
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
 [![Platform](https://img.shields.io/badge/Platform-Google%20Apps%20Script-green.svg)](https://developers.google.com/apps-script)
 
 **PUCV2English** es un ecosistema modular desarrollado en **TypeScript** para la gestión profesional de postulaciones al Programa de Inglés PUCV. El sistema automatiza el ciclo completo: desde la evaluación masiva con criterios ponderados, hasta la gestión de matrícula, lista de espera, control de pagos y comunicación automatizada con los postulantes.
 
-> **Novedad v5.1.0 (Julio 2026):**
+> **Novedades v2.4.0 (Julio 2026):**
 > * **Lista de Espera Ampliada**: Hoja física `"Lista de Espera"` con capacidad de hasta 30 candidatos por nivel (120 total).
 > * **Control de Pagos**: Columna `"Pago Matrícula"` con dropdown interactivo en `"Seleccionados"`. La Lista Final exige `Acepta` + `Pagado`.
 > * **Promoción desde Lista de Espera**: Función de un clic para promover al siguiente candidato de la lista de espera a seleccionados.
@@ -13,6 +13,9 @@
 > * **Modo Borrador Gmail**: Opción de crear correos como borradores antes de enviarlos realmente para revisión previa.
 > * **Seleccionados Protegidos**: La hoja `"Seleccionados"` ya no se sobreescribe al regenerar; las promociones manuales se preservan.
 > * **Exclusión Segura**: Los correos de rechazo excluyen automáticamente a seleccionados y lista de espera.
+> * **Soporte Bilingüe**: Templates y lógica para ambos programas — PUCV2 (español) y PUCV2English (inglés).
+>
+> Ver historial completo en [CHANGELOG.md](CHANGELOG.md).
 
 ---
 

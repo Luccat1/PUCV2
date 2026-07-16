@@ -1,7 +1,7 @@
 # ROADMAP.md
 
-> **Current Phase**: 7 (Gap Closure)
-> **Milestone**: v5.0 (Auditing Gaps)
+> **Estado actual**: Milestone v2.4.0 completado — ver [CHANGELOG.md](../CHANGELOG.md)
+> **Milestone original documentado aquí**: v1.0 (renumerado desde v5.0)
 
 ## Must-Haves (from SPEC)
 
@@ -121,10 +121,26 @@
 ### Phase 7: Gap Closure
 
 **Status**: ✅ Complete (2026-03-13)
-**Objective**: Address gaps from milestone audit v5.0
+**Objective**: Address gaps from milestone audit v1.0 (ex-v5.0)
 
 **Gaps to Close:**
 
-- [ ] 7.1: Update ROADMAP.md consistency
-- [ ] 7.2: Fix Bug in ListaFinal generation
-- [ ] 7.3: Add new email category and deadline for "hand picked" applicants
+- [x] 7.1: Update ROADMAP.md consistency
+- [x] 7.2: Fix Bug in ListaFinal generation
+- [x] 7.3: Add new email category and deadline for "hand picked" applicants
+
+---
+
+### Season 2026 — v2.x Development (Jun–Jul 2026)
+
+**Status**: ✅ Complete (2026-07-13)
+**Objective**: Redesign evaluation engine for new season, add bilingual support, waitlists, and payment control.
+
+Ver historial completo en [CHANGELOG.md](../CHANGELOG.md) (v2.0.0 — v2.4.0).
+
+**Highlights:**
+- v2.0.0 — Motor de evaluación rediseñado, Dashboard web
+- v2.1.0 — Dashboard expandido, correos de prueba
+- v2.2.0 — Batch email bilingüe
+- v2.3.0 — Motor de evaluación PUCV2English
+- v2.4.0 — Waitlists, control de pagos, gestión de seleccionados

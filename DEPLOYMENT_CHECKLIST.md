@@ -1,6 +1,6 @@
-# 📋 PUCV2English v5.1.0 Deployment Checklist
+# 📋 PUCV2English v2.4.0 Deployment Checklist
 
-**Updated:** 2026-07-13
+**Updated:** 2026-07-16
 **Status:** Ready for Google Apps Script deployment
 
 ---
@@ -180,14 +180,14 @@ testGetNivelesActivos: OK — Niveles activos: ["B1+","B2.1","B2.2","C1"]
 ## 📦 Deployment Summary
 
 - **Total files:** 25 (11 JavaScript + 14 HTML)
-- **New files (v5.1.0):** 1 (`CorreoEsperaSinCupo.html`)
-- **Updated files (v5.1.0):** 5 (`Correos.js`, `Seleccionados.js`, `Menu.js`, `WebApp.js`, `ListaFinal.js`)
+- **New files (v2.4.0):** 1 (`CorreoEsperaSinCupo.html`)
+- **Updated files (v2.4.0):** 5 (`Correos.js`, `Seleccionados.js`, `Menu.js`, `WebApp.js`, `ListaFinal.js`)
 - **Build command:** `npm run build` (TypeScript compilation, 0 errors)
 - **Ready for production:** Yes, after manual testing ✓
 
 ---
 
-## 🎯 What's Implemented (v5.1.0)
+## 🎯 What's Implemented (v2.4.0)
 
 ✅ Physical waitlist sheet ("Lista de Espera") with 30 candidates per level
 ✅ Payment tracking column ("Pago Matrícula") with interactive dropdown
