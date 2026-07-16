@@ -1,10 +1,14 @@
 # Changelog — PUCV2English
 
-Todos los cambios notables del programa PUCV2English.
+Todos los cambios notables del sub-módulo **PUCV2English** (Programa de Inglés).
+
+> [!NOTE]
+> Este changelog complementa al [`CHANGELOG.md`](./CHANGELOG.md) principal.
+> Aquí se registran únicamente los cambios específicos del programa de inglés.
 
 ---
 
-## [5.1.0] - 2026-07-13
+## [2.4.0] — 2026-07-13
 
 ### Añadido
 - **Lista de Espera Ampliada** — Hoja física `"Lista de Espera"` con capacidad de 30 candidatos por nivel (120 total).
@@ -13,7 +17,7 @@ Todos los cambios notables del programa PUCV2English.
 - **Promoción desde Lista de Espera** — Función `promoverDesdeListaEspera()` para mover candidatos de la lista de espera a seleccionados con un clic.
 - **Correo Cierre de Lista de Espera** — Nueva plantilla `CorreoEsperaSinCupo.html` y lote `WAITLIST_REJECTED` para notificar cierre del proceso.
 - **Columna Fecha Notificación Cierre** — Control independiente de notificaciones de cierre en la hoja Lista de Espera.
-- **Modo Borrador Gmail** — Opción de crear correos como borradores antes de enviar (con límite de muestra de 5).
+- **Modo Borrador Gmail** — Opción de crear correos como borradores antes de enviar (límite de muestra de 5).
 - **Correo Hand Picked** — Plantilla `CorreoHandPicked.html` para candidatos seleccionados manualmente fuera de plazo.
 - **Restauración de Seleccionados** — Función de emergencia `restaurarHojaSeleccionadosPerdida()` para recuperar datos perdidos.
 - **Exclusión Segura NO_SELECTED** — Los correos de rechazo excluyen en caliente a seleccionados y lista de espera.
@@ -32,7 +36,7 @@ Todos los cambios notables del programa PUCV2English.
 
 ---
 
-## [5.0.2] - 2026-07-08
+## [2.2.0] — 2026-07-08
 
 ### Corregido
 - **Corrección de Puntajes** — Solucionados los espacios en blanco adicionales en nombres de columnas de configuración (`CONFIG.COLUMNS`) que causaban pérdida de puntaje de Disponibilidad y Compromiso.
@@ -45,7 +49,7 @@ Todos los cambios notables del programa PUCV2English.
 
 ---
 
-## [5.0.1] - 2026-03-19
+## [1.2.0] — 2026-03-19
 
 ### Cambiado
 - Migración completa de monolito JavaScript (1.6k loc) a arquitectura modular profesional con TypeScript y tipado estricto.
@@ -57,7 +61,7 @@ Todos los cambios notables del programa PUCV2English.
 
 ---
 
-## [5.0.0] - 2026-03-01
+## [1.0.0] — 2026-03-04
 
 ### Añadido
 - Sistema completo de evaluación automatizada de postulaciones con criterios ponderados.
@@ -66,3 +70,36 @@ Todos los cambios notables del programa PUCV2English.
 - Envío de correos de selección con tokens de confirmación.
 - Panel de control web (Web App) para gestión administrativa.
 - Sidebar de configuración de pesos y revisión de postulaciones.
+
+---
+
+## [0.5.0] — 2025-12-15
+
+### Añadido
+- Sistema de evaluación con parámetros de scoring configurables.
+- Logging estructurado de evaluaciones.
+- Templates de email asociados al flujo de evaluación para PUCV2English.
+
+---
+
+## [0.4.0] — 2025-11-17
+
+### Añadido
+- Dashboard con gestión de postulantes y estadísticas del programa PUCV2English.
+- Templates HTML de notificación por email para el programa de inglés.
+- Estructura de datos `PROGRAM_DATA` para PUCV2English.
+
+### Cambiado
+- Refactorización de estructura `CONFIG` con función de carga de configuración.
+- Mejoras en la lógica de scoring para análisis más preciso del programa de inglés.
+
+---
+
+
+## [0.3.0] — 2025-11-14
+
+### Añadido
+- Templates HTML de email de notificación para el programa PUCV English.
+- Estructura `CONFIG` dedicada para PUCV2English.
+
+---
