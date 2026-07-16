@@ -24,7 +24,10 @@ interface IConfig {
     SELECTED: string;
     WAITLIST: string;
     FINAL_LIST: string;
+    PLACEMENT: string;
   };
+  PLACEMENT_PDF_NAME: string;
+  DEFAULT_INSTITUTION_ID: string;
   COLUMNS: Record<string, string>;
 }
 
@@ -118,8 +121,11 @@ const CONFIG: IConfig = {
     CONFIG: "Configuración",
     SELECTED: "Seleccionados",
     WAITLIST: "Lista de Espera",
-    FINAL_LIST: "Lista Final Curso"
+    FINAL_LIST: "Lista Final Curso",
+    PLACEMENT: "Prueba de Nivel"
   },
+  PLACEMENT_PDF_NAME: "Instrucciones Placement.pdf",
+  DEFAULT_INSTITUTION_ID: "CL304",
   COLUMNS: {
     PROCESSING_STATUS: "Estado de Procesamiento",
     TIMESTAMP: "Marca temporal",

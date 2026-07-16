@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <base target="_top">
+  <style>
+    body {
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 20px;
+      color: #333333;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #ffffff;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .header {
+      background-color: #003366;
+      color: #ffffff;
+      padding: 24px 30px;
+      text-align: center;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .header img {
+      max-width: 130px;
+      margin-bottom: 10px;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .content {
+      padding: 30px;
+      line-height: 1.7;
+      font-size: 15px;
+    }
+    .content p {
+      margin: 0 0 14px 0;
+    }
+    .highlight-box {
+      background-color: #e9f2fa;
+      border-left: 4px solid #0055a2;
+      padding: 14px 16px;
+      margin: 20px 0;
+      border-radius: 0 4px 4px 0;
+    }
+    .highlight-box-title {
+      display: block;
+      margin-bottom: 8px;
+      color: #003366;
+      font-weight: bold;
+    }
+    .highlight-box ol,
+    .highlight-box ul {
+      margin: 0;
+      padding-left: 20px;
+    }
+    .highlight-box li {
+      margin-bottom: 6px;
+    }
+    .credentials-box {
+      background-color: #f0f4f8;
+      border: 1px solid #c8d8e8;
+      border-radius: 4px;
+      padding: 16px 20px;
+      margin: 20px 0;
+    }
+    .credentials-box p.title {
+      margin: 0 0 12px 0;
+      font-weight: bold;
+      color: #003366;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .credentials-box table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .credentials-box td {
+      padding: 6px 0;
+    }
+    .credentials-box td:first-child {
+      color: #555;
+      width: 130px;
+      font-size: 14px;
+    }
+    .credentials-box td:last-child {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 14px;
+      font-weight: bold;
+      color: #003366;
+    }
+    .btn-wrap {
+      text-align: center;
+      margin: 28px 0;
+    }
+    .btn {
+      display: inline-block;
+      background-color: #003366;
+      color: #ffffff !important;
+      text-decoration: none;
+      padding: 13px 28px;
+      border-radius: 4px;
+      font-weight: bold;
+      font-size: 15px;
+    }
+    .btn-sub {
+      display: block;
+      font-size: 12px;
+      color: #888;
+      margin-top: 8px;
+      word-break: break-all;
+    }
+    .deadline {
+      color: #c0392b;
+      font-weight: bold;
+    }
+    .footer {
+      background-color: #f4f4f4;
+      border-top: 1px solid #e0e0e0;
+      padding: 20px 30px;
+      text-align: center;
+      font-size: 12px;
+      color: #777;
+      line-height: 1.6;
+    }
+    .footer strong {
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- Header -->
+    <div class="header">
+      <img src="https://www.pucv.cl/pucv/site/artic/20220615/imag/foto_0000000120220615160256/logo_header.png" alt="Logo PUCV">
+      <h1>PUCV2English</h1>
+    </div>
+
+    <!-- Body -->
+    <div class="content">
+
+      <p>Hola <strong><?= nombre ?></strong>,</p>
+
+      <p>Muchas gracias por postular al programa <strong>PUCV2English</strong>.</p>
+
+      <p>
+        Para continuar con el proceso de confirmación de tu cupo en los cursos seleccionados, necesitamos que realices el 
+        <strong>Placement Test (Test de Diagnóstico)</strong> con plazo máximo el
+        <span class="deadline"><?= fechaLimite ?></span>.
+      </p>
+
+      <p>
+        Ten en cuenta que esta evaluación es un paso obligatorio para asegurar tu vacante. El nivel asignado inicialmente podría ser modificado (cambiando a un nivel superior o inferior) de acuerdo con los resultados específicos que obtengas en esta prueba.
+      </p>
+
+      <p>
+        <strong>Por favor, envíanos un correo corroborando que pudiste realizar el test satisfactoriamente una vez que lo finalices.</strong>
+      </p>
+
+      <!-- Technical requirements -->
+      <div class="highlight-box">
+        <span class="highlight-box-title">Requerimientos técnicos mínimos:</span>
+        <ul>
+          <li>Conexión estable a Internet.</li>
+          <li>Computador de escritorio o portátil (no se permite el uso de celulares o tablets).</li>
+          <li>No usar computador <strong>MAC</strong> ni el navegador <strong>Safari</strong>.</li>
+          <li>Navegador actualizado: <strong>Google Chrome</strong> o <strong>Mozilla Firefox</strong>.</li>
+          <li>Cámara web y micrófono funcionando correctamente.</li>
+          <li>Espacio silencioso y libre de interrupciones durante la evaluación.</li>
+        </ul>
+      </div>
+
+      <!-- Access instructions -->
+      <div class="highlight-box">
+        <span class="highlight-box-title">Instrucciones de acceso:</span>
+        <ol>
+          <li>Ingresa al portal de evaluación.</li>
+          <li>Selecciona <strong>Login</strong> (no "Entry Code").</li>
+          <li>Utiliza las credenciales asignadas a continuación.</li>
+        </ol>
+      </div>
+
+      <!-- Credentials box -->
+      <div class="credentials-box">
+        <p class="title">Tus Credenciales:</p>
+        <table>
+          <tr>
+            <td>Username:</td>
+            <td><?= username ?></td>
+          </tr>
+          <tr>
+            <td>Password:</td>
+            <td><?= password ?></td>
+          </tr>
+          <tr>
+            <td>Institution ID:</td>
+            <td><?= institutionId ?></td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- Portal link -->
+      <div class="btn-wrap">
+        <a href="<?= placementUrl ?>" class="btn">Ir al Portal de Evaluación</a>
+        <span class="btn-sub"><?= placementUrl ?></span>
+      </div>
+
+      <!-- Steps inside platform -->
+      <p><strong>Pasos dentro de la plataforma:</strong></p>
+      <ol>
+        <li>En la sección <strong>Active</strong>, busca <em>CEPT, Reading and Listening</em> y haz clic en la flecha (▶).</li>
+        <li>Completa tus datos personales. En <strong>Test Purpose</strong> selecciona <em>Placement on a Language Course</em>.</li>
+        <li>En <strong>Candidate ID</strong> ingresa tu RUT (sin puntos, con guion).</li>
+        <li>Haz clic en <strong>Submit</strong> y luego en <strong>Open</strong> para iniciar.</li>
+      </ol>
+
+      <p style="font-size:13px; color:#666; margin-top:20px;">
+        <em>Importante: Realiza la prueba desde un computador con buena conexión a internet
+        y en un ambiente tranquilo.</em>
+      </p>
+
+      <p>Saludos cordiales,</p>
+
+    </div><!-- /content -->
+
+    <!-- Footer -->
+    <div class="footer">
+      <strong>Programa PUCV2English</strong><br>
+      Dirección General de Asuntos Internacionales<br>
+      Pontificia Universidad Católica de Valparaíso<br><br>
+      <em>Este es un correo generado automáticamente. Por consultas: <a href="mailto:idiomas@pucv.cl">idiomas@pucv.cl</a></em>
+    </div>
+
+  </div>
+</body>
+</html>

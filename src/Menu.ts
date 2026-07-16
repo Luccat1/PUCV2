@@ -33,6 +33,13 @@ function onOpen(): void {
       .addSeparator()
       .addItem('🏫 Inicio de Clases', 'abrirDialogoInicioClases'))
     .addSeparator()
+    .addSubMenu(ui.createMenu('🧪 Prueba de Nivel (CEPT)')
+      .addItem('🔄 Sincronizar Candidatos a Test', 'ejecutarSincronizarPlacement')
+      .addSeparator()
+      .addItem('📧 Enviar Credenciales Iniciales', 'ejecutarPlacementInicial')
+      .addItem('🔔 Enviar Recordatorios', 'ejecutarPlacementRecordatorio')
+      .addItem('✉️ Enviar Nuevos Códigos', 'ejecutarPlacementNuevoCodigo'))
+    .addSeparator()
     .addItem('📈 Ver Dashboard', 'abrirDashboard')
     .addItem('📉 Ver Análisis de Equilibrio', 'ejecutarAnalisisDesdeMenu')
     .addSeparator()
@@ -178,4 +185,36 @@ function abrirDialogoInicioClases(): void {
     .setWidth(480)
     .setHeight(500);
   SpreadsheetApp.getUi().showModalDialog(html, 'Configurar Salas — Inicio de Clases');
+}
+
+// ---------------------------------------------------------------------------
+// Placement Test (CEPT) wrappers
+// ---------------------------------------------------------------------------
+
+/**
+ * Syncs paid+accepted+test-level candidates from "Seleccionados" to "Prueba de Nivel".
+ */
+function ejecutarSincronizarPlacement(): void {
+  sincronizarPlacement();
+}
+
+/**
+ * Opens the placement config dialog for sending initial credentials.
+ */
+function ejecutarPlacementInicial(): void {
+  abrirDialogoPlacementInicial();
+}
+
+/**
+ * Opens the placement config dialog for sending reminders.
+ */
+function ejecutarPlacementRecordatorio(): void {
+  abrirDialogoPlacementRecordatorio();
+}
+
+/**
+ * Opens the placement config dialog for sending new credentials.
+ */
+function ejecutarPlacementNuevoCodigo(): void {
+  abrirDialogoPlacementNuevoCodigo();
 }

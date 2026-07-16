@@ -19,7 +19,11 @@
       "Bash(cp dist/Evaluacion.js PUCV2English/Evaluacion.js)",
       "Bash(cp dist/Seleccionados.js PUCV2English/Seleccionados.js)",
       "Bash(ls PUCV2English/*.html)",
-      "Skill(gsd:plan-phase)"
+      "Skill(gsd:plan-phase)",
+      "Bash(mkdir -p graphify-out)",
+      "Bash(python -c \"import graphify; print\\(''graphify found:'', graphify.__version__\\)\")",
+      "Bash(uv tool:*)",
+      "Bash(pip install:*)"
     ]
   }
 }
