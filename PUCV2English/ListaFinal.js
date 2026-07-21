@@ -44,6 +44,43 @@ function generarListaFinalCurso() {
         const pagoVal = idxPago !== -1 && String(f[idxPago]).toLowerCase() === 'pagado' ? 'Sí' : 'No';
         grupos[nivel].push([f[idxApellido], f[idxNombre], f[idxCorreo], nivel, pagoVal]); // Populate 'Pagó (Sí/No)'
     });
+    // Group continuation students from "Continuación" sheet who have Aceptación === 'Acepta'
+    let totalContinuationConfirmed = 0;
+    const hojaC = ss.getSheetByName(CONFIG.SHEETS.CONTINUATION);
+    if (hojaC) {
+        const datosC = hojaC.getDataRange().getValues();
+        const headersC = datosC.shift();
+        if (headersC) {
+            const idxNameC = headersC.indexOf("Name");
+            const idxSurnameC = headersC.indexOf("Surname");
+            let idxCorreoC = headersC.indexOf("Email");
+            if (idxCorreoC === -1)
+                idxCorreoC = headersC.indexOf("Correo Electrónico");
+            const idxCursoC = headersC.indexOf("Curso");
+            const idxAceptacionC = headersC.indexOf("Aceptación");
+            if (idxCursoC !== -1 && idxAceptacionC !== -1) {
+                datosC.forEach(row => {
+                    const isAccepted = String(row[idxAceptacionC]).trim().toLowerCase() === 'acepta';
+                    if (isAccepted) {
+                        const cursoRaw = String(row[idxCursoC]).trim();
+                        const cursoMatch = cursoRaw.match(/^(B1\+|B2\.1|B2\.2|C1)/i);
+                        const cursoNivel = cursoMatch ? cursoMatch[1] : cursoRaw.split(' ')[0];
+                        const nivelSiguiente = CONTINUATION_MAP[cursoNivel] || cursoNivel;
+                        if (!grupos[nivelSiguiente])
+                            grupos[nivelSiguiente] = [];
+                        const apellido = idxSurnameC !== -1 ? String(row[idxSurnameC]).trim() : "";
+                        const nombre = idxNameC !== -1 ? String(row[idxNameC]).trim() : "";
+                        const correo = idxCorreoC !== -1 ? String(row[idxCorreoC]).trim() : "";
+                        grupos[nivelSiguiente].push([apellido, nombre, correo, nivelSiguiente, "Exento (Continuación)"]);
+                        totalContinuationConfirmed++;
+                    }
+                });
+            }
+        }
+    }
+    const totalConfirmados = finales.length + totalContinuationConfirmed;
+    if (totalConfirmados === 0)
+        return "No hay participantes confirmados para generar la lista final.";
     let hojaF = ss.getSheetByName(CONFIG.SHEETS.FINAL_LIST);
     if (!hojaF)
         hojaF = ss.insertSheet(CONFIG.SHEETS.FINAL_LIST);
@@ -67,5 +104,5 @@ function generarListaFinalCurso() {
         hojaF.getRange(1, 1, finalRows.length, finalRows[0].length).setValues(finalRows);
         hojaF.getRange(1, 1, 1, 7).setFontWeight("bold").setBackground("#cfe2f3");
     }
-    return `Lista final generada exitosamente en la hoja '${CONFIG.SHEETS.FINAL_LIST}'. Total confirmados: ${finales.length}.`;
+    return `Lista final generada exitosamente en la hoja '${CONFIG.SHEETS.FINAL_LIST}'. Total confirmados: ${totalConfirmados} (${finales.length} seleccionados + ${totalContinuationConfirmed} continuación).`;
 }

@@ -497,6 +497,7 @@
           Espera</button>
         <button class="btn btn-primary" id="btnEnviarNoSel" onclick="handleEmailAction('NOT_SELECTED')">Enviar No
           Seleccionados</button>
+        <button class="btn btn-primary" id="btnEnviarCont" onclick="handleEmailAction('CONTINUATION')" style="background: #17a2b8;">🔄 Continuación</button>
       </div>
 
       <div
@@ -514,6 +515,7 @@
             <option value="CONFIRM_ACCEPT">4. Confirmación Acepta (Pago)</option>
             <option value="CONFIRM_REJECT">5. Confirmación Rechaza</option>
             <option value="CLASS_START">6. Inicio de Clases</option>
+            <option value="CONTINUATION">7. Continuación (Año Anterior)</option>
             <option value="CADENA_COMPLETA">🔄 Enviar Cadena Completa</option>
           </select>
           <button class="btn" style="background: #6c757d; color: white;" onclick="sendTestEmailAction()">Enviar

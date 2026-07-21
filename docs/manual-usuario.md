@@ -16,7 +16,9 @@ El ecosistema de Google Sheets contiene las siguientes pestañas, cada una con u
                                                        ├───> [Dashboard]                    ▼
                                                        │                          [Lista Final Curso]
                                                        │
-                                                       └──(Sgtes 30)──> [Lista de Espera] ──(Promoción)──> [Seleccionados]
+                                                        └──(Sgtes 30)──> [Lista de Espera] ──(Promoción)──> [Seleccionados]
+
+[Continuación (datos año anterior)] ──(Filtrado elegibilidad)──> [Correos de Continuación]
 ```
 
 1.  **`Respuestas de formulario 1` (Entrada de Datos)**:
@@ -55,6 +57,18 @@ El ecosistema de Google Sheets contiene las siguientes pestañas, cada una con u
     *   **Cómo usarla**:
         *   La columna `"Pagó (Sí/No)"` se completa automáticamente como `"Sí"` a partir del estado de pago verificado en `"Seleccionados"`.
         *   Registra las salas físicas o virtuales de clases a través del diálogo de inicio de curso.
+8.  **`Continuación` (Datos de Estudiantes del Año Anterior)**:
+    *   **Qué es**: Hoja para importar los datos del informe de cursos del año anterior. Contiene la información de notas, asistencia y nivel de los estudiantes que podrían continuar al siguiente nivel.
+    *   **Columnas del informe** (se pegan directamente): `Name`, `Surname`, `ID`, `Curso`, `Profesor`, `Asistencia`, `Promedio Final`.
+    *   **Columnas que se agregan/actualizan**:
+        *   `Email`: Se completa con los correos de los estudiantes.
+        *   `Fecha Notificación`: Se rellena automáticamente con la marca de tiempo del envío de correo.
+        *   `Aceptación`: Se crea y rellena automáticamente con `"Acepta"` o `"Rechaza"` cuando el estudiante hace clic en los botones del correo.
+    *   **Criterios de elegibilidad** (filtrados automáticamente por el script):
+        *   Asistencia ≥ 80%
+        *   Promedio Final ≥ 40 (equivalente a 4.0 en escala 1-7)
+        *   Curso con continuación: B1+ → B2.1, B2.1 → B2.2, B2.2 → C1 (C1 se excluye por ser el último nivel)
+    *   **Cómo usarla**: Pega los datos del informe, agrega la columna `Email` con los correos, y ejecuta el envío de correos de continuación.
 
 ---
 
@@ -98,6 +112,18 @@ Sigue esta secuencia para operar el programa completo desde el cierre de postula
 1.  Una vez concluido el período de matrícula, si quedan candidatos en la lista de espera que no pudieron ser promovidos, haz clic en **`📧 Enviar Correos`** > **`⏳ Cierre Lista de Espera (Sin Cupo)`**.
 2.  Esto enviará el correo `CorreoEsperaSinCupo` a todos los candidatos de la lista de espera que no hayan recibido previamente esta notificación, y registrará la fecha en la columna `"Fecha Notificación Cierre"`.
 
+### Fase 4c: Continuación de Estudiantes del Año Anterior
+1.  Obtener el informe de notas y asistencia del año anterior (proporcionado por los profesores).
+2.  Crear la hoja **`"Continuación"`** en el spreadsheet y pegar los datos del informe (columnas: `Name`, `Surname`, `ID`, `Curso`, `Profesor`, `Asistencia`, `Promedio Final`).
+3.  Agregar la columna **`Email`** y rellenar manualmente los correos electrónicos de los estudiantes.
+4.  Agregar la columna **`Fecha Notificación`** (dejar vacía).
+5.  Ejecutar `sendEmailBatch('CONTINUATION')` o desde el panel de control.
+6.  El sistema filtrará automáticamente a los elegibles (asistencia ≥ 80%, nota ≥ 40, curso con continuación) y enviará el correo `CorreoContinuacion` con:
+    *   Su curso anterior y el siguiente nivel asignado
+    *   Horarios del nuevo curso
+    *   Botones de Aceptar/Rechazar cupo
+7.  Los estudiantes que acepten tendrán su estado registrado como `"Acepta"` en la columna `Aceptación` de la hoja `"Continuación"`, y al generar la Lista Final se incorporarán directamente a sus nuevos cursos con estado `"Exento (Continuación)"`.
+
 ### Fase 5: Cierre de Matrículas e Inicio de Clases
 1.  Al finalizar el período de admisión, haz clic en **`PUCV2English`** > **`📋 Generar Lista Final`**.
 2.  Se creará la hoja **`Lista Final Curso`**, que incluye **únicamente** a los alumnos que cumplan ambos requisitos: `Acepta` + `Pagado`.
@@ -128,3 +154,11 @@ Sigue esta secuencia para operar el programa completo desde el cierre de postula
 ### 5. Error de columnas al restaurar seleccionados
 *   **Causa**: La cantidad de columnas de los datos de restauración no coincide con la hoja destino.
 *   **Solución**: Asegúrate de que la hoja `"Seleccionados"` esté completamente vacía (o eliminada) antes de ejecutar la restauración.
+
+### 6. Estudiantes de C1 aparecen como elegibles para continuación
+*   **Causa**: El nombre del curso en la columna `Curso` no comienza con el prefijo esperado (`B1+`, `B2.1`, `B2.2` o `C1`).
+*   **Solución**: Verifica que los nombres de curso en la hoja `"Continuación"` sigan el formato estándar (ej: `B1+ PIIE 2096 - 01`). El regex extrae el nivel del inicio del texto.
+
+### 7. La asistencia con coma no se parsea correctamente
+*   **Causa**: El sistema espera números con punto decimal, pero los informes usan coma (ej: `88,8`).
+*   **Solución**: Esto se maneja automáticamente desde v5.2.0. Si persiste, verifica que la columna `Asistencia` no contenga caracteres extraños (espacios, símbolos de porcentaje).

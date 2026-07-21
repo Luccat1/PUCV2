@@ -4,6 +4,37 @@ Todos los cambios notables del programa PUCV2English.
 
 ---
 
+## [5.2.1] - 2026-07-21
+
+### Añadido
+- **Procesamiento de Respuestas WebApp para Continuación** — `procesarAccionPostulante()` en `WebApp` ahora busca fichas en la hoja `Continuación` si no se encuentran en `Seleccionados`.
+- **Columna `Aceptación` en Continuación** — Se crea/actualiza automáticamente la columna `Aceptación` en la hoja `Continuación` al hacer clic en los enlaces de correo (`Acepta` / `Rechaza`).
+- **Integración en Lista Final** — `generarListaFinalCurso()` en `ListaFinal` ahora escanea la hoja `Continuación` e incorpora a los alumnos con `Aceptación` = `Acepta` en sus respectivos niveles asignados con el estado `Exento (Continuación)`.
+- **Integración de Menú Completa** — Añadida la opción `🔄 Continuación (Año Anterior)` en el submenú `📧 Enviar Correos` de Google Sheets.
+- **Respuesta WebApp Personalizada** — Los estudiantes de continuación reciben un mensaje de confirmación que aclara que su cupo queda reservado directamente sin pago de matrícula.
+
+### Corregido
+- **Ámbito Global de Variables** — Eliminadas declaraciones duplicadas de `CONTINUATION_MAP` en `Correos.js` para evitar `SyntaxError: Identifier 'CONTINUATION_MAP' has already been declared`.
+
+---
+
+## [5.2.0] - 2026-07-21
+
+### Añadido
+- **Correo de Continuación** — Nueva plantilla `CorreoContinuacion.html` para estudiantes del año anterior que aprobaron su curso y pueden continuar al siguiente nivel con acceso preferencial (sin matrícula).
+- **Mapeo de Niveles de Continuación** — Constante `CONTINUATION_MAP` que define la progresión: `B1+ → B2.1 → B2.2 → C1`.
+- **Filtrado de Elegibilidad Automático** — El sistema filtra automáticamente por: asistencia ≥ 80%, nota ≥ 4.0 (40/70), y curso con continuación (excluye C1).
+- **Hoja "Continuación"** — Nueva hoja del spreadsheet para pegar los datos del informe de cursos anteriores con columnas `Name`, `Surname`, `ID`, `Curso`, `Profesor`, `Asistencia`, `Promedio Final`, `Email`, `Fecha Notificación`.
+- **Lote `CONTINUATION`** — Nuevo tipo de envío masivo en `sendEmailBatch()` con subject "Acceso Preferencial de Continuación - PUCV2English".
+- **Test de Continuación** — `sendTestEmail(email, 'CONTINUATION')` para pruebas, incluido en la cadena completa `CADENA_COMPLETA`.
+- **Parsing Robusto** — Manejo de comas como separador decimal en asistencia (`88,8` → `88.8`) y extracción de nivel con regex desde nombres de curso completos (`B1+ PIIE 2096 - 01` → `B1+`).
+
+### Cambiado
+- **sendEmailBatch** — Soporte para 7 tipos de lote (nuevo: `CONTINUATION`).
+- **Cadena completa de test** — Ahora incluye 9 tipos (nuevo: `CONTINUATION`).
+
+---
+
 ## [5.1.0] - 2026-07-13
 
 ### Añadido

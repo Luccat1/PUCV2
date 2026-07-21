@@ -1,18 +1,15 @@
-# PUCV2English v5.1.0 — Sistema de Gestión Automatizada
+# PUCV2English v5.2.1 — Sistema de Gestión Automatizada
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
 [![Platform](https://img.shields.io/badge/Platform-Google%20Apps%20Script-green.svg)](https://developers.google.com/apps-script)
 
 **PUCV2English** es un ecosistema modular desarrollado en **TypeScript** para la gestión profesional de postulaciones al Programa de Inglés PUCV. El sistema automatiza el ciclo completo: desde la evaluación masiva con criterios ponderados, hasta la gestión de matrícula, lista de espera, control de pagos y comunicación automatizada con los postulantes.
 
-> **Novedad v5.1.0 (Julio 2026):**
-> * **Lista de Espera Ampliada**: Hoja física `"Lista de Espera"` con capacidad de hasta 30 candidatos por nivel (120 total).
-> * **Control de Pagos**: Columna `"Pago Matrícula"` con dropdown interactivo en `"Seleccionados"`. La Lista Final exige `Acepta` + `Pagado`.
-> * **Promoción desde Lista de Espera**: Función de un clic para promover al siguiente candidato de la lista de espera a seleccionados.
-> * **Correo de Cierre de Espera**: Nueva plantilla `CorreoEsperaSinCupo` para notificar a la lista de espera cuando el proceso concluye sin vacantes.
-> * **Modo Borrador Gmail**: Opción de crear correos como borradores antes de enviarlos realmente para revisión previa.
-> * **Seleccionados Protegidos**: La hoja `"Seleccionados"` ya no se sobreescribe al regenerar; las promociones manuales se preservan.
-> * **Exclusión Segura**: Los correos de rechazo excluyen automáticamente a seleccionados y lista de espera.
+> **Novedad v5.2.1 (Julio 2026):**
+> * **Procesamiento de Respuestas para Continuación**: Los enlaces de Aceptar/Rechazar para estudiantes de continuación registran su respuesta directamente en la columna `"Aceptación"` de la hoja `"Continuación"`.
+> * **Integración Automática en Lista Final**: Al generar la Lista Final del Curso, se leen e incorporan los estudiantes de continuación confirmados (`Aceptación` = `Acepta`) asignándolos a su nuevo nivel con estado `"Exento (Continuación)"`.
+> * **Integración Completa de Menú y WebApp**: Menú dinámico en Google Sheets (`📧 Enviar Correos` > `🔄 Continuación (Año Anterior)`) y botón interactivo en el panel web.
+> * **Resolución de Ámbito de Variables**: `CONTINUATION_MAP` centralizado en `Config.js` para evitar colisiones de identificadores globales.
 
 ---
 
@@ -37,7 +34,7 @@
 - **Restauración de Emergencia**: Función `restaurarHojaSeleccionadosPerdida` para recuperar datos en caso de pérdida accidental.
 
 ### ✉️ Sistema de Correos Automatizados
-El sistema soporta **6 tipos de envío masivo** y **2 correos de confirmación automática**:
+El sistema soporta **7 tipos de envío masivo** y **2 correos de confirmación automática**:
 
 | Tipo de Lote | Plantilla HTML | Descripción |
 |---|---|---|
@@ -47,6 +44,7 @@ El sistema soporta **6 tipos de envío masivo** y **2 correos de confirmación a
 | `WAITLIST` | `CorreoListaEspera` | Aviso de ingreso a la lista de espera |
 | `WAITLIST_REJECTED` | `CorreoEsperaSinCupo` | Cierre del proceso — sin vacantes disponibles |
 | `NO_SELECTED` | `CorreoNoSeleccionado` | Rechazo (excluye automáticamente a seleccionados y lista de espera) |
+| `CONTINUATION` | `CorreoContinuacion` | Acceso preferencial para estudiantes de continuación (sin matrícula) |
 
 **Correos Automáticos de Confirmación:**
 - `CorreoConfirmacionAcepta`: Se envía al aceptar, incluye link de pago y plazo dinámico de 3 días.
@@ -95,6 +93,7 @@ src/
 ├── CorreoNoSeleccionado.html
 ├── CorreoConfirmacionAcepta.html
 ├── CorreoConfirmacionRechaza.html
+├── CorreoContinuacion.html
 ├── CorreoInicioClases.html
 ├── DialogSalas.html
 ├── DialogConfirmEval.html
@@ -117,7 +116,8 @@ const CONFIG = {
     SELECTED: "Seleccionados",
     WAITLIST: "Lista de Espera",
     FINAL_LIST: "Lista Final Curso",
-    CONFIG: "Configuración"
+    CONFIG: "Configuración",
+    CONTINUATION: "Continuación"
   },
   COLUMNS: {
     NOTIFICATION_DATE: "Fecha Notificación",

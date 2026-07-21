@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <style>
+    body {
+      font-family: 'Roboto', Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+      color: #333333;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #ffffff;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .header {
+      text-align: center;
+      padding-bottom: 20px;
+      border-bottom: 2px solid #0055a2;
+    }
+
+    .header img {
+      max-width: 150px;
+    }
+
+    .content {
+      padding: 20px 0;
+      line-height: 1.7;
+    }
+
+    .content h3 {
+      color: #003366;
+    }
+
+    .highlight {
+      background-color: #e9f2fa;
+      padding: 15px;
+      border-left: 4px solid #0055a2;
+      margin: 20px 0;
+      border-radius: 4px;
+    }
+
+    .highlight strong {
+      color: #003366;
+    }
+
+    .highlight-success {
+      background-color: #e8f5e9;
+      padding: 15px;
+      border-left: 4px solid #28a745;
+      margin: 20px 0;
+      border-radius: 4px;
+    }
+
+    .highlight-success strong {
+      color: #1b5e20;
+    }
+
+    .confirm-box {
+      background-color: #e9f2fa;
+      padding: 15px;
+      border-left: 4px solid #0055a2;
+      margin: 20px 0;
+      border-radius: 4px;
+      text-align: center;
+    }
+
+    ul {
+      list-style-type: none;
+      padding-left: 0;
+    }
+
+    ul li {
+      margin-bottom: 8px;
+    }
+
+    ul li strong {
+      display: inline-block;
+      width: 130px;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 12px 24px;
+      margin: 5px;
+      text-decoration: none;
+      border-radius: 4px;
+      font-weight: bold;
+      color: #ffffff !important;
+    }
+
+    .btn-accept {
+      background-color: #4CAF50;
+    }
+
+    .btn-reject {
+      background-color: #f44336;
+    }
+
+    .footer {
+      text-align: center;
+      padding-top: 20px;
+      border-top: 1px solid #eeeeee;
+      font-size: 12px;
+      color: #777777;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="header">
+      <img src="https://www.pucv.cl/pucv/site/artic/20220615/imag/foto_0000000120220615160256/logo_header.png" alt="Logo PUCV">
+    </div>
+    <div class="content">
+      <h3>¡Estimado/a <?= nombre ?>!</h3>
+
+      <p>Junto con saludar, te informamos que, al haber aprobado satisfactoriamente el curso
+        <strong><?= cursoAnterior ?></strong> en la versión anterior del programa
+        <strong>PUCV2English</strong>, tienes la oportunidad de continuar tu avance en el
+        aprendizaje del inglés.</p>
+
+      <div class="highlight-success">
+        <p><strong>&#127891; ¡Tienes acceso preferencial!</strong></p>
+        <p>Como estudiante de continuación, puedes incorporarte directamente al siguiente nivel
+          sin necesidad de realizar un nuevo proceso de postulación ni pago de matrícula.</p>
+      </div>
+
+      <h3>Tu siguiente nivel asignado:</h3>
+      <div class="highlight">
+        <p style="text-align: center; font-size: 18px; margin: 0;">
+          <strong><?= cursoAnterior ?></strong> → <strong><?= nivelSiguiente ?></strong>
+        </p>
+      </div>
+
+      <h3>Horario del curso (<?= nivelSiguiente ?>):</h3>
+      <ul>
+        <li><strong>Cátedras:</strong>
+          <?= programData.HORARIOS[nivelSiguiente] ? programData.HORARIOS[nivelSiguiente].catedra : '[Horario por confirmar]' ?>
+        </li>
+        <li><strong>Ayudantía:</strong>
+          <?= programData.HORARIOS[nivelSiguiente] ? programData.HORARIOS[nivelSiguiente].ayudantia : '[Horario por confirmar]' ?>
+        </li>
+      </ul>
+
+      <h3>Datos generales del programa:</h3>
+      <ul>
+        <li><strong>Inicio de clases:</strong> <?= programData.FECHA_INICIO ?></li>
+        <li><strong>Término de clases:</strong> <?= programData.FECHA_TERMINO ?></li>
+        <li><strong>Modalidad:</strong> Presencial</li>
+      </ul>
+
+      <div class="confirm-box">
+        <p>Para confirmar tu participación, utiliza los siguientes botones a más tardar el
+          <strong><?= fechaLimite ?></strong>:</p>
+        <div style="margin: 20px 0;">
+          <a href="<?= urlAceptar ?>" class="btn btn-accept">&#9989; Acepto mi Cupo</a>
+          <a href="<?= urlRechazar ?>" class="btn btn-reject">&#10060; Rechazo mi Cupo</a>
+        </div>
+        <p style="font-size: 0.85em; color: #666; margin-top: 15px;">Si los botones no funcionan, copia y pega este
+          enlace en tu navegador:<br>
+          <span style="word-break: break-all;"><?= urlAceptar ?></span>
+        </p>
+        <p style="font-size: 0.85em; color: #666; margin-top: 10px;">Si tienes problemas para confirmar a través de
+          los enlaces, por favor respóndenos directamente a este correo indicando si confirmas o rechazas tu cupo.</p>
+      </div>
+
+      <p><em><strong>Importante:</strong> Si no confirmas tu participación dentro del plazo indicado, tu cupo quedará
+          disponible para otro postulante.</em></p>
+
+      <p>Saludos cordiales,<br>Coordinación PUCV2English</p>
+    </div>
+    <div class="footer">
+      <p>Pontificia Universidad Católica de Valparaíso</p>
+    </div>
+  </div>
+</body>
+
+</html>

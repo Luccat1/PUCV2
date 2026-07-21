@@ -412,22 +412,61 @@ function procesarAccionPostulante(token: string, action: string): { exito: boole
     return { exito: false, mensaje: "Error base de datos: Hoja 'Seleccionados' no encontrada." };
   }
 
-  const values = hojaS.getDataRange().getValues();
-  const headers = values[0];
+  let targetValues = hojaS.getDataRange().getValues();
+  const headers = targetValues[0];
   const idxCorreo = headers.indexOf("Correo Electrónico");
   const idxNombre = headers.indexOf("Nombre(s)");
   const idxAceptacion = headers.indexOf("Aceptación") + 1;
 
   let isRealCandidate = false;
+  let isContinuationStudent = false;
   let nombre = "Usuario de Prueba (Sandbox)";
+  let targetSheet = hojaS;
   let rowIndex = -1;
+  let idxAceptacionCol = idxAceptacion;
 
-  for (let i = 1; i < values.length; i++) {
-    if (String(values[i][idxCorreo]).trim().toLowerCase() === correo.trim().toLowerCase()) {
+  for (let i = 1; i < targetValues.length; i++) {
+    if (String(targetValues[i][idxCorreo]).trim().toLowerCase() === correo.trim().toLowerCase()) {
       isRealCandidate = true;
-      nombre = values[i][idxNombre];
+      nombre = targetValues[i][idxNombre];
       rowIndex = i + 1;
       break;
+    }
+  }
+
+  // --- CHECK CONTINUATION SHEET IF NOT IN SELECTED ---
+  if (!isRealCandidate) {
+    const hojaC = ss.getSheetByName(CONFIG.SHEETS.CONTINUATION);
+    if (hojaC) {
+      const valuesC = hojaC.getDataRange().getValues();
+      if (valuesC.length > 0) {
+        const headersC = valuesC[0];
+        let idxEmailC = headersC.indexOf("Email");
+        if (idxEmailC === -1) idxEmailC = headersC.indexOf("Correo Electrónico");
+        const idxNameC = headersC.indexOf("Name");
+        const idxSurnameC = headersC.indexOf("Surname");
+        let idxAceptacionC = headersC.indexOf("Aceptación");
+
+        if (idxAceptacionC === -1) {
+          idxAceptacionC = headersC.length;
+          hojaC.getRange(1, idxAceptacionC + 1).setValue("Aceptación");
+        }
+
+        if (idxEmailC !== -1) {
+          for (let i = 1; i < valuesC.length; i++) {
+            if (String(valuesC[i][idxEmailC]).trim().toLowerCase() === correo.trim().toLowerCase()) {
+              isRealCandidate = true;
+              isContinuationStudent = true;
+              targetSheet = hojaC;
+              nombre = `${valuesC[i][idxNameC] || ''} ${valuesC[i][idxSurnameC] || ''}`.trim() || correo;
+              rowIndex = i + 1;
+              idxAceptacionCol = idxAceptacionC + 1;
+              targetValues = valuesC;
+              break;
+            }
+          }
+        }
+      }
     }
   }
 
@@ -446,20 +485,32 @@ function procesarAccionPostulante(token: string, action: string): { exito: boole
   }
 
   // Real candidate processing
-  const estadoActual = values[rowIndex - 1][idxAceptacion - 1];
+  const estadoActual = targetValues[rowIndex - 1][idxAceptacionCol - 1];
   if (estadoActual === 'Acepta' || estadoActual === 'Rechaza') {
     scriptProperties.deleteProperty('token_' + token); // Clean up used token
     return { 
       exito: true, 
       mensaje: "Tu respuesta ya fue registrada anteriormente.", 
       nombre: nombre,
-      paymentUrl: PROGRAM_DATA.PAYMENT_URL 
+      paymentUrl: isContinuationStudent ? undefined : PROGRAM_DATA.PAYMENT_URL 
     };
   }
 
   const nuevoEstado = action === 'accept' ? 'Acepta' : 'Rechaza';
-  hojaS.getRange(rowIndex, idxAceptacion).setValue(nuevoEstado);
+  targetSheet.getRange(rowIndex, idxAceptacionCol).setValue(nuevoEstado);
   scriptProperties.deleteProperty('token_' + token); // One-time use
+
+  if (isContinuationStudent) {
+    logToWebApp(`${action === 'accept' ? 'Aceptación' : 'Rechazo'} de continuación recibida de ${correo}.`);
+    return {
+      exito: true,
+      mensaje: action === 'accept' ?
+        "Gracias por confirmar tu participación. Al ser estudiante de continuación, tu cupo ha quedado reservado directamente sin pago de matrícula." :
+        "Has rechazado tu cupo de continuación. Tu lugar no será reservado.",
+      nombre: nombre,
+      paymentUrl: undefined
+    };
+  }
 
   if (action === 'reject') {
     procesarRechazoDesdeWebApp(correo);

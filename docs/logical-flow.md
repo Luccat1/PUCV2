@@ -1,4 +1,4 @@
-# Flujo Lógico y Operación de Scripts (PUCV2English v5.1.0)
+# Flujo Lógico y Operación de Scripts (PUCV2English v5.2.1)
 
 Este documento detalla la arquitectura, requerimientos y secuencia de ejecución del sistema modular **PUCV2English**, diseñado para la gestión y evaluación automatizada de postulaciones.
 
@@ -49,6 +49,10 @@ graph TD
 
     AdminSend -->|Cierre Proceso| EmailClosure["Correo: Cierre Lista de Espera (Sin Cupo)"]:::action
     EmailClosure -->|Actualiza Fecha Cierre| SheetWaitlist
+
+    SheetCont["Hoja: Continuación (datos año anterior)"]:::sheet -->|16. Filtrado elegibilidad| ContinuationFilter["Engine: getRecipients CONTINUATION"]:::process
+    ContinuationFilter -->|Asistencia ≥ 80% + Nota ≥ 4.0 + No C1| EmailContinuation["Correo: Continuación (acceso preferencial)"]:::action
+    EmailContinuation -->|17. Clic en Enlace| WebAppConfirm
 ```
 
 ---
@@ -104,8 +108,8 @@ A continuación, se detalla qué requiere y qué produce cada script de la carpe
 ### 4. Correos.ts
 *   **Propósito**: Motor de envío de correos masivos o unitarios con plantillas HTML personalizadas.
 *   **Requerimientos / Entradas**:
-    *   Hojas `"Seleccionados"`, `"Lista de Espera"` y `"Evaluación automatizada"`.
-    *   Plantillas HTML: `CorreoSeleccionado`, `CorreoTestNivel`, `CorreoHandPicked`, `CorreoListaEspera`, `CorreoEsperaSinCupo`, `CorreoNoSeleccionado`, `CorreoConfirmacionAcepta`, `CorreoConfirmacionRechaza`.
+    *   Hojas `"Seleccionados"`, `"Lista de Espera"`, `"Evaluación automatizada"` y `"Continuación"`.
+    *   Plantillas HTML: `CorreoSeleccionado`, `CorreoTestNivel`, `CorreoHandPicked`, `CorreoListaEspera`, `CorreoEsperaSinCupo`, `CorreoNoSeleccionado`, `CorreoContinuacion`, `CorreoConfirmacionAcepta`, `CorreoConfirmacionRechaza`.
 *   **Salidas / Modificaciones**:
     *   Envía correos electrónicos a través de `GmailApp` o crea borradores según la opción elegida.
     *   Registra la fecha y hora en la columna de control correspondiente para asegurar idempotencia.
@@ -116,6 +120,16 @@ A continuación, se detalla qué requiere y qué produce cada script de la carpe
     *   `WAITLIST`: Candidatos en la hoja `"Lista de Espera"` sin fecha de notificación.
     *   `WAITLIST_REJECTED`: Candidatos en `"Lista de Espera"` sin `"Fecha Notificación Cierre"`.
     *   `NO_SELECTED`: Todos los evaluados que **no** estén en `"Seleccionados"` ni en `"Lista de Espera"`.
+    *   `CONTINUATION`: Estudiantes del año anterior con asistencia ≥ 80%, nota ≥ 4.0 (40/70), y curso con continuación (excluye C1). Lee de la hoja `"Continuación"`.
+
+### 5. WebApp.ts
+*   **Propósito**: Sirve el panel de control web (Dashboard) y gestiona los endpoints de confirmación (`doGet`) para las respuestas de los postulantes.
+*   **Gestión de Tokens y Respuestas**:
+    *   Genera tokens UUID de un solo uso asociados al correo del postulante.
+    *   Al recibir `action=accept` o `action=reject`:
+        1. Busca al candidato en la hoja `"Seleccionados"`. Si existe, actualiza la columna `"Aceptación"`.
+        2. Si no se encuentra en `"Seleccionados"`, busca en la hoja `"Continuación"`. Si existe, crea la columna `"Aceptación"` si no estuviera y registra el estado (`"Acepta"` o `"Rechaza"`).
+        3. Para estudiantes de continuación que aceptan, la WebApp muestra una página de confirmación personalizada notificando que su cupo está formalizado sin necesidad de pago de matrícula.
 *   **Funciones clave**:
     *   `getRecipients(type)`: Selecciona los destinatarios según el tipo de lote, aplicando filtros de idempotencia y exclusión.
     *   `sendEmailBatch(type, asDraft, limit)`: Envía los correos (o crea borradores) y actualiza las columnas de control de fecha.
@@ -137,13 +151,11 @@ A continuación, se detalla qué requiere y qué produce cada script de la carpe
     *   `enviarCorreosInicioClases()`: Ejecuta la lógica final de envío de correos y marcas de tiempo.
 
 ### 6. ListaFinal.ts
-*   **Propósito**: Generar la lista definitiva de alumnos listos para el curso.
-*   **Requerimientos / Entradas**:
-    *   Hoja `"Seleccionados"`.
-*   **Salidas / Modificaciones**:
-    *   Sobrescribe la hoja `"Lista Final Curso"`.
-*   **Funciones clave**:
-    *   `generarListaFinalCurso()`: Filtra candidatos que cumplan **ambas** condiciones: `Aceptación = "Acepta"` **y** `Pago Matrícula = "Pagado"`. La columna `"Pagó (Sí/No)"` se completa automáticamente como `"Sí"`.
+*   **Propósito**: Genera el libro de clases definitivo en la hoja `"Lista Final Curso"`.
+*   **Lógica de Consolidación**:
+    1. Filtra candidatos de `"Seleccionados"` que tengan `Aceptación` = `"Acepta"` **Y** `Pago Matrícula` = `"Pagado"`.
+    2. Lee la hoja `"Continuación"` y filtra a los estudiantes con `Aceptación` = `"Acepta"`. Mapea su curso anterior al nuevo nivel (ej: `B1+ → B2.1`) y los marca como `"Exento (Continuación)"` en la columna `"Pagó (Sí/No)"`.
+    3. Agrupa a todos los confirmados por nivel (o `"PRUEBA DE NIVEL"`) y construye la lista dividida por categorías con encabezados destacados.
 
 ### 7. WebApp.ts
 *   **Propósito**: Maneja el panel de control administrativo web (UI principal) y los endpoints para que los postulantes confirmen o liberen su cupo.
@@ -229,6 +241,21 @@ A continuación, se detalla qué requiere y qué produce cada script de la carpe
 3. El administrador selecciona `📧 Enviar Correos` → `🏫 Inicio de Clases`.
 4. Introduce la sala para cada nivel, valida el preview y confirma el envío.
 5. Los alumnos reciben el correo de bienvenida con horarios, salas y fechas.
+
+### Paso 8: Continuación de Estudiantes del Año Anterior
+1. Al iniciar un nuevo período, el coordinador obtiene el informe de notas y asistencia del año anterior.
+2. Pega los datos en la hoja **`"Continuación"`** con las columnas: `Name`, `Surname`, `ID`, `Curso`, `Profesor`, `Asistencia`, `Promedio Final`.
+3. Agrega manualmente las columnas `Email` (con los correos de los estudiantes) y `Fecha Notificación` (vacía).
+4. El sistema filtra automáticamente a los elegibles:
+    *   Asistencia ≥ 80%
+    *   Promedio Final ≥ 40 (equivalente a 4.0)
+    *   Curso con continuación (B1+ → B2.1, B2.1 → B2.2, B2.2 → C1). Se excluye C1.
+5. Ejecuta `📧 Enviar Correos` → `🔄 Continuación` (o `sendEmailBatch('CONTINUATION')`).
+6. Los estudiantes elegibles reciben el correo `CorreoContinuacion` con:
+    *   Su curso anterior y el nivel al que pueden avanzar
+    *   Horarios del nuevo curso
+    *   Botones de Aceptar/Rechazar
+7. Al aceptar, el estudiante se incorpora a las listas finales sin pago de matrícula.
 
 ---
 

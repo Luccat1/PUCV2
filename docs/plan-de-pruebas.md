@@ -17,6 +17,7 @@ Antes de iniciar la simulación, debemos asegurar que las bases de datos de prue
       4. `"Configuración"`.
       5. `"Seleccionados"`.
       6. `"Lista Final Curso"`.
+      7. `"Continuación"` (para pruebas de correos de continuación, ver Fase 9).
 
 - [ ] **1.2. Inicializar la Configuración en la Hoja**
   *   Ejecuta la función `resetConfiguracion()` o ingresa al menú `PUCV2English` > `⚙️ Configurar Pesos` para verificar que se cree y rellene la pestaña `"Configuración"` con los valores predeterminados de ponderaciones y fechas.
@@ -172,3 +173,69 @@ Fase final donde el administrador coordina la infraestructura e informa a los al
       *   En la hoja `"Lista Final Curso"`, la columna `Sala` de cada alumno se actualiza con la sala asignada a su nivel.
       *   La columna `Notificado Inicio` se rellena con la fecha y hora de la notificación.
       *   El modal se cierra mostrando un mensaje de éxito.
+
+---
+
+## 🔄 Fase 9: Correos de Continuación (Estudiantes del Año Anterior)
+
+Probaremos el flujo completo de correos para estudiantes de continuación, desde la importación de datos hasta el envío filtrado.
+
+- [ ] **9.1. Preparar la Hoja de Continuación**
+  *   Crea la hoja `"Continuación"` en el spreadsheet con las siguientes columnas:
+      `Name`, `Surname`, `ID`, `Curso`, `Profesor`, `Asistencia`, `Promedio Final`, `Email`, `Fecha Notificación`
+  *   Inserta datos de prueba:
+      *   **Fila A (Elegible B1+)**: Name: "ROMINA", Surname: "BRAVO", Curso: "B1+ PIIE 2096 - 01", Asistencia: 97, Promedio: 50, Email: tu_correo@test.com
+      *   **Fila B (Elegible B2.1)**: Name: "CATALINA", Surname: "BRAVO PAEZ", Curso: "B2.1 PIIE 3096-01", Asistencia: 93, Promedio: 64, Email: tu_correo@test.com
+      *   **Fila C (Elegible B2.2 con coma)**: Name: "NAYADETH", Surname: "CORTÉS", Curso: "B2.2 PIIE 3196-01", Asistencia: "88,8", Promedio: 59, Email: tu_correo@test.com
+      *   **Fila D (No elegible — C1)**: Name: "ANDONI", Surname: "AÑASCO", Curso: "C1 PIIE4096-1", Asistencia: 88, Promedio: 48, Email: tu_correo@test.com
+      *   **Fila E (No elegible — baja asistencia)**: Name: "CONSTANZA", Surname: "MORALERA", Curso: "B1+ PIIE 2096 - 01", Asistencia: 19, Promedio: 10, Email: tu_correo@test.com
+      *   **Fila F (No elegible — sin email)**: Name: "PABLO", Surname: "MERINO", Curso: "B1+ PIIE 2096 - 01", Asistencia: 92, Promedio: 57, Email: (vacío)
+
+- [ ] **9.2. Enviar Correo de Prueba Individual**
+  *   Ejecuta `sendTestEmail('tu_correo@test.com', 'CONTINUATION')` desde el editor de Apps Script.
+  *   **Verificación esperada**:
+      *   Recibes un correo con subject `[TEST] Acceso Preferencial de Continuación - PUCV`.
+      *   El correo muestra: `B1+ → B2.1`, horarios del curso B2.1, botones de Aceptar/Rechazar.
+      *   El highlight verde dice "¡Tienes acceso preferencial!".
+
+- [ ] **9.3. Verificar Filtrado de Elegibilidad**
+  *   Ejecuta `previewEmailBatch('CONTINUATION')` desde el editor.
+  *   **Verificación esperada**:
+      *   Solo se listan **3 destinatarios** (Filas A, B y C).
+      *   Fila D (C1) queda excluida por no tener continuación.
+      *   Fila E queda excluida por asistencia < 80%.
+      *   Fila F queda excluida por no tener email.
+
+- [ ] **9.4. Enviar Lote en Modo Borrador**
+  *   Ejecuta `sendEmailBatch('CONTINUATION', true)` para crear borradores.
+  *   **Verificación esperada**:
+      *   Se crean 3 borradores en Gmail (uno por cada elegible).
+      *   Cada borrador muestra el nivel correcto: A → B2.1, B → B2.2, C → C1.
+      *   La columna `Fecha Notificación` **no** se actualiza (modo borrador).
+
+- [ ] **9.5. Enviar Lote Real y Verificar Idempotencia**
+  *   Ejecuta `sendEmailBatch('CONTINUATION')` para enviar los correos reales.
+  *   **Verificación esperada**:
+      *   Se envían 3 correos exitosamente.
+      *   La columna `Fecha Notificación` se actualiza con la marca de tiempo para las filas A, B y C.
+  *   Ejecuta nuevamente `sendEmailBatch('CONTINUATION')`.
+  *   **Verificación esperada**: `"No hay destinatarios pendientes para enviar 'CONTINUATION'"`. Los correos no se duplican.
+
+- [ ] **9.6. Verificar Parsing de Coma Decimal**
+  *   Verifica que la Fila C (asistencia `88,8`) fue correctamente parseada como `88.8` y superó el umbral de 80%.
+  *   Si la asistencia fuera `79,5`, debería ser excluida.
+
+- [ ] **9.7. Probar Respuesta WebApp (Aceptar / Rechazar Cupo de Continuación)**
+  *   Copia la URL de aceptación (`action=accept&token=...`) generada para una de las personas notificadas de continuación.
+  *   Abre el enlace en el navegador.
+  *   **Verificación esperada**:
+      *   La página de confirmación carga indicando que el cupo fue confirmado directamente y no requiere pago de matrícula.
+      *   En la hoja `"Continuación"`, la columna `Aceptación` se crea/actualiza a `"Acepta"`.
+
+- [ ] **9.8. Generar Lista Final con Alumnos de Continuación**
+  *   Ejecuta `PUCV2English` > `📋 Generar Lista Final`.
+  *   **Verificación esperada**:
+      *   Los alumnos de continuación confirmados (`Aceptación` = `"Acepta"`) aparecen listados bajo su nuevo nivel asignado (ej: `B1+` → `B2.1`).
+      *   La columna `Pagó (Sí/No)` en `"Lista Final Curso"` muestra `"Exento (Continuación)"`.
+      *   La alerta del sistema indica la cantidad de alumnos seleccionados regulares + alumnos de continuación confirmados.
+

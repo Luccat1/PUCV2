@@ -25,6 +25,7 @@ interface IConfig {
     WAITLIST: string;
     FINAL_LIST: string;
     PLACEMENT: string;
+    CONTINUATION: string;
   };
   PLACEMENT_PDF_NAME: string;
   DEFAULT_INSTITUTION_ID: string;
@@ -122,7 +123,8 @@ const CONFIG: IConfig = {
     SELECTED: "Seleccionados",
     WAITLIST: "Lista de Espera",
     FINAL_LIST: "Lista Final Curso",
-    PLACEMENT: "Prueba de Nivel"
+    PLACEMENT: "Prueba de Nivel",
+    CONTINUATION: "Continuación"
   },
   PLACEMENT_PDF_NAME: "Instrucciones Placement.pdf",
   DEFAULT_INSTITUTION_ID: "CL304",
@@ -241,3 +243,15 @@ const DEFAULT_PROGRAM_DATA: IProgramData = {
  * These parameters can be modified by the 'cargarDatosPrograma' function.
  */
 let PROGRAM_DATA: IProgramData = JSON.parse(JSON.stringify(DEFAULT_PROGRAM_DATA));
+
+/**
+ * Continuation parameters for students progressing from previous year.
+ */
+const CONTINUATION_MAP: Record<string, string> = {
+  "B1+": "B2.1",
+  "B2.1": "B2.2",
+  "B2.2": "C1"
+};
+const CONTINUATION_MIN_ATTENDANCE = 80;
+const CONTINUATION_MIN_GRADE = 40;
+

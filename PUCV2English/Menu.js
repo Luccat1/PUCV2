@@ -27,6 +27,7 @@ function onOpen() {
         .addItem('⏳ Lista de Espera', 'enviarCorreosEspera')
         .addItem('⏳ Cierre Lista de Espera (Sin Cupo)', 'enviarCorreosEsperaRechazada')
         .addItem('❌ No Seleccionados', 'enviarCorreosNoSeleccionados')
+        .addItem('🔄 Continuación (Año Anterior)', 'enviarCorreosContinuacion')
         .addSeparator()
         .addItem('👁️ Vista Previa Siguiente (Lista de Espera)', 'mostrarVistaPreviaProximo')
         .addItem('✉️ Enviar Correo de Prueba', 'abrirDialogoCorreoPrueba')
@@ -106,6 +107,7 @@ function enviarCorreosHandPicked() { confirmarYEnviarCorreos('HAND_PICKED'); }
 function enviarCorreosEspera() { confirmarYEnviarCorreos('WAITLIST'); }
 function enviarCorreosEsperaRechazada() { confirmarYEnviarCorreos('WAITLIST_REJECTED'); }
 function enviarCorreosNoSeleccionados() { confirmarYEnviarCorreos('NO_SELECTED'); }
+function enviarCorreosContinuacion() { confirmarYEnviarCorreos('CONTINUATION'); }
 function ejecutarAnalisisDesdeMenu() {
     const report = getAnalysisReport();
     SpreadsheetApp.getUi().alert("Análisis de Equilibrio", report, SpreadsheetApp.getUi().ButtonSet.OK);

@@ -132,6 +132,59 @@ function getRecipients(type) {
             notificado: false
         }));
     }
+    if (type === 'CONTINUATION') {
+        const hoja = ss.getSheetByName(CONFIG.SHEETS.CONTINUATION);
+        if (!hoja)
+            throw new Error(`Hoja ${CONFIG.SHEETS.CONTINUATION} no encontrada.`);
+        const datos = hoja.getDataRange().getValues();
+        const headers = datos.shift();
+        if (!headers)
+            return [];
+        const idxName = headers.indexOf("Name");
+        const idxSurname = headers.indexOf("Surname");
+        const idxCurso = headers.indexOf("Curso");
+        const idxAsistencia = headers.indexOf("Asistencia");
+        const idxPromedio = headers.indexOf("Promedio Final");
+        let idxEmail = headers.indexOf("Email");
+        if (idxEmail === -1)
+            idxEmail = headers.indexOf("Correo Electrónico");
+        const idxNotificado = headers.indexOf(CONFIG.COLUMNS.NOTIFICATION_DATE);
+        if (idxName === -1 || idxSurname === -1 || idxCurso === -1 || idxAsistencia === -1 || idxPromedio === -1) {
+            throw new Error(`Faltan columnas necesarias en la hoja de Continuación (Name, Surname, Curso, Asistencia, Promedio Final).`);
+        }
+        return datos.map((row, i) => {
+            const cursoRaw = String(row[idxCurso]).trim();
+            const cursoMatch = cursoRaw.match(/^(B1\+|B2\.1|B2\.2|C1)/i);
+            const cursoNivel = cursoMatch ? cursoMatch[1] : cursoRaw.split(' ')[0];
+            const asistenciaRaw = String(row[idxAsistencia]).replace(',', '.');
+            const asistencia = parseFloat(asistenciaRaw) || 0;
+            const promedioRaw = String(row[idxPromedio]).replace(',', '.');
+            const promedio = parseFloat(promedioRaw) || 0;
+            const nivelSiguiente = CONTINUATION_MAP[cursoNivel] || null;
+            return {
+                index: i + 2,
+                nombre: `${row[idxName]} ${row[idxSurname]}`.trim(),
+                email: idxEmail !== -1 ? String(row[idxEmail]).trim() : '',
+                cursoAnterior: cursoNivel,
+                nivelSiguiente: nivelSiguiente,
+                asistencia: asistencia,
+                promedio: promedio,
+                notificado: idxNotificado !== -1 ? row[idxNotificado] : ''
+            };
+        }).filter(p => {
+            if (p.notificado && p.notificado !== '')
+                return false;
+            if (!p.email)
+                return false;
+            if (!p.nivelSiguiente)
+                return false;
+            if (p.asistencia < CONTINUATION_MIN_ATTENDANCE)
+                return false;
+            if (p.promedio < CONTINUATION_MIN_GRADE)
+                return false;
+            return true;
+        });
+    }
     return [];
 }
 /**
@@ -194,12 +247,23 @@ function sendEmailBatch(type, asDraft = false, limit = 0) {
                 templateName = 'CorreoHandPicked';
                 subject = "Cupo Disponible - Programas de Inglés PUCV";
             }
+            else if (type === 'CONTINUATION') {
+                templateName = 'CorreoContinuacion';
+                subject = "Acceso Preferencial de Continuación - PUCV2English";
+            }
             const htmlBody = HtmlService.createTemplateFromFile(templateName);
             htmlBody.nombre = r.nombre;
             htmlBody.nivel = r.nivel;
             htmlBody.programData = PROGRAM_DATA;
             htmlBody.fechaLimite = calcularFechaLimite(new Date(), PROGRAM_DATA.DEADLINE_DAYS || 3);
             if (templateName === 'CorreoSeleccionado' || templateName === 'CorreoHandPicked' || templateName === 'CorreoTestNivel') {
+                const token = generarToken(r.email);
+                htmlBody.urlAceptar = obtenerUrlConfirmacionConToken(token, 'accept');
+                htmlBody.urlRechazar = obtenerUrlConfirmacionConToken(token, 'reject');
+            }
+            else if (templateName === 'CorreoContinuacion') {
+                htmlBody.cursoAnterior = r.cursoAnterior;
+                htmlBody.nivelSiguiente = r.nivelSiguiente;
                 const token = generarToken(r.email);
                 htmlBody.urlAceptar = obtenerUrlConfirmacionConToken(token, 'accept');
                 htmlBody.urlRechazar = obtenerUrlConfirmacionConToken(token, 'reject');
@@ -214,8 +278,18 @@ function sendEmailBatch(type, asDraft = false, limit = 0) {
                 GmailApp.sendEmail(r.email, subject, "", {
                     htmlBody: finishedHtml
                 });
-                // Update notification date for idempotency only when sending real emails (skip for NO_SELECTED since it's not tracked on SELECTED sheet)
-                if (type !== 'NO_SELECTED' && hojaS && idxNotificado !== undefined && idxNotificado !== -1) {
+                // Update notification date for idempotency only when sending real emails
+                if (type === 'CONTINUATION') {
+                    const hojaCont = ss.getSheetByName(CONFIG.SHEETS.CONTINUATION);
+                    if (hojaCont) {
+                        const headersCont = hojaCont.getDataRange().getValues()[0];
+                        const idxNotifCont = headersCont.indexOf(CONFIG.COLUMNS.NOTIFICATION_DATE);
+                        if (idxNotifCont !== -1) {
+                            hojaCont.getRange(r.index, idxNotifCont + 1).setValue(new Date());
+                        }
+                    }
+                }
+                else if (type !== 'NO_SELECTED' && hojaS && idxNotificado !== undefined && idxNotificado !== -1) {
                     hojaS.getRange(r.index, idxNotificado + 1).setValue(new Date());
                 }
             }
@@ -248,7 +322,8 @@ function sendTestEmail(targetEmail, type) {
                 'NOT_SELECTED',
                 'CONFIRM_ACCEPT',
                 'CONFIRM_REJECT',
-                'CLASS_START'
+                'CLASS_START',
+                'CONTINUATION'
             ];
             types.forEach(t => {
                 sendTestEmail(targetEmail, t);
@@ -285,6 +360,10 @@ function sendTestEmail(targetEmail, type) {
             templateName = 'CorreoInicioClases';
             subject = "[TEST] Inicio de Clases - PUCV";
         }
+        else if (type === 'CONTINUATION') {
+            templateName = 'CorreoContinuacion';
+            subject = "[TEST] Acceso Preferencial de Continuación - PUCV";
+        }
         else if (type && type.startsWith('Correo')) {
             templateName = type;
         }
@@ -298,6 +377,8 @@ function sendTestEmail(targetEmail, type) {
         const token = generarToken(targetEmail);
         htmlBody.urlAceptar = obtenerUrlConfirmacionConToken(token, 'accept');
         htmlBody.urlRechazar = obtenerUrlConfirmacionConToken(token, 'reject');
+        htmlBody.cursoAnterior = "B1+";
+        htmlBody.nivelSiguiente = "B2.1";
         // Add dummy variables for CorreoInicioClases template backed by program data config
         const levelHorario = PROGRAM_DATA.HORARIOS["B2.1"] || PROGRAM_DATA.HORARIOS["Default"];
         htmlBody.catedra = levelHorario ? levelHorario.catedra : "Lunes y Miércoles 14:30 - 16:00";

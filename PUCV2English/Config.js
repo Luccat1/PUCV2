@@ -16,7 +16,8 @@ const CONFIG = {
         SELECTED: "Seleccionados",
         WAITLIST: "Lista de Espera",
         FINAL_LIST: "Lista Final Curso",
-        PLACEMENT: "Prueba de Nivel"
+        PLACEMENT: "Prueba de Nivel",
+        CONTINUATION: "Continuación"
     },
     PLACEMENT_PDF_NAME: "Instrucciones Placement.pdf",
     DEFAULT_INSTITUTION_ID: "CL304",
@@ -131,3 +132,13 @@ const DEFAULT_PROGRAM_DATA = {
  * These parameters can be modified by the 'cargarDatosPrograma' function.
  */
 let PROGRAM_DATA = JSON.parse(JSON.stringify(DEFAULT_PROGRAM_DATA));
+/**
+ * Continuation parameters for students progressing from previous year.
+ */
+const CONTINUATION_MAP = {
+    "B1+": "B2.1",
+    "B2.1": "B2.2",
+    "B2.2": "C1"
+};
+const CONTINUATION_MIN_ATTENDANCE = 80;
+const CONTINUATION_MIN_GRADE = 40;

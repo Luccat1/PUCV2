@@ -43,6 +43,7 @@ Copy-Item src\*.html PUCV2English\
 ```
 
 > **Nota**: El archivo `src/Dashboard.js` es un archivo JavaScript manual (no compilado desde TypeScript). Se copia directamente.
+> **Nota**: La plantilla `CorreoContinuacion.html` (v5.2.1) debe incluirse en la copia de archivos HTML.
 
 ## 4. Despliegue a Google Apps Script
 

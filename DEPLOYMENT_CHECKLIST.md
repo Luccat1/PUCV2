@@ -1,6 +1,6 @@
-# 📋 PUCV2English v5.1.0 Deployment Checklist
+# 📋 PUCV2English v5.2.1 Deployment Checklist
 
-**Updated:** 2026-07-13
+**Updated:** 2026-07-21
 **Status:** Ready for Google Apps Script deployment
 
 ---
@@ -15,10 +15,10 @@ Upload each file as a separate **Script** file in Google Apps Script editor:
 
 | File | Purpose | Status |
 |------|---------|--------|
-| `Config.js` | Configuración global y tipos | ✓ Ready |
+| `Config.js` | Configuración global y tipos | ✓ Updated |
 | `Utils.js` | Funciones de soporte | ✓ Ready |
-| `Correos.js` | Motor de correos (6 lotes + borradores) | ✓ Updated |
-| `ListaFinal.js` | Generación de lista final (filtro Acepta+Pagado) | ✓ Updated |
+| `Correos.js` | Motor de correos (7 lotes + borradores) | ✓ Updated |
+| `ListaFinal.js` | Generación de lista final (filtro Acepta+Pagado + Continuación) | ✓ Updated |
 | `Evaluacion.js` | Motor de evaluación de postulaciones | ✓ Ready |
 | `Seleccionados.js` | Seleccionados, Lista de Espera y Promoción | ✓ Updated |
 | `InicioClases.js` | Notificaciones de inicio de clases | ✓ Ready |
@@ -27,7 +27,7 @@ Upload each file as a separate **Script** file in Google Apps Script editor:
 | `WebApp.js` | Panel de control web y endpoints de confirmación | ✓ Updated |
 | `TestInicioClases.js` | Tests para inicio de clases | ✓ Ready |
 
-### HTML Files (12 total)
+### HTML Files (13 total)
 
 Upload each file as a separate **HTML** file in Google Apps Script editor:
 
@@ -45,10 +45,11 @@ Upload each file as a separate **HTML** file in Google Apps Script editor:
 | **`CorreoEsperaSinCupo.html`** | **Correo de cierre (sin vacantes) para lista de espera** | **✓ NEW** |
 | `CorreoNoSeleccionado.html` | Correo de rechazo (excluye seleccionados y lista de espera) | ✓ Ready |
 | `CorreoInicioClases.html` | Correo de bienvenida con horarios y salas | ✓ Ready |
+| **`CorreoContinuacion.html`** | **Correo de continuación para estudiantes del año anterior** | **✓ NEW** |
 
 > **Nota:** Los correos de confirmación automática (`CorreoConfirmacionAcepta.html` y `CorreoConfirmacionRechaza.html`) también deben ser subidos como archivos HTML.
 
-**Total de archivos HTML a subir: 14** (12 listados arriba + 2 de confirmación)
+**Total de archivos HTML a subir: 15** (13 listados arriba + 2 de confirmación)
 
 ---
 
@@ -161,6 +162,17 @@ testGetNivelesActivos: OK — Niveles activos: ["B1+","B2.1","B2.2","C1"]
 ✓ Verify "Fecha Notificación Cierre" column updates in "Lista de Espera"
 ```
 
+### Test 7: Continuation Emails
+```
+✓ Create "Continuación" sheet with columns: Name, Surname, ID, Curso, Profesor, Asistencia, Promedio Final, Email, Fecha Notificación
+✓ Add test data with eligible (B1+, asistencia ≥ 80, nota ≥ 40) and ineligible (C1 or low attendance) students
+✓ Run sendTestEmail(your_email, 'CONTINUATION') from Apps Script
+✓ Verify email shows: previous course, next level, schedule, accept/reject buttons
+✓ Run sendEmailBatch('CONTINUATION', true) to create drafts
+✓ Verify only eligible students receive drafts (not C1, not low attendance/grade)
+✓ Verify "Fecha Notificación" column updates in "Continuación" sheet
+```
+
 ---
 
 ## ❓ Troubleshooting
@@ -179,16 +191,24 @@ testGetNivelesActivos: OK — Niveles activos: ["B1+","B2.1","B2.2","C1"]
 
 ## 📦 Deployment Summary
 
-- **Total files:** 25 (11 JavaScript + 14 HTML)
-- **New files (v5.1.0):** 1 (`CorreoEsperaSinCupo.html`)
-- **Updated files (v5.1.0):** 5 (`Correos.js`, `Seleccionados.js`, `Menu.js`, `WebApp.js`, `ListaFinal.js`)
+- **Total files:** 26 (11 JavaScript + 15 HTML)
+- **New files (v5.2.0):** 1 (`CorreoContinuacion.html`)
+- **Updated files (v5.2.1):** 5 (`Config.js`, `Correos.js`, `WebApp.js`, `ListaFinal.js`, `Menu.js`)
 - **Build command:** `npm run build` (TypeScript compilation, 0 errors)
 - **Ready for production:** Yes, after manual testing ✓
 
 ---
 
-## 🎯 What's Implemented (v5.1.0)
+## 🎯 What's Implemented (v5.2.1)
 
+✅ WebApp processing of continuation student responses (`Acepta` / `Rechaza`) in the `Continuación` sheet
+✅ Automated `Aceptación` column creation and tracking in `Continuación` sheet
+✅ Integration of confirmed continuation students into `Lista Final Curso` with status `Exento (Continuación)`
+✅ Full Google Sheets custom menu integration (`📧 Enviar Correos` > `🔄 Continuación (Año Anterior)`)
+✅ Interactive continuation email trigger and test option in web dashboard (`index.html`)
+✅ Global scope cleanup for `CONTINUATION_MAP` (centralized in `Config.js`)
+
+### Previous (v5.1.0)
 ✅ Physical waitlist sheet ("Lista de Espera") with 30 candidates per level
 ✅ Payment tracking column ("Pago Matrícula") with interactive dropdown
 ✅ Strict final list filter: Acepta + Pagado required
