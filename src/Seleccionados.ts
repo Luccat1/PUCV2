@@ -817,7 +817,10 @@ function promoverDesdeListaEspera(): void {
   // The waitlist row format: [Ranking, ...resultados[0], Fecha Notificación, Fecha Notificación Cierre]
   // We want to extract findings from ...resultados[0] and build:
   // [Ranking, ...resultados[0], Verificación Certificado, Nivel Asignado, Aceptación, Pago Matrícula, Comentarios, Fecha Notificación]
-  const evalRowPart = rowData.slice(1, lastCol - 2); 
+  // Use header-based slicing to be robust against column count variations.
+  const idxFechaNotifW = headers.indexOf("Fecha Notificación");
+  const sliceEnd = idxFechaNotifW !== -1 ? idxFechaNotifW : lastCol - 2;
+  const evalRowPart = rowData.slice(1, sliceEnd);
 
   const newRow = [
     nextRanking, // Ranking
