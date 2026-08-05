@@ -60,8 +60,8 @@ Plans:
 
 Plans:
 - [x] 03-01-PLAN.md — Extend Placement.ts (2 new columns: Nivel Insuficiente + Correo Rechazo Enviado); create TestRechazoPorNivel.ts test scaffold
-- [ ] 03-02-PLAN.md — Modify ListaFinal.ts: level-resolution logic in generarListaFinalCurso() (NIVEL-01 through NIVEL-04)
-- [ ] 03-03-PLAN.md — Create RechazoPorNivel.ts + CorreoRechazoPorNivel.html (src and PUCV2English) for NIVEL-06
+- [x] 03-02-PLAN.md — Modify ListaFinal.ts: level-resolution logic in generarListaFinalCurso() (NIVEL-01 through NIVEL-04)
+- [x] 03-03-PLAN.md — Create RechazoPorNivel.ts + CorreoRechazoPorNivel.html (src and PUCV2English) for NIVEL-06
 - [ ] 03-04-PLAN.md — Insert nivel-assignment phrase in CorreoInicioClases.html (NIVEL-05); wire menu item in Menu.ts (NIVEL-07); human verify checkpoint
 
 ## Progress
@@ -73,4 +73,4 @@ Phases execute in numeric order: 1 → 2 → 3
 |-------|----------------|--------|-----------|
 | 1. Correo Inicio de Clases | 3/3 | Complete | 2026-03-19 |
 | 2. Informe Ejecutivo PDF | 0/TBD | Not started | - |
-| 3. Asignación por Test de Nivel | 1/4 | In Progress|  |
+| 3. Asignación por Test de Nivel | 3/4 | In Progress|  |

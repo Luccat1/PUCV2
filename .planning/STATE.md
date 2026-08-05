@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Ready to execute
-stopped_at: Completed 03-01-PLAN.md
-last_updated: "2026-08-05T21:38:15.182Z"
+stopped_at: Completed 03-03-PLAN.md
+last_updated: "2026-08-05T21:42:17.893Z"
 progress:
   total_phases: 3
   completed_phases: 1
   total_plans: 7
-  completed_plans: 4
+  completed_plans: 6
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-03-19)
 ## Current Position
 
 Phase: 03 (asignaci-n-por-test-de-nivel) — EXECUTING
-Plan: 2 of 4
+Plan: 4 of 4
 
 ## Performance Metrics
 
@@ -49,6 +49,8 @@ Plan: 2 of 4
 | Phase 01-correo-inicio-de-clases P02 | 2 | 2 tasks | 2 files |
 | Phase 01-correo-inicio-de-clases P03 | 2 | 2 tasks | 5 files |
 | Phase 03-asignaci-n-por-test-de-nivel P01 | 8 | 2 tasks | 2 files |
+| Phase 03-asignaci-n-por-test-de-nivel P02 | 5 | 2 tasks | 1 files |
+| Phase 03 P03 | 115 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -61,6 +63,9 @@ Recent decisions affecting current work:
 - PDF generado desde Google Docs / DocumentApp (única opción viable en GAS sin librerías externas)
 - QUAL-01 resolved in Phase 1 (no code change): `GmailApp` has no quota method; `MailApp.getRemainingDailyQuota()` was already correct — verified in `src/Correos.ts` and `01-VERIFICATION.md`
 - [Phase 03-asignaci-n-por-test-de-nivel]: Used 'declare function' forward declaration in TestRechazoPorNivel.ts for enviarCorreosRechazoPorNivel (Plan 03-03) — GAS global scope makes this valid at runtime
+- [Phase 03-asignaci-n-por-test-de-nivel]: VALID_LEVELS=[B1+,B2.1,B2.2,C1]: only these four values route test students to real level group in Lista Final
+- [Phase 03-asignaci-n-por-test-de-nivel]: Insufficient-level students excluded from Lista Final AND marked nivelInsuficiente=Si in Prueba de Nivel sheet
+- [Phase 03]: Both CorreoRechazoPorNivel.html copies kept byte-for-byte identical via cp; future edits must be mirrored manually
 
 ### Pending Todos
 
@@ -74,7 +79,7 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-05T21:38:15.177Z
-Stopped at: Completed 03-01-PLAN.md
+Last session: 2026-08-05T21:42:17.887Z
+Stopped at: Completed 03-03-PLAN.md
 Current: Phase 02 (Informe Ejecutivo PDF) not yet started. Note: Gap 3 (two-button sheet-based workflow, `01-GAPS.md`) remains open/unimplemented — `src/EnvioInicioClases.ts` was never built
 Resume file: None
