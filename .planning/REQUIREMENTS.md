@@ -39,6 +39,16 @@
 - **INF-01**: Guardar informe PDF en carpeta compartida de Drive del equipo
 - **INF-02**: Historial de informes generados (fecha, número de matriculados)
 
+### Asignación por Test de Nivel
+
+- [x] **NIVEL-01**: Al generar Lista Final Curso, para estudiantes con `Verificación Certificado === "Test de nivel"`, el sistema busca su resultado en la hoja "Prueba de Nivel" (match por correo) y les asigna automáticamente el nivel obtenido — actualiza la lista final y la columna "Nivel Asignado" en "Seleccionados"
+- [ ] **NIVEL-02**: Si el nivel obtenido está en el rango ofrecido (B1+, B2.1, B2.2, C1), el estudiante aparece bajo ese nivel en la lista final (reemplaza el grupo "PRUEBA DE NIVEL")
+- [x] **NIVEL-03**: Si el nivel obtenido está por debajo del mínimo requerido (A1, A2, B1.1 — todos bajo B1.2 para el nivel inicial B1+), el estudiante es excluido de la lista final y marcado como "Nivel insuficiente" en la hoja "Prueba de Nivel"
+- [ ] **NIVEL-04**: Si el resultado aún no ha sido ingresado (columna "Nivel" vacía en "Prueba de Nivel"), el estudiante permanece en el grupo "PRUEBA DE NIVEL" con una advertencia al admin al momento de generar la lista
+- [ ] **NIVEL-05**: `CorreoInicioClases.html` incluye, para estudiantes cuyo nivel proviene del test de nivel, una frase indicando que el nivel fue determinado según los resultados del Test de Nivel (en lugar de "según la documentación aportada")
+- [x] **NIVEL-06**: Nueva opción de menú **"Enviar Correo a Candidatos con Nivel Insuficiente"** que envía un correo (nuevo template `CorreoRechazoPorNivel.html`) a los estudiantes marcados como "Nivel insuficiente" en "Prueba de Nivel". El correo: explica que su nivel está bajo el mínimo requerido, informa sobre la posibilidad de obtener constancia del nivel alcanzado, e invita a consultar recursos de idiomas u otros cursos. Es idempotente (registra envío en columna de estado de "Prueba de Nivel")
+- [ ] **NIVEL-07**: La nueva opción de menú queda disponible bajo el submenú "Enviar Correos" de PUCV2English
+
 ## Out of Scope
 
 | Feature | Reason |
@@ -65,10 +75,17 @@
 | PDF-04 | Phase 2 | Pending |
 | PDF-05 | Phase 2 | Pending |
 | QUAL-01 | Phase 1 | Verified (no code change needed) |
+| NIVEL-01 | Phase 3 | Complete |
+| NIVEL-02 | Phase 3 | Pending |
+| NIVEL-03 | Phase 3 | Complete |
+| NIVEL-04 | Phase 3 | Pending |
+| NIVEL-05 | Phase 3 | Pending |
+| NIVEL-06 | Phase 3 | Complete |
+| NIVEL-07 | Phase 3 | Pending |
 
 **Coverage:**
-- v1 requirements: 13 total
-- Mapped to phases: 13
+- v1 requirements: 20 total
+- Mapped to phases: 20
 - Unmapped: 0 ✓
 
 ---

@@ -14,6 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Correo Inicio de Clases** (COMPLETE) - Admin puede enviar correos personalizados de inicio de clases a todos los estudiantes confirmados, con sala ingresada vía diálogo
 - [ ] **Phase 2: Informe Ejecutivo PDF** - Admin puede generar un PDF de matrícula final agrupado por nivel y exportarlo directamente desde el menú
+- [ ] **Phase 3: Asignación por Test de Nivel** - Al generar la lista final, el sistema lee los resultados del test de nivel y asigna cada estudiante a su nivel correspondiente; rechaza con correo específico a quienes obtuvieron nivel insuficiente (A1/A2/B1.1)
 
 ## Phase Details
 
@@ -45,12 +46,31 @@ Plans:
   4. The PDF filename includes the generation date (e.g., InformeEjecutivo_20260319.pdf) and no temporary Drive document remains after export completes or fails
 **Plans**: TBD
 
+### Phase 3: Asignación por Test de Nivel
+**Goal**: Al generar Lista Final Curso, leer resultados de la hoja "Prueba de Nivel" y asignar automáticamente el nivel a cada estudiante que rindió el test; excluir de la lista a quienes obtuvieron nivel insuficiente (A1/A2/B1.1) y enviarles un correo de rechazo específico desde el menú
+**Depends on**: Phase 1 (Lista Final Curso estructura ya existente)
+**Requirements**: NIVEL-01, NIVEL-02, NIVEL-03, NIVEL-04, NIVEL-05, NIVEL-06, NIVEL-07
+**Success Criteria** (what must be TRUE):
+  1. Al generar la lista final, los estudiantes con test de nivel quedan bajo su nivel real (B1+/B2.1/B2.2/C1), no bajo "PRUEBA DE NIVEL"
+  2. Los estudiantes con nivel insuficiente (A1/A2/B1.1) son excluidos de la lista final y marcados en "Prueba de Nivel"
+  3. El admin recibe una advertencia si hay estudiantes con resultado aún no ingresado
+  4. El correo de inicio de clases menciona para los estudiantes de test que su nivel fue determinado por los resultados del Test de Nivel
+  5. Una nueva opción de menú envía el correo de rechazo por nivel insuficiente (`CorreoRechazoPorNivel.html`) con idempotencia
+**Plans**: 4 plans
+
+Plans:
+- [x] 03-01-PLAN.md — Extend Placement.ts (2 new columns: Nivel Insuficiente + Correo Rechazo Enviado); create TestRechazoPorNivel.ts test scaffold
+- [ ] 03-02-PLAN.md — Modify ListaFinal.ts: level-resolution logic in generarListaFinalCurso() (NIVEL-01 through NIVEL-04)
+- [ ] 03-03-PLAN.md — Create RechazoPorNivel.ts + CorreoRechazoPorNivel.html (src and PUCV2English) for NIVEL-06
+- [ ] 03-04-PLAN.md — Insert nivel-assignment phrase in CorreoInicioClases.html (NIVEL-05); wire menu item in Menu.ts (NIVEL-07); human verify checkpoint
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2
+Phases execute in numeric order: 1 → 2 → 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Correo Inicio de Clases | 3/3 | Complete | 2026-03-19 |
 | 2. Informe Ejecutivo PDF | 0/TBD | Not started | - |
+| 3. Asignación por Test de Nivel | 1/4 | In Progress|  |
