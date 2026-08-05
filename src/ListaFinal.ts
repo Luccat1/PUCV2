@@ -112,3 +112,44 @@ function generarListaFinalCurso(): string {
   
   return `Lista final generada exitosamente en la hoja '${CONFIG.SHEETS.FINAL_LIST}'. Total confirmados: ${totalConfirmados} (${finales.length} seleccionados + ${totalContinuationConfirmed} continuación).`;
 }
+
+/**
+ * Builds a Map<normalizedEmail, nivelString> from the "Prueba de Nivel" sheet.
+ * Returns an empty Map if the sheet is null or has no data rows.
+ * Email keys are normalized to lowercase for case-insensitive match.
+ * @param placSheet - The "Prueba de Nivel" sheet, or null if it doesn't exist.
+ */
+function _buildPlacementEmailMap(
+  placSheet: GoogleAppsScript.Spreadsheet.Sheet | null
+): Map<string, string> {
+  const map = new Map<string, string>();
+  if (!placSheet) return map;
+  const data = placSheet.getDataRange().getValues();
+  for (let r = 1; r < data.length; r++) {
+    const correo = (data[r][PLACEMENT_COL.correo] || "").toString().trim().toLowerCase();
+    const nivel  = (data[r][PLACEMENT_COL.nivel]  || "").toString().trim();
+    if (correo) map.set(correo, nivel);
+  }
+  return map;
+}
+
+/**
+ * Sets "Nivel Insuficiente" = "Sí" for the row matching emailLower in the placement sheet.
+ * This is an idempotent write — calling it again on an already-marked row is harmless.
+ * Side effect: generarListaFinalCurso() writes to "Prueba de Nivel" when excluding students.
+ * @param placSheet - The "Prueba de Nivel" sheet (must not be null — caller guards).
+ * @param emailLower - Normalized (lowercase) student email to match.
+ */
+function _markNivelInsuficiente(
+  placSheet: GoogleAppsScript.Spreadsheet.Sheet,
+  emailLower: string
+): void {
+  const data = placSheet.getDataRange().getValues();
+  for (let r = 1; r < data.length; r++) {
+    const rowEmail = (data[r][PLACEMENT_COL.correo] || "").toString().trim().toLowerCase();
+    if (rowEmail === emailLower) {
+      placSheet.getRange(r + 1, PLACEMENT_COL.nivelInsuficiente + 1).setValue("Sí");
+      return;
+    }
+  }
+}
