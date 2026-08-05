@@ -30,7 +30,9 @@ const PLACEMENT_HEADERS = [
   "Enviar Inicial",
   "Enviar Recordatorio",
   "Enviar Nuevo Código",
-  "Reminder Status"
+  "Reminder Status",
+  "Nivel Insuficiente",      // index 11 — Phase 3: marks insufficient-level students
+  "Correo Rechazo Enviado"   // index 12 — Phase 3: idempotency stamp for rejection email
 ];
 
 const PLACEMENT_COL = {
@@ -44,7 +46,9 @@ const PLACEMENT_COL = {
   enviarInicial: 7,
   enviarRecordatorio: 8,
   enviarNuevoCodigo: 9,
-  status: 10
+  status: 10,
+  nivelInsuficiente: 11,     // "Nivel Insuficiente" column — value "Sí" when level is insufficient
+  correoRechazaEnviado: 12   // "Correo Rechazo Enviado" column — date stamp after rejection email sent
 };
 
 // ---------------------------------------------------------------------------
