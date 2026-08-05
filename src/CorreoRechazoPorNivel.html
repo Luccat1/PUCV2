@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body {
+      font-family: 'Roboto', Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0; padding: 0; color: #333333;
+    }
+    .container {
+      width: 100%; max-width: 600px; margin: 0 auto;
+      background-color: #ffffff; padding: 30px;
+      border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .header { text-align: center; padding-bottom: 20px; border-bottom: 2px solid #0055a2; }
+    .header img { max-width: 150px; }
+    .content { padding: 20px 0; line-height: 1.7; }
+    .content h3 { color: #003366; }
+    .highlight {
+      background-color: #e9f2fa; padding: 15px;
+      border-left: 4px solid #0055a2; margin: 20px 0; border-radius: 4px;
+    }
+    .highlight strong { color: #003366; }
+    .footer {
+      text-align: center; padding-top: 20px;
+      border-top: 1px solid #eeeeee; font-size: 12px; color: #777777;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <img src="https://www.pucv.cl/pucv/site/artic/20220615/imag/foto_0000000120220615160256/logo_header.png" alt="Logo PUCV">
+    </div>
+    <div class="content">
+      <h3>Estimado/a <?= nombre ?>,</h3>
+      <p>
+        Junto con saludar, te informamos que hemos recibido los resultados de tu
+        Prueba de Nivel (CEPT) del programa <strong>PUCV2English</strong>.
+      </p>
+      <div class="highlight">
+        <p>
+          El nivel obtenido en tu prueba (<strong><?= nivel ?></strong>) se encuentra
+          <strong>por debajo del mínimo requerido</strong> para los cursos ofrecidos en
+          el programa (B1+ o superior).
+        </p>
+        <p>Lamentablemente, no es posible incluirte en el presente período lectivo.</p>
+      </div>
+      <p>
+        Si deseas obtener una <strong>constancia oficial del nivel alcanzado</strong>,
+        puedes solicitarla enviando un correo a la coordinación con copia a
+        <a href="mailto:alexis.ponce@pucv.cl">alexis.ponce@pucv.cl</a>.
+      </p>
+      <p>
+        Te invitamos a consultar los recursos de idiomas y otros programas disponibles
+        en la PUCV que podrían apoyar tu desarrollo en el idioma inglés.
+      </p>
+      <br>
+      <p>Saludos cordiales,<br>Coordinación PUCV2English</p>
+    </div>
+    <div class="footer">
+      <p>Pontificia Universidad Católica de Valparaíso</p>
+    </div>
+  </div>
+</body>
+</html>
