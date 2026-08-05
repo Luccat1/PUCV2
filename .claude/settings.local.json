@@ -23,7 +23,21 @@
       "Bash(mkdir -p graphify-out)",
       "Bash(python -c \"import graphify; print\\(''graphify found:'', graphify.__version__\\)\")",
       "Bash(uv tool:*)",
-      "Bash(pip install:*)"
+      "Bash(pip install:*)",
+      "Bash(claude mcp *)",
+      "Bash(python3 -m json.tool)",
+      "Bash(claude plugin *)",
+      "Skill(gsd-update)",
+      "Bash(rm -f /Users/lucianocataldo/.claude/cache/gsd-update-check.json)",
+      "Bash(rm -f /Users/lucianocataldo/.cache/gsd/gsd-update-check.json)",
+      "Bash(python3 *)",
+      "Bash(awk '/^## God Nodes/,/^## [A-Z][a-z]+ [A-Z]/{print}' graphify-out/GRAPH_REPORT.md)",
+      "Bash(cd *)",
+      "Bash(graphify explain *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(timeout 30 git status --short graphify-out/)",
+      "Bash(echo \"EXIT: $?\")"
     ]
   }
 }

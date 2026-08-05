@@ -109,24 +109,27 @@ These mistakes cause feature rewrites, data loss, or silent failures in producti
 
 ### Pitfall C5: GmailApp vs MailApp Quota Confusion Causes Silent Send Failures
 
-**What goes wrong:** The existing codebase uses `MailApp.getRemainingDailyQuota()` to check quota before calling `GmailApp.sendEmail()`. These are different quotas on different APIs. A Google Workspace account may have a higher GmailApp quota than MailApp. On a personal Gmail account, MailApp quota is 100/day; GmailApp quota is also 100/day but the APIs share the pool differently.
+> **⚠️ QUAL-01 CORRECTION (Phase 1 Research):** The original version of this pitfall recommended replacing `MailApp.getRemainingDailyQuota()` with `GmailApp.getRemainingDailyQuota()`. This recommendation is **incorrect**. `GmailApp` exposes no quota method whatsoever — verified against `@types/google-apps-script` 1.0.98 and the official GAS API reference. `MailApp.getRemainingDailyQuota()` is the **only** valid quota API in Google Apps Script. The existing code is already correct and must not be changed.
 
-**Why it happens:** INTEGRATIONS.md notes this: "MailApp - Check remaining daily email quota (legacy, superseded by GmailApp)". The check exists but measures the wrong counter.
+**What goes wrong:** A developer reading INTEGRATIONS.md's note ("MailApp - legacy, superseded by GmailApp") may attempt to replace the `MailApp` quota check with a `GmailApp` equivalent. There is no such equivalent — the call will fail at runtime with a `TypeError`.
 
-**Consequences:** The quota check passes but the actual send fails mid-batch because the real quota was lower. Recipients at positions N+1 through end of list receive nothing. No error surface to admin beyond a generic catch message.
+**Why it happens:** The note in INTEGRATIONS.md describes the *send* API (where `GmailApp.sendEmail()` is preferred over `MailApp.sendEmail()`), not the quota-check API. These are independent method surfaces. Only `MailApp` exposes `getRemainingDailyQuota()`.
+
+**Consequences:** Replacing the quota check causes a hard runtime crash before any email is sent, bringing the entire batch to a halt with no partial delivery.
 
 **Prevention:**
 ```
-1. Use GmailApp.getRemainingDailyQuota() instead of MailApp.getRemainingDailyQuota() for the pre-send quota check.
-2. Track successful send count within the batch and compare against the pre-check result.
-3. The existing "Fecha Notificación" idempotency pattern is the right mitigation for mid-batch failures — verify it also applies to class-start emails.
+1. Keep MailApp.getRemainingDailyQuota() as-is — it is the correct and only GAS quota API.
+2. Do NOT attempt to call GmailApp.getRemainingDailyQuota() — this method does not exist.
+3. Track successful send count within the batch and compare against the pre-check result.
+4. The existing "Fecha Notificación" idempotency pattern is the right mitigation for mid-batch failures.
 ```
 
 **Detection warning signs:**
-- Correos.ts line 91 uses MailApp, not GmailApp — this is the current code path
-- Batch partially sends (count < recipients.length) with no quota-exceeded error message
+- Any call to `GmailApp.getRemainingDailyQuota()` in the codebase is a bug — grep for it in CI
+- Batch fails on the very first send with a `TypeError` (not a quota error)
 
-**Phase that must address this:** Class-start email phase (also a cleanup item for existing batches).
+**Phase that must address this:** Resolved. QUAL-01 closed in Phase 1 — current `MailApp.getRemainingDailyQuota()` verified correct; no code change required.
 
 ---
 
@@ -255,7 +258,7 @@ These cause incorrect behavior or maintenance difficulty, but not full feature f
 | PDF layout | Non-deterministic output if sheet edited (M1) | Set column widths programmatically; generate PDF immediately after list generation |
 | Class-start email | Empty sala renders silently in template (C4) | Validate dialog input; pre-send confirmation dialog |
 | Class-start email | Stale sala/horario on batch retry (C3) | PropertiesService snapshot before send; clear after complete |
-| Class-start email | Wrong quota API (C5) | Replace MailApp.getRemainingDailyQuota() with GmailApp equivalent |
+| Class-start email | Wrong quota API (C5) | **Do NOT replace** — `MailApp.getRemainingDailyQuota()` is the only valid GAS quota API; `GmailApp` has no quota method (QUAL-01 finding) |
 | Class-start email template | Missing HTML file after deployment (M2) | Add to onOpen() template validation; update deployment docs |
 | Class-start email | Template variable silently undefined (M4) | Typed interface for template context variables |
 | Both features | UI dialog calls incompatible with triggers (M3) | Separate dialog collection from send logic |

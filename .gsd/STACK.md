@@ -61,16 +61,28 @@
 
 ```
 PUCV2/
-├── PUCV2English/              # Main application code
-│   ├── PUCV2.js               # All server-side logic (1681 lines)
-│   ├── index.html             # Web app UI (558 lines)
-│   ├── CorreoSeleccionado.html    # Email: selected applicant
-│   ├── CorreoTestNivel.html       # Email: level test instructions
-│   ├── CorreoListaEspera.html     # Email: waitlist notification
-│   └── CorreoNoSeleccionado.html  # Email: not selected
-├── README.md                  # Project documentation (321 lines)
-├── .gsd/                      # GSD project management
-├── .agent/                    # Agent configuration
+├── src/                       # TypeScript source files
+│   ├── Config.ts              # Configuración global, tipos e interfaces
+│   ├── Evaluacion.ts          # Motor de evaluación y cálculo de puntajes
+│   ├── Seleccionados.ts       # Gestión de seleccionados, lista de espera y promoción
+│   ├── Correos.ts             # Motor de correos masivos y unitarios
+│   ├── ListaFinal.ts          # Generación de la lista final del curso
+│   ├── InicioClases.ts        # Notificaciones de inicio de clases
+│   ├── WebApp.ts              # Panel de control web y endpoints de confirmación
+│   ├── Dashboard.ts           # Generación del dashboard estadístico
+│   ├── Menu.ts                # Menú personalizado de Google Sheets
+│   ├── Utils.ts               # Funciones de soporte transversales
+│   ├── TestInicioClases.ts    # Tests para inicio de clases
+│   └── *.html                 # 14 templates HTML (correos, diálogos, sidebars)
+├── PUCV2English/              # Carpeta de producción (JS compilado + HTML)
+├── README.md                  # Documentación del proyecto
+├── CHANGELOG.md               # Historial de versiones del proyecto
+├── VERSION                    # Versión actual (2.4.0)
+├── DEPLOYMENT_CHECKLIST.md    # Checklist de despliegue
+├── SETUP_GUIDE.md             # Guía de instalación y compilación
+├── package.json               # Scripts de Node (npm run build)
+├── .gsd/                      # Documentación interna del proyecto
+├── .agent/                    # Configuración del agente GSD
 └── .gitignore
 ```
 
@@ -80,4 +92,4 @@ PUCV2/
 |---------|---------|--------|------|
 | Chart.js | Latest via CDN | N/A | Low — always fetches latest |
 
-> **Note:** This project has no `package.json` or dependency manager. All server-side dependencies are built into the Google Apps Script runtime. The only external dependency is Chart.js loaded via CDN.
+> **Nota:** Las dependencias de servidor están integradas en el runtime de Google Apps Script. La única dependencia externa es Chart.js vía CDN. El proyecto sí tiene `package.json` para la compilación TypeScript local.
