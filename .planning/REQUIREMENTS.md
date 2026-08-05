@@ -45,9 +45,9 @@
 - [x] **NIVEL-02**: Si el nivel obtenido está en el rango ofrecido (B1+, B2.1, B2.2, C1), el estudiante aparece bajo ese nivel en la lista final (reemplaza el grupo "PRUEBA DE NIVEL")
 - [x] **NIVEL-03**: Si el nivel obtenido está por debajo del mínimo requerido (A1, A2, B1.1 — todos bajo B1.2 para el nivel inicial B1+), el estudiante es excluido de la lista final y marcado como "Nivel insuficiente" en la hoja "Prueba de Nivel"
 - [x] **NIVEL-04**: Si el resultado aún no ha sido ingresado (columna "Nivel" vacía en "Prueba de Nivel"), el estudiante permanece en el grupo "PRUEBA DE NIVEL" con una advertencia al admin al momento de generar la lista
-- [ ] **NIVEL-05**: `CorreoInicioClases.html` incluye, para estudiantes cuyo nivel proviene del test de nivel, una frase indicando que el nivel fue determinado según los resultados del Test de Nivel (en lugar de "según la documentación aportada")
+- [x] **NIVEL-05**: `CorreoInicioClases.html` incluye, para estudiantes cuyo nivel proviene del test de nivel, una frase indicando que el nivel fue determinado según los resultados del Test de Nivel (en lugar de "según la documentación aportada")
 - [x] **NIVEL-06**: Nueva opción de menú **"Enviar Correo a Candidatos con Nivel Insuficiente"** que envía un correo (nuevo template `CorreoRechazoPorNivel.html`) a los estudiantes marcados como "Nivel insuficiente" en "Prueba de Nivel". El correo: explica que su nivel está bajo el mínimo requerido, informa sobre la posibilidad de obtener constancia del nivel alcanzado, e invita a consultar recursos de idiomas u otros cursos. Es idempotente (registra envío en columna de estado de "Prueba de Nivel")
-- [ ] **NIVEL-07**: La nueva opción de menú queda disponible bajo el submenú "Enviar Correos" de PUCV2English
+- [x] **NIVEL-07**: La nueva opción de menú queda disponible bajo el submenú "Enviar Correos" de PUCV2English
 
 ## Out of Scope
 
@@ -79,9 +79,9 @@
 | NIVEL-02 | Phase 3 | Complete |
 | NIVEL-03 | Phase 3 | Complete |
 | NIVEL-04 | Phase 3 | Complete |
-| NIVEL-05 | Phase 3 | Pending |
+| NIVEL-05 | Phase 3 | Complete |
 | NIVEL-06 | Phase 3 | Complete |
-| NIVEL-07 | Phase 3 | Pending |
+| NIVEL-07 | Phase 3 | Complete |
 
 **Coverage:**
 - v1 requirements: 20 total
