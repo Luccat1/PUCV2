@@ -32,6 +32,7 @@ function onOpen() {
         .addItem('👁️ Vista Previa Siguiente (Lista de Espera)', 'mostrarVistaPreviaProximo')
         .addItem('✉️ Enviar Correo de Prueba', 'abrirDialogoCorreoPrueba')
         .addSeparator()
+        .addItem('❌ Rechazo por Nivel Insuficiente', 'enviarCorreosRechazoPorNivel')
         .addItem('🏫 Inicio de Clases', 'abrirDialogoInicioClases'))
         .addSeparator()
         .addSubMenu(ui.createMenu('🧪 Prueba de Nivel (CEPT)')
