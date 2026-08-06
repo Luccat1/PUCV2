@@ -37,7 +37,13 @@
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
       "Bash(timeout 30 git status --short graphify-out/)",
-      "Bash(echo \"EXIT: $?\")"
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(for f:*)",
+      "Bash(do echo:*)",
+      "Read(//c/Users/Usuario/Documents/code/pucv/PUCV2/**)",
+      "Bash(git commit:*)",
+      "Bash(npm run:*)",
+      "Bash(ls /c/Users/Usuario/Documents/code/pucv/PUCV2/PUCV2English/*.js)"
     ]
   }
 }

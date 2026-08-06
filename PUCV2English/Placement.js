@@ -128,7 +128,9 @@ function sincronizarPlacement() {
             true, // Enviar Inicial (pre-ticked)
             false, // Enviar Recordatorio
             false, // Enviar Nuevo Código
-            "Sincronizado de Seleccionados" // Reminder Status
+            "Sincronizado de Seleccionados", // Reminder Status
+            "", // Nivel Insuficiente
+            "" // Correo Rechazo Enviado
         ]);
         existingEmails.add(correo);
     }
