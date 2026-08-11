@@ -18,6 +18,7 @@ function generarListaFinalCurso() {
     const idxNombre = headers.indexOf("Nombre(s)");
     const idxApellido = headers.indexOf("Apellido(s)");
     const idxCorreo = headers.indexOf("Correo Electrónico");
+    const idxRut = headers.indexOf("RUT");
     const idxNivel = headers.indexOf("Nivel Asignado");
     const idxAceptacion = headers.indexOf("Aceptación");
     const idxVerificacion = headers.indexOf("Verificación Certificado");
@@ -37,7 +38,7 @@ function generarListaFinalCurso() {
     const placSheet = ss.getSheetByName(CONFIG.SHEETS.PLACEMENT);
     const placMap = _buildPlacementEmailMap(placSheet);
     const pendingTestEmails = [];
-    // Group by Nivel
+    // Group by Nivel — each entry now includes RUT
     const grupos = {};
     finales.forEach(f => {
         let nivel = String(f[idxNivel]).trim();
@@ -64,7 +65,8 @@ function generarListaFinalCurso() {
         if (!grupos[nivel])
             grupos[nivel] = [];
         const pagoVal = idxPago !== -1 && String(f[idxPago]).toLowerCase() === 'pagado' ? 'Sí' : 'No';
-        grupos[nivel].push([f[idxApellido], f[idxNombre], f[idxCorreo], nivel, pagoVal]);
+        const rut = idxRut !== -1 ? String(f[idxRut]).trim() : "";
+        grupos[nivel].push([f[idxApellido], f[idxNombre], rut, f[idxCorreo], nivel, pagoVal]);
     });
     // Group continuation students from "Continuación" sheet who have Aceptación === 'Acepta'
     let totalContinuationConfirmed = 0;
@@ -78,6 +80,7 @@ function generarListaFinalCurso() {
             let idxCorreoC = headersC.indexOf("Email");
             if (idxCorreoC === -1)
                 idxCorreoC = headersC.indexOf("Correo Electrónico");
+            const idxIdC = headersC.indexOf("ID");
             const idxCursoC = headersC.indexOf("Curso");
             const idxAceptacionC = headersC.indexOf("Aceptación");
             if (idxCursoC !== -1 && idxAceptacionC !== -1) {
@@ -93,7 +96,8 @@ function generarListaFinalCurso() {
                         const apellido = idxSurnameC !== -1 ? String(row[idxSurnameC]).trim() : "";
                         const nombre = idxNameC !== -1 ? String(row[idxNameC]).trim() : "";
                         const correo = idxCorreoC !== -1 ? String(row[idxCorreoC]).trim() : "";
-                        grupos[nivelSiguiente].push([apellido, nombre, correo, nivelSiguiente, "Exento (Continuación)"]);
+                        const rutC = idxIdC !== -1 ? String(row[idxIdC]).trim() : "";
+                        grupos[nivelSiguiente].push([apellido, nombre, rutC, correo, nivelSiguiente, "Exento (Continuación)"]);
                         totalContinuationConfirmed++;
                     }
                 });
@@ -103,30 +107,72 @@ function generarListaFinalCurso() {
     const totalConfirmados = finales.length + totalContinuationConfirmed;
     if (totalConfirmados === 0)
         return "No hay participantes confirmados para generar la lista final.";
+    // ---------------------------------------------------------------------------
+    // Preserve previous notification data before clearing (Sala, Notificado Inicio)
+    // ---------------------------------------------------------------------------
     let hojaF = ss.getSheetByName(CONFIG.SHEETS.FINAL_LIST);
-    if (!hojaF)
-        hojaF = ss.insertSheet(CONFIG.SHEETS.FINAL_LIST);
-    else
+    const prevData = new Map(); // Map<normalizedEmail, { sala, notificadoInicio }>
+    if (hojaF) {
+        const oldData = hojaF.getDataRange().getValues();
+        if (oldData.length > 1) {
+            const oldHeaders = oldData[0];
+            const oIdxCorreo = oldHeaders.indexOf("Correo");
+            const oIdxSala = oldHeaders.indexOf("Sala");
+            const oIdxNotif = oldHeaders.indexOf(CONFIG.COLUMNS.INICIO_NOTIFICATION_DATE);
+            if (oIdxCorreo !== -1) {
+                for (let r = 1; r < oldData.length; r++) {
+                    const email = String(oldData[r][oIdxCorreo]).trim().toLowerCase();
+                    if (!email)
+                        continue;
+                    prevData.set(email, {
+                        sala: oIdxSala !== -1 ? oldData[r][oIdxSala] : "",
+                        notificadoInicio: oIdxNotif !== -1 ? oldData[r][oIdxNotif] : ""
+                    });
+                }
+            }
+        }
         hojaF.clear();
+    }
+    else {
+        hojaF = ss.insertSheet(CONFIG.SHEETS.FINAL_LIST);
+    }
+    const HEADER = ["Apellido(s)", "Nombre(s)", "RUT", "Correo", "Nivel", "Pagó (Sí/No)", "Sala", CONFIG.COLUMNS.INICIO_NOTIFICATION_DATE];
+    const NUM_COLS = HEADER.length;
     const finalRows = [];
-    const HEADER = ["Apellido(s)", "Nombre(s)", "Correo", "Nivel", "Pagó (Sí/No)", "Sala", "Notificado Inicio"];
     finalRows.push(HEADER);
     Object.keys(grupos).sort().forEach(nivel => {
-        finalRows.push(["", "", "", "", "", "", ""]); // Empty row as separator (7 cols)
-        finalRows.push([`CATEGORÍA: ${nivel}`, "", "", "", "", "", ""]); // Category header (7 cols)
+        const emptyRow = new Array(NUM_COLS).fill("");
+        finalRows.push(emptyRow); // Empty row as separator
+        const catRow = new Array(NUM_COLS).fill("");
+        catRow[0] = `CATEGORÍA: ${nivel}`;
+        finalRows.push(catRow); // Category header
         grupos[nivel].forEach(p => {
-            // Ensure row has exactly 7 columns (Sala and Notificado Inicio start empty)
-            const row = [...p];
-            while (row.length < 7)
-                row.push("");
-            finalRows.push(row.slice(0, 7));
+            // p = [apellido, nombre, rut, correo, nivel, pagoVal]
+            const correoNorm = String(p[3]).trim().toLowerCase();
+            const prev = prevData.get(correoNorm);
+            const row = [
+                p[0], // Apellido(s)
+                p[1], // Nombre(s)
+                p[2], // RUT
+                p[3], // Correo
+                p[4], // Nivel
+                p[5], // Pagó (Sí/No)
+                prev ? prev.sala : "",                  // Sala (preserved)
+                prev ? prev.notificadoInicio : ""       // Notificado Inicio (preserved)
+            ];
+            finalRows.push(row);
         });
     });
     if (finalRows.length > 0 && finalRows[0].length > 0) {
         hojaF.getRange(1, 1, finalRows.length, finalRows[0].length).setValues(finalRows);
-        hojaF.getRange(1, 1, 1, 7).setFontWeight("bold").setBackground("#cfe2f3");
+        hojaF.getRange(1, 1, 1, NUM_COLS).setFontWeight("bold").setBackground("#cfe2f3");
     }
     let mensaje = `Lista final generada exitosamente en la hoja '${CONFIG.SHEETS.FINAL_LIST}'. Total confirmados: ${totalConfirmados} (${finales.length} seleccionados + ${totalContinuationConfirmed} continuación).`;
+    if (prevData.size > 0) {
+        const preservedCount = [...prevData.values()].filter(v => v.notificadoInicio !== "" && v.notificadoInicio !== null && v.notificadoInicio !== undefined).length;
+        if (preservedCount > 0)
+            mensaje += ` Se preservaron ${preservedCount} notificación(es) de inicio previas.`;
+    }
     if (pendingTestEmails.length > 0) {
         mensaje += ` ADVERTENCIA: ${pendingTestEmails.length} estudiante(s) aún sin resultado en Prueba de Nivel: ${pendingTestEmails.join(", ")}. Ingresar resultados y regenerar para incluirlos en su nivel.`;
     }

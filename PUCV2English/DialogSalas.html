@@ -67,17 +67,34 @@
   <div id="state-preview" style="display:none">
     <p><strong>Confirma el envío antes de proceder:</strong></p>
     <div id="preview-text" class="preview-box"></div>
-    <div style="margin: 15px 0;">
-      <input type="checkbox" id="chk-draft" style="width: 16px; height: 16px; vertical-align: middle; cursor: pointer;">
-      <label for="chk-draft" style="display: inline; font-weight: normal; font-size: 14px; margin: 0 0 0 6px; cursor: pointer; color: #495057; vertical-align: middle;">Crear como borradores en Gmail (no enviar realmente)</label>
+
+    <div style="margin: 18px 0; padding: 14px; background: #f8f9fa; border-radius: 6px;">
+      <p style="font-weight: 700; color: #003366; margin: 0 0 10px 0; font-size: 14px;">Método de envío:</p>
+      <label style="display: block; margin: 6px 0; font-weight: normal; cursor: pointer; color: #333;">
+        <input type="radio" name="deliveryMethod" value="BORRADOR_MUESTRA" checked style="vertical-align: middle; margin-right: 6px;">
+        📝 Crear borradores de muestra (máx. 5) — <em>Recomendado para revisar</em>
+      </label>
+      <label style="display: block; margin: 6px 0; font-weight: normal; cursor: pointer; color: #333;">
+        <input type="radio" name="deliveryMethod" value="BORRADOR_TODO" style="vertical-align: middle; margin-right: 6px;">
+        📝 Crear borradores para todos
+      </label>
+      <label style="display: block; margin: 6px 0; font-weight: normal; cursor: pointer; color: #333;">
+        <input type="radio" name="deliveryMethod" value="ENVIAR_REAL" style="vertical-align: middle; margin-right: 6px;">
+        📧 Enviar correos reales a todos los destinatarios
+      </label>
+      <label style="display: block; margin: 6px 0; font-weight: normal; cursor: pointer; color: #333;">
+        <input type="radio" name="deliveryMethod" value="TEST_AUTOSEND" style="vertical-align: middle; margin-right: 6px;">
+        🧪 Enviar correo de prueba a mi email (datos ficticios)
+      </label>
     </div>
+
     <div class="btn-group">
       <button class="btn-secondary" onclick="showForm()">← Volver</button>
-      <button id="btn-confirm" class="btn-primary" onclick="confirmarEnvio()">Enviar correos</button>
+      <button id="btn-confirm" class="btn-primary" onclick="confirmarEnvio()">Ejecutar</button>
     </div>
     <div id="confirm-spinner" class="spinner-wrap" style="display:none">
       <div class="spinner"></div>
-      <span>Enviando correos...</span>
+      <span>Procesando...</span>
     </div>
   </div>
 
@@ -172,29 +189,48 @@
     }
 
     function confirmarEnvio() {
-      var asDraft = document.getElementById('chk-draft').checked;
+      var method = document.querySelector('input[name="deliveryMethod"]:checked').value;
+
+      // For real send, ask for double confirmation
+      if (method === 'ENVIAR_REAL') {
+        if (!confirm('⚠️ ¿Estás SEGURO de enviar correos REALES a todos los destinatarios?\n\nEsta acción no se puede deshacer.')) {
+          return;
+        }
+      }
+
       document.getElementById('btn-confirm').disabled = true;
       document.getElementById('confirm-spinner').style.display = '';
 
-      google.script.run
-        .withSuccessHandler(function(msg) {
-          document.getElementById('btn-confirm').disabled = false;
-          document.getElementById('confirm-spinner').style.display = 'none';
-          showState('result');
-          var box = document.getElementById('result-text');
-          box.textContent = msg;
-          box.className = 'result-box ' + (msg.startsWith('ERROR') ? 'result-err' : 'result-ok');
-        })
-        .withFailureHandler(function(err) {
-          document.getElementById('btn-confirm').disabled = false;
-          document.getElementById('confirm-spinner').style.display = 'none';
-          showState('result');
-          var box = document.getElementById('result-text');
-          box.textContent = 'Error al enviar: ' + err.message;
-          box.className = 'result-box result-err';
-        })
-        .enviarCorreosInicioClases(asDraft);
+      function onSuccess(msg) {
+        document.getElementById('btn-confirm').disabled = false;
+        document.getElementById('confirm-spinner').style.display = 'none';
+        showState('result');
+        var box = document.getElementById('result-text');
+        box.textContent = msg;
+        box.className = 'result-box ' + (msg.startsWith('ERROR') ? 'result-err' : 'result-ok');
+      }
+
+      function onError(err) {
+        document.getElementById('btn-confirm').disabled = false;
+        document.getElementById('confirm-spinner').style.display = 'none';
+        showState('result');
+        var box = document.getElementById('result-text');
+        box.textContent = 'Error: ' + err.message;
+        box.className = 'result-box result-err';
+      }
+
+      if (method === 'TEST_AUTOSEND') {
+        google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onError).sendTestInicioClases();
+      } else if (method === 'BORRADOR_MUESTRA') {
+        google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onError).enviarCorreosInicioClases(true, 5);
+      } else if (method === 'BORRADOR_TODO') {
+        google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onError).enviarCorreosInicioClases(true, 0);
+      } else {
+        // ENVIAR_REAL
+        google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onError).enviarCorreosInicioClases(false, 0);
+      }
     }
   </script>
 </body>
 </html>
+
