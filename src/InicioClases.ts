@@ -164,12 +164,18 @@ function renderCorreoInicioClases(vars: ICorreoInicioClasesVars): string {
  * writes current date to CONFIG.COLUMNS.INICIO_NOTIFICATION_DATE column.
  * Requires guardarSalasYObtenerPreview() to have been called in the same
  * GAS execution (sala values live in PROGRAM_DATA.HORARIOS[nivel].sala).
+ * @param asDraft - If true, creates Gmail drafts instead of sending emails.
+ * @param limit - If > 0, limits the number of recipients processed (for sample/muestra mode).
  * @returns {string} Status message for the dialog UI.
  */
-function enviarCorreosInicioClases(asDraft: boolean = false): string {
+function enviarCorreosInicioClases(salas: Record<string, string>, asDraft: boolean = false, limit: number = 0): string {
   cargarConfiguracionDesdeHoja();
-  const recipients = getRecipientsInicioClases();
+  let recipients = getRecipientsInicioClases();
   if (recipients.length === 0) return "No hay estudiantes pendientes de notificación de inicio de clases.";
+
+  if (limit > 0) {
+    recipients = recipients.slice(0, limit);
+  }
 
   // Quota check — same pattern as sendEmailBatch in Correos.ts
   const quota = MailApp.getRemainingDailyQuota();
@@ -192,7 +198,10 @@ function enviarCorreosInicioClases(asDraft: boolean = false): string {
   recipients.forEach(r => {
     try {
       const horario = PROGRAM_DATA.HORARIOS[r.nivel] || PROGRAM_DATA.HORARIOS["Default"];
-      const sala = (horario as any).sala as string | undefined;
+      let sala = salas && salas[r.nivel] ? salas[r.nivel].trim() : undefined;
+      if (!sala) {
+        sala = (horario as any).sala as string | undefined;
+      }
 
       if (!sala || sala.trim() === "") {
         throw new Error(`Sala no ingresada para nivel ${r.nivel}. Ejecuta el diálogo de inicio de clases antes de llamar enviarCorreosInicioClases().`);
@@ -231,9 +240,37 @@ function enviarCorreosInicioClases(asDraft: boolean = false): string {
 
   const verb = asDraft ? "crearon" : "enviaron";
   const noun = asDraft ? "borradores" : "correos";
+  const sampleNote = limit > 0 ? ` (muestra limitada a ${limit})` : "";
   if (errores.length > 0) {
-    return `Se ${verb} ${count} ${noun} de inicio de clases.\n\nHubo ${errores.length} error(es):\n${errores.slice(0, 3).join("\n")}`;
+    return `Se ${verb} ${count} ${noun} de inicio de clases${sampleNote}.\n\nHubo ${errores.length} error(es):\n${errores.slice(0, 3).join("\n")}`;
   }
 
-  return `Se ${verb} ${count} ${noun} de inicio de clases exitosamente.`;
+  return `Se ${verb} ${count} ${noun} de inicio de clases exitosamente${sampleNote}.`;
+}
+
+/**
+ * Sends a single test email to the admin with dummy class-start data.
+ * Follows the TEST_AUTOSEND pattern from Placement.ts.
+ * @returns {string} Status message for the dialog UI.
+ */
+function sendTestInicioClases(): string {
+  cargarConfiguracionDesdeHoja();
+  const adminEmail = Session.getActiveUser().getEmail();
+  if (!adminEmail) throw new Error("No se pudo detectar el correo del administrador. Verifica tu cuenta de Google.");
+
+  const horario = PROGRAM_DATA.HORARIOS["B2.1"] || PROGRAM_DATA.HORARIOS["Default"];
+  const htmlBody = renderCorreoInicioClases({
+    nombre: "Administrador de Prueba",
+    nivel: "B2.1",
+    catedra: horario ? horario.catedra : "Lunes y Miércoles 14:30 - 16:00",
+    ayudantia: horario ? horario.ayudantia : "Viernes 14:30 - 16:00",
+    sala: "Sala 2-3 (Casa Central) [PRUEBA]",
+    fechaInicio: PROGRAM_DATA.FECHA_INICIO || "Lunes, 30 de Marzo",
+    fechaTermino: PROGRAM_DATA.FECHA_TERMINO || "Viernes, 10 de Julio",
+  });
+
+  const subject = "[PRUEBA SANDBOX] Inicio de Clases — PUCV2English";
+  GmailApp.sendEmail(adminEmail, subject, "", { htmlBody });
+
+  return `✅ Correo de prueba de inicio de clases enviado a ${adminEmail}. Revisa tu bandeja de entrada.`;
 }

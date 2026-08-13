@@ -132,7 +132,7 @@ function renderCorreoInicioClases(vars) {
  * @param limit - If > 0, limits the number of recipients processed (for sample/muestra mode).
  * @returns {string} Status message for the dialog UI.
  */
-function enviarCorreosInicioClases(asDraft = false, limit = 0) {
+function enviarCorreosInicioClases(salas, asDraft = false, limit = 0) {
     cargarConfiguracionDesdeHoja();
     let recipients = getRecipientsInicioClases();
     if (recipients.length === 0)
@@ -158,7 +158,7 @@ function enviarCorreosInicioClases(asDraft = false, limit = 0) {
     recipients.forEach(r => {
         try {
             const horario = PROGRAM_DATA.HORARIOS[r.nivel] || PROGRAM_DATA.HORARIOS["Default"];
-            const sala = horario.sala;
+            const sala = (salas && salas[r.nivel]) ? salas[r.nivel].trim() : horario.sala;
             if (!sala || sala.trim() === "") {
                 throw new Error(`Sala no ingresada para nivel ${r.nivel}. Ejecuta el diálogo de inicio de clases antes de llamar enviarCorreosInicioClases().`);
             }
