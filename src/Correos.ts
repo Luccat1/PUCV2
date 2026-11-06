@@ -489,7 +489,19 @@ function sendTestEmail(targetEmail: string, type: string): string {
  */
 function calcularFechaLimite(fechaInicio: Date, dias: number): string {
   const tz = PROGRAM_DATA.TIMEZONE || "America/Santiago";
-  const fechaLimite = new Date(fechaInicio.getTime() + dias * 24 * 60 * 60 * 1000);
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz,
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric'
+  }).formatToParts(fechaInicio);
+
+  const partMap: Record<string, number> = {};
+  parts.forEach(p => {
+    if (p.type !== 'literal') partMap[p.type] = parseInt(p.value, 10);
+  });
+
+  const fechaLimite = new Date(Date.UTC(partMap.year, partMap.month - 1, partMap.day + dias, 12, 0, 0));
   const opciones: Intl.DateTimeFormatOptions = {
     timeZone: tz,
     weekday: 'long',

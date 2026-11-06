@@ -26,11 +26,11 @@ function esEstudiante(tipoPostulante: string): boolean {
 }
 
 /**
- * Checks if a value string starts with 's' (case insensitive), commonly used for "Sí" responses.
+ * Checks if a value string is an affirmative response ("Sí", "Si", etc.).
  * @param valor The raw string.
  */
 function esSi(valor: any): boolean {
-  return /^s/i.test(String(valor || "").trim());
+  return /^s[íi]$/i.test(String(valor || "").trim());
 }
 
 /**

@@ -684,6 +684,8 @@
       });
     }
 
+    const esc = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
     function renderTables(data) {
       // Selected Table
       const selCont = document.getElementById('seleccionados-table-container');
@@ -692,15 +694,18 @@
       data.seleccionados.forEach(p => {
         const statusClass = p.aceptacion === 'Acepta' ? 'badge-success' : (p.aceptacion === 'Rechaza' ? 'badge-danger' : 'badge-warning');
         const paidClass = p.pagoMatricula === 'Pagado' ? 'badge-success' : 'badge-warning';
+        const certLink = p.enlaceCertificado ? encodeURI(p.enlaceCertificado) : '#';
         htmlS += `<tr>
           <td><strong>${p.ranking}</strong></td>
-          <td>${p.nombre} ${p.apellidos}<br><small style="color:var(--text-muted)">${p.correo}</small></td>
+          <td>${esc(p.nombre)} ${esc(p.apellidos)}<br><small style="color:var(--text-muted)">${esc(p.correo)}</small></td>
           <td>${parseFloat(p.puntaje).toFixed(1)}</td>
-          <td><a href="${p.enlaceCertificado}" target="_blank">📄</a></td>
+          <td><a href="${certLink}" target="_blank" rel="noopener noreferrer">📄</a></td>
           <td><select id="verif-${cleanId(p.correo)}">
             <option value="" ${!p.verificacion ? 'selected' : ''}>-</option>
             <option value="Válido" ${p.verificacion === 'Válido' ? 'selected' : ''}>Válido</option>
             <option value="Test de nivel" ${p.verificacion === 'Test de nivel' ? 'selected' : ''}>Test</option>
+            <option value="Hand picked" ${p.verificacion === 'Hand picked' ? 'selected' : ''}>Hand picked</option>
+            <option value="Manual" ${p.verificacion === 'Manual' ? 'selected' : ''}>Manual</option>
           </select></td>
           <td><select id="nivel-${cleanId(p.correo)}">
             <option value="" ${!p.nivel ? 'selected' : ''}>-</option>
@@ -709,12 +714,12 @@
             <option value="B2.2" ${p.nivel === 'B2.2' ? 'selected' : ''}>B2.2</option>
             <option value="C1" ${p.nivel === 'C1' ? 'selected' : ''}>C1</option>
           </select></td>
-          <td><span class="badge ${statusClass}">${p.aceptacion}</span></td>
+          <td><span class="badge ${statusClass}">${esc(p.aceptacion)}</span></td>
           <td><select id="pago-${cleanId(p.correo)}">
             <option value="Pendiente" ${p.pagoMatricula === 'Pendiente' ? 'selected' : ''}>Pendiente</option>
             <option value="Pagado" ${p.pagoMatricula === 'Pagado' ? 'selected' : ''}>Pagado</option>
           </select></td>
-          <td><button class="btn btn-primary" style="padding:4px 8px; font-size:12px;" onclick="saveStatus('${p.correo}')">💾</button></td>
+          <td><button class="btn btn-primary" style="padding:4px 8px; font-size:12px;" data-email="${esc(p.correo)}" onclick="saveStatus(this.dataset.email)">💾</button></td>
         </tr>`;
       });
       selCont.innerHTML = htmlS + '</tbody></table>';
@@ -726,16 +731,16 @@
         const notifText = p.fechaNotificacion ? p.fechaNotificacion : 'No';
         htmlW += `<tr>
           <td><strong>${p.ranking}</strong></td>
-          <td>${p.nombre} ${p.apellidos}<br><small style="color:var(--text-muted)">${p.correo}</small></td>
+          <td>${esc(p.nombre)} ${esc(p.apellidos)}<br><small style="color:var(--text-muted)">${esc(p.correo)}</small></td>
           <td>${parseFloat(p.puntaje || 0).toFixed(1)}</td>
-          <td>${p.nivel}</td>
-          <td>${notifText}</td>
+          <td>${esc(p.nivel)}</td>
+          <td>${esc(notifText)}</td>
         </tr>`;
       });
       espCont.innerHTML = htmlW + '</tbody></table>';
     }
 
-    function cleanId(correo) { return correo.replace(/[@.]/g, ''); }
+    function cleanId(correo) { return String(correo || '').replace(/[^a-zA-Z0-9]/g, ''); }
 
     function saveStatus(correo) {
       const vid = `verif-${cleanId(correo)}`;
@@ -778,14 +783,21 @@
         const div = document.createElement('div');
         div.className = 'log-entry';
 
-        const isError = msg.toLowerCase().includes('error');
-        const isSuccess = msg.toLowerCase().includes('completada') || msg.toLowerCase().includes('enviado') || msg.toLowerCase().includes('guardados');
+        const isError = String(msg).toLowerCase().includes('error');
+        const isSuccess = String(msg).toLowerCase().includes('completada') || String(msg).toLowerCase().includes('enviado') || String(msg).toLowerCase().includes('guardados');
 
         const timestamp = new Date().toLocaleTimeString();
-        div.innerHTML = `
-          <span class="log-timestamp">[${timestamp}]</span>
-          <span class="log-msg ${isError ? 'error' : (isSuccess ? 'success' : '')}">${msg}</span>
-        `;
+        
+        const timeSpan = document.createElement('span');
+        timeSpan.className = 'log-timestamp';
+        timeSpan.textContent = `[${timestamp}] `;
+
+        const msgSpan = document.createElement('span');
+        msgSpan.className = `log-msg ${isError ? 'error' : (isSuccess ? 'success' : '')}`;
+        msgSpan.textContent = String(msg);
+
+        div.appendChild(timeSpan);
+        div.appendChild(msgSpan);
         panel.appendChild(div);
       });
       panel.scrollTop = panel.scrollHeight;

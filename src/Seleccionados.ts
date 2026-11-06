@@ -165,7 +165,7 @@ function generarHojaSeleccionados(resultados: any[][], ss: GoogleAppsScript.Spre
 
       // Data validations
       const ruleAceptacion = SpreadsheetApp.newDataValidation().requireValueInList(['Acepta', 'Rechaza', 'Pendiente'], true).build();
-      const ruleVerificacion = SpreadsheetApp.newDataValidation().requireValueInList(['Válido', 'Test de nivel'], true).build();
+      const ruleVerificacion = SpreadsheetApp.newDataValidation().requireValueInList(['Válido', 'Test de nivel', 'Hand picked', 'Manual'], true).setAllowInvalid(true).build();
       const ruleNivel = SpreadsheetApp.newDataValidation().requireValueInList(['B1+', 'B2.1', 'B2.2', 'C1'], true).setAllowInvalid(true).build();
       const rulePago = SpreadsheetApp.newDataValidation().requireValueInList(['Pagado', 'Pendiente'], true).build();
 
@@ -374,7 +374,7 @@ function promoverCandidatoActivo(): void {
 
   if (idxAceptacion > 0 && idxVerificacion > 0 && idxNivel > 0) {
     const ruleAceptacion = SpreadsheetApp.newDataValidation().requireValueInList(['Acepta', 'Rechaza', 'Pendiente'], true).build();
-    const ruleVerificacion = SpreadsheetApp.newDataValidation().requireValueInList(['Válido', 'Test de nivel'], true).build();
+    const ruleVerificacion = SpreadsheetApp.newDataValidation().requireValueInList(['Válido', 'Test de nivel', 'Hand picked', 'Manual'], true).setAllowInvalid(true).build();
     const ruleNivel = SpreadsheetApp.newDataValidation().requireValueInList(['B1+', 'B2.1', 'B2.2', 'C1'], true).setAllowInvalid(true).build();
 
     const newRowNum = hojaSelected.getLastRow();
@@ -669,7 +669,7 @@ function restaurarHojaSeleccionadosPerdida(): void {
 
     if (idxAceptacion > 0 && idxVerificacion > 0 && idxNivel > 0 && idxPago > 0 && sheetData.length > 1) {
       const ruleAceptacion = SpreadsheetApp.newDataValidation().requireValueInList(['Acepta', 'Rechaza', 'Pendiente'], true).build();
-      const ruleVerificacion = SpreadsheetApp.newDataValidation().requireValueInList(['Válido', 'Test de nivel'], true).build();
+      const ruleVerificacion = SpreadsheetApp.newDataValidation().requireValueInList(['Válido', 'Test de nivel', 'Hand picked', 'Manual'], true).setAllowInvalid(true).build();
       const ruleNivel = SpreadsheetApp.newDataValidation().requireValueInList(['B1+', 'B2.1', 'B2.2', 'C1'], true).setAllowInvalid(true).build();
       const rulePago = SpreadsheetApp.newDataValidation().requireValueInList(['Pagado', 'Pendiente'], true).build();
 
@@ -794,7 +794,7 @@ function promoverDesdeListaEspera(): void {
 
   if (idxAceptacion > 0 && idxVerificacion > 0 && idxNivel > 0 && idxPago > 0) {
     const ruleAceptacion = SpreadsheetApp.newDataValidation().requireValueInList(['Acepta', 'Rechaza', 'Pendiente'], true).build();
-    const ruleVerificacion = SpreadsheetApp.newDataValidation().requireValueInList(['Válido', 'Test de nivel'], true).build();
+    const ruleVerificacion = SpreadsheetApp.newDataValidation().requireValueInList(['Válido', 'Test de nivel', 'Hand picked', 'Manual'], true).setAllowInvalid(true).build();
     const ruleNivel = SpreadsheetApp.newDataValidation().requireValueInList(['B1+', 'B2.1', 'B2.2', 'C1'], true).setAllowInvalid(true).build();
     const rulePago = SpreadsheetApp.newDataValidation().requireValueInList(['Pagado', 'Pendiente'], true).build();
 

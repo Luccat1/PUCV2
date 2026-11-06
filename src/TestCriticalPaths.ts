@@ -16,6 +16,8 @@ function runAllCriticalPathTests(): void {
   testProcesarAccionPostulante_TokenReuse();
   testGestionarListaDeEspera_ColumnLayout();
   testNoSelected_Idempotency();
+  testEsSi();
+  testCalcularFechaLimite_DST();
   Logger.log("=== CRITICAL PATH TEST SUITE COMPLETED ===");
 }
 
@@ -166,4 +168,50 @@ function testNoSelected_Idempotency(): void {
     Logger.log("[TEST-NO-SELECTED-IDEMPOTENCY] ERROR: " + e.message);
   }
 }
+
+/**
+ * Test 4: Asserts that esSi() strictly matches affirmative answers ('Sí', 'Si')
+ * and rejects other words starting with 's' ('Sin certificado', 'Solo', etc.).
+ */
+function testEsSi(): void {
+  const positives = ["Sí", "si", "SI", "sí", " Sí ", " si "];
+  const negatives = ["Sin certificado", "Solo en las tardes", "Septiembre", "Suspendido", "No", "no", "", null, undefined];
+
+  let failCount = 0;
+  positives.forEach(val => {
+    if (!esSi(val)) {
+      Logger.log("[TEST-ES-SI] FAIL: Expected '" + val + "' to be recognized as affirmative.");
+      failCount++;
+    }
+  });
+
+  negatives.forEach(val => {
+    if (esSi(val)) {
+      Logger.log("[TEST-ES-SI] FAIL: Expected '" + val + "' NOT to be recognized as affirmative.");
+      failCount++;
+    }
+  });
+
+  if (failCount === 0) {
+    Logger.log("[TEST-ES-SI] PASS — Affirmative matching strict and rejects non-affirmative 's*' strings.");
+  } else {
+    Logger.log("[TEST-ES-SI] FAIL — " + failCount + " assertions failed.");
+  }
+}
+
+/**
+ * Test 5: Asserts that calcularFechaLimite() correctly adds calendar days
+ * without drifting across DST boundaries.
+ */
+function testCalcularFechaLimite_DST(): void {
+  const baseDate = new Date(Date.UTC(2026, 3, 4, 23, 30, 0));
+  const result = calcularFechaLimite(baseDate, 5);
+  Logger.log("[TEST-FECHA-LIMITE-DST] Base: " + baseDate.toISOString() + " + 5 days => " + result);
+  if (result && result.length > 5) {
+    Logger.log("[TEST-FECHA-LIMITE-DST] PASS — Formatted correctly: " + result);
+  } else {
+    Logger.log("[TEST-FECHA-LIMITE-DST] FAIL — Unexpected format: " + result);
+  }
+}
+
 

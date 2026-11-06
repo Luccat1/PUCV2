@@ -421,138 +421,144 @@ function obtenerUrlConfirmacionConToken(token: string, action: string): string {
  * Updates the spreadsheet and sends confirmation emails.
  */
 function procesarAccionPostulante(token: string, action: string): { exito: boolean; mensaje: string; nombre?: string; paymentUrl?: string } {
-  const scriptProperties = PropertiesService.getScriptProperties();
-  const correo = scriptProperties.getProperty('token_' + token);
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(10000);
+    const scriptProperties = PropertiesService.getScriptProperties();
+    const correo = scriptProperties.getProperty('token_' + token);
 
-  if (!correo) {
-    return { exito: false, mensaje: "Este enlace ya fue utilizado o no es válido." };
-  }
-
-  const ss = getSpreadsheet();
-  const hojaS = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
-  if (!hojaS) {
-    return { exito: false, mensaje: "Error base de datos: Hoja 'Seleccionados' no encontrada." };
-  }
-
-  let targetValues = hojaS.getDataRange().getValues();
-  const headers = targetValues[0];
-  const idxCorreo = headers.indexOf("Correo Electrónico");
-  const idxNombre = headers.indexOf("Nombre(s)");
-  const idxAceptacion = headers.indexOf("Aceptación") + 1;
-
-  let isRealCandidate = false;
-  let isContinuationStudent = false;
-  let nombre = "Usuario de Prueba (Sandbox)";
-  let targetSheet = hojaS;
-  let rowIndex = -1;
-  let idxAceptacionCol = idxAceptacion;
-
-  for (let i = 1; i < targetValues.length; i++) {
-    if (String(targetValues[i][idxCorreo]).trim().toLowerCase() === correo.trim().toLowerCase()) {
-      isRealCandidate = true;
-      nombre = targetValues[i][idxNombre];
-      rowIndex = i + 1;
-      break;
+    if (!correo) {
+      return { exito: false, mensaje: "Este enlace ya fue utilizado o no es válido." };
     }
-  }
 
-  // --- CHECK CONTINUATION SHEET IF NOT IN SELECTED ---
-  if (!isRealCandidate) {
-    const hojaC = ss.getSheetByName(CONFIG.SHEETS.CONTINUATION);
-    if (hojaC) {
-      const valuesC = hojaC.getDataRange().getValues();
-      if (valuesC.length > 0) {
-        const headersC = valuesC[0];
-        let idxEmailC = headersC.indexOf("Email");
-        if (idxEmailC === -1) idxEmailC = headersC.indexOf("Correo Electrónico");
-        const idxNameC = headersC.indexOf("Name");
-        const idxSurnameC = headersC.indexOf("Surname");
-        let idxAceptacionC = headersC.indexOf("Aceptación");
+    // Atomic gate: immediately delete the token so any concurrent or duplicate request is rejected
+    scriptProperties.deleteProperty('token_' + token);
 
-        if (idxAceptacionC === -1) {
-          idxAceptacionC = headersC.length;
-          hojaC.getRange(1, idxAceptacionC + 1).setValue("Aceptación");
-        }
+    const ss = getSpreadsheet();
+    const hojaS = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
+    if (!hojaS) {
+      return { exito: false, mensaje: "Error base de datos: Hoja 'Seleccionados' no encontrada." };
+    }
 
-        if (idxEmailC !== -1) {
-          for (let i = 1; i < valuesC.length; i++) {
-            if (String(valuesC[i][idxEmailC]).trim().toLowerCase() === correo.trim().toLowerCase()) {
-              isRealCandidate = true;
-              isContinuationStudent = true;
-              targetSheet = hojaC;
-              nombre = `${valuesC[i][idxNameC] || ''} ${valuesC[i][idxSurnameC] || ''}`.trim() || correo;
-              rowIndex = i + 1;
-              idxAceptacionCol = idxAceptacionC + 1;
-              targetValues = valuesC;
-              break;
+    let targetValues = hojaS.getDataRange().getValues();
+    const headers = targetValues[0];
+    const idxCorreo = headers.indexOf("Correo Electrónico");
+    const idxNombre = headers.indexOf("Nombre(s)");
+    const idxAceptacion = headers.indexOf("Aceptación") + 1;
+
+    let isRealCandidate = false;
+    let isContinuationStudent = false;
+    let nombre = "Usuario de Prueba (Sandbox)";
+    let targetSheet = hojaS;
+    let rowIndex = -1;
+    let idxAceptacionCol = idxAceptacion;
+
+    for (let i = 1; i < targetValues.length; i++) {
+      if (String(targetValues[i][idxCorreo]).trim().toLowerCase() === correo.trim().toLowerCase()) {
+        isRealCandidate = true;
+        nombre = targetValues[i][idxNombre];
+        rowIndex = i + 1;
+        break;
+      }
+    }
+
+    // --- CHECK CONTINUATION SHEET IF NOT IN SELECTED ---
+    if (!isRealCandidate) {
+      const hojaC = ss.getSheetByName(CONFIG.SHEETS.CONTINUATION);
+      if (hojaC) {
+        const valuesC = hojaC.getDataRange().getValues();
+        if (valuesC.length > 0) {
+          const headersC = valuesC[0];
+          let idxEmailC = headersC.indexOf("Email");
+          if (idxEmailC === -1) idxEmailC = headersC.indexOf("Correo Electrónico");
+          const idxNameC = headersC.indexOf("Name");
+          const idxSurnameC = headersC.indexOf("Surname");
+          let idxAceptacionC = headersC.indexOf("Aceptación");
+
+          if (idxAceptacionC === -1) {
+            idxAceptacionC = headersC.length;
+            hojaC.getRange(1, idxAceptacionC + 1).setValue("Aceptación");
+          }
+
+          if (idxEmailC !== -1) {
+            for (let i = 1; i < valuesC.length; i++) {
+              if (String(valuesC[i][idxEmailC]).trim().toLowerCase() === correo.trim().toLowerCase()) {
+                isRealCandidate = true;
+                isContinuationStudent = true;
+                targetSheet = hojaC;
+                nombre = `${valuesC[i][idxNameC] || ''} ${valuesC[i][idxSurnameC] || ''}`.trim() || correo;
+                rowIndex = i + 1;
+                idxAceptacionCol = idxAceptacionC + 1;
+                targetValues = valuesC;
+                break;
+              }
             }
           }
         }
       }
     }
-  }
 
-  // --- SANDBOX / TEST HANDLING ---
-  if (!isRealCandidate) {
-    scriptProperties.deleteProperty('token_' + token);
-    const mockPaymentUrl = PROGRAM_DATA.PAYMENT_URL || "https://www.mercadopago.cl/link-pago-matricula";
-    return {
-      exito: true,
-      mensaje: action === 'accept' ?
-        `[MODO SANDBOX] Confirmación de aceptación simulada con éxito para el correo ${correo}. En producción, recibirías un correo y serías redirigido al portal de pago.` :
-        `[MODO SANDBOX] Confirmación de rechazo simulada con éxito para el correo ${correo}. En producción, tu cupo se liberaría para lista de espera manual.`,
-      nombre: nombre,
-      paymentUrl: mockPaymentUrl
-    };
-  }
+    // --- SANDBOX / TEST HANDLING ---
+    if (!isRealCandidate) {
+      const mockPaymentUrl = PROGRAM_DATA.PAYMENT_URL || "https://www.mercadopago.cl/link-pago-matricula";
+      return {
+        exito: true,
+        mensaje: action === 'accept' ?
+          `[MODO SANDBOX] Confirmación de aceptación simulada con éxito para el correo ${correo}. En producción, recibirías un correo y serías redirigido al portal de pago.` :
+          `[MODO SANDBOX] Confirmación de rechazo simulada con éxito para el correo ${correo}. En producción, tu cupo se liberaría para lista de espera manual.`,
+        nombre: nombre,
+        paymentUrl: mockPaymentUrl
+      };
+    }
 
-  // Real candidate processing
-  const estadoActual = targetValues[rowIndex - 1][idxAceptacionCol - 1];
-  if (estadoActual === 'Acepta' || estadoActual === 'Rechaza') {
-    scriptProperties.deleteProperty('token_' + token); // Clean up used token
+    // Real candidate processing
+    const estadoActual = targetValues[rowIndex - 1][idxAceptacionCol - 1];
+    if (estadoActual === 'Acepta' || estadoActual === 'Rechaza') {
+      return { 
+        exito: true, 
+        mensaje: "Tu respuesta ya fue registrada anteriormente.", 
+        nombre: nombre,
+        paymentUrl: isContinuationStudent ? undefined : PROGRAM_DATA.PAYMENT_URL 
+      };
+    }
+
+    const nuevoEstado = action === 'accept' ? 'Acepta' : 'Rechaza';
+    targetSheet.getRange(rowIndex, idxAceptacionCol).setValue(nuevoEstado);
+
+    if (isContinuationStudent) {
+      logToWebApp(`${action === 'accept' ? 'Aceptación' : 'Rechazo'} de continuación recibida de ${correo}.`);
+      return {
+        exito: true,
+        mensaje: action === 'accept' ?
+          "Gracias por confirmar tu participación. Al ser estudiante de continuación, tu cupo ha quedado reservado directamente sin pago de matrícula." :
+          "Has rechazado tu cupo de continuación. Tu lugar no será reservado.",
+        nombre: nombre,
+        paymentUrl: undefined
+      };
+    }
+
+    if (action === 'reject') {
+      procesarRechazoDesdeWebApp(correo);
+      logToWebApp(`Rechazo recibido y procesado para ${correo}.`);
+      // Send confirmation email of rejection
+      enviarCorreoConfirmacion(correo, 'reject');
+    } else {
+      logToWebApp(`Aceptación recibida de ${correo}.`);
+      // Send confirmation email of acceptance (with payment link)
+      enviarCorreoConfirmacion(correo, 'accept');
+    }
+
     return { 
       exito: true, 
-      mensaje: "Tu respuesta ya fue registrada anteriormente.", 
+      mensaje: action === 'accept' ? 
+        "Gracias por confirmar tu participación. Para formalizar tu cupo, procede al pago de la matrícula." : 
+        "Lamentamos tu decisión, tu cupo será liberado para la lista de espera.", 
       nombre: nombre,
-      paymentUrl: isContinuationStudent ? undefined : PROGRAM_DATA.PAYMENT_URL 
+      paymentUrl: PROGRAM_DATA.PAYMENT_URL
     };
+  } finally {
+    lock.releaseLock();
   }
-
-  const nuevoEstado = action === 'accept' ? 'Acepta' : 'Rechaza';
-  targetSheet.getRange(rowIndex, idxAceptacionCol).setValue(nuevoEstado);
-  scriptProperties.deleteProperty('token_' + token); // One-time use
-
-  if (isContinuationStudent) {
-    logToWebApp(`${action === 'accept' ? 'Aceptación' : 'Rechazo'} de continuación recibida de ${correo}.`);
-    return {
-      exito: true,
-      mensaje: action === 'accept' ?
-        "Gracias por confirmar tu participación. Al ser estudiante de continuación, tu cupo ha quedado reservado directamente sin pago de matrícula." :
-        "Has rechazado tu cupo de continuación. Tu lugar no será reservado.",
-      nombre: nombre,
-      paymentUrl: undefined
-    };
-  }
-
-  if (action === 'reject') {
-    procesarRechazoDesdeWebApp(correo);
-    logToWebApp(`Rechazo recibido y procesado para ${correo}.`);
-    // Send confirmation email of rejection
-    enviarCorreoConfirmacion(correo, 'reject');
-  } else {
-    logToWebApp(`Aceptación recibida de ${correo}.`);
-    // Send confirmation email of acceptance (with payment link)
-    enviarCorreoConfirmacion(correo, 'accept');
-  }
-
-  return { 
-    exito: true, 
-    mensaje: action === 'accept' ? 
-      "Gracias por confirmar tu participación. Para formalizar tu cupo, procede al pago de la matrícula." : 
-      "Lamentamos tu decisión, tu cupo será liberado para la lista de espera.", 
-    nombre: nombre,
-    paymentUrl: PROGRAM_DATA.PAYMENT_URL
-  };
 }
 
 /**
