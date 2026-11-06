@@ -31,6 +31,12 @@ function doGet(e) {
  * @returns {GoogleAppsScript.HTML.HtmlOutput} The confirmation page.
  */
 function crearPaginaConfirmacion(accion, nombre, exito, mensaje, paymentUrl) {
+    const esc = (s) => String(s || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
     const logoUrl = "https://www.pucv.cl/pucv/site/artic/20220615/imag/foto_0000000120220615160256/logo_header.png";
     const color = exito ? (accion === 'accept' ? "#4CAF50" : "#f44336") : "#ff9800";
     let paymentButtonHtml = "";
@@ -62,8 +68,8 @@ function crearPaginaConfirmacion(accion, nombre, exito, mensaje, paymentUrl) {
       <body>
         <div class="card">
           <img src="${logoUrl}" alt="PUCV Logo">
-          <h2>Hola, ${nombre}</h2>
-          <p>${mensaje}</p>
+          <h2>Hola, ${esc(nombre)}</h2>
+          <p>${esc(mensaje)}</p>
           ${paymentButtonHtml}
           <div class="footer">
             Pontificia Universidad Católica de Valparaíso<br>
@@ -247,9 +253,9 @@ function updateApplicantStatus(correo, verificacion, nivel, pago) {
         return "Error: Columna de correo no encontrada en Seleccionados.";
     for (let i = 1; i < datos.length; i++) {
         if (datos[i][idxCorreo] === correo) {
-            if (verificacion !== undefined)
+            if (verificacion !== undefined && idxVerificacion > 0)
                 hojaS.getRange(i + 1, idxVerificacion).setValue(verificacion);
-            if (nivel !== undefined)
+            if (nivel !== undefined && idxNivel > 0)
                 hojaS.getRange(i + 1, idxNivel).setValue(nivel);
             if (pago !== undefined && idxPago > 0)
                 hojaS.getRange(i + 1, idxPago).setValue(pago);

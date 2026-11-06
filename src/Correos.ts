@@ -117,9 +117,17 @@ function getRecipients(type: string): any[] {
     const idxCorreoOut = headersOutput.indexOf("Correo Electrónico");
     const idxNombreOut = headersOutput.indexOf("Nombre(s)");
     const idxNivelOut = headersOutput.indexOf("Nivel Postulado");
+    const colRejection = CONFIG.COLUMNS.REJECTION_NOTIFICATION_DATE || "Fecha Notificación Rechazo";
+    let idxNotificadoRechazo = headersOutput.indexOf(colRejection);
 
     if (idxCorreoOut === -1 || idxNombreOut === -1 || idxNivelOut === -1) {
       throw new Error(`Faltan columnas esenciales en la hoja de evaluación.`);
+    }
+
+    if (idxNotificadoRechazo === -1) {
+      hojaOutput.getRange(1, headersOutput.length + 1).setValue(colRejection);
+      headersOutput.push(colRejection);
+      idxNotificadoRechazo = headersOutput.length - 1;
     }
 
     const valS = hojaSelected.getDataRange().getValues();
@@ -133,17 +141,20 @@ function getRecipients(type: string): any[] {
     const emailsWaitlist = new Set(valW.map(row => String(row[idxW]).trim().toLowerCase()));
 
     return valuesOutput
-      .filter(row => {
-        const email = String(row[idxCorreoOut]).trim().toLowerCase();
-        return email && !emailsSelected.has(email) && !emailsWaitlist.has(email);
-      })
       .map((row, i) => ({
         index: i + 2,
         nombre: row[idxNombreOut],
         email: row[idxCorreoOut],
         nivel: row[idxNivelOut],
-        notificado: false
-      }));
+        notificado: idxNotificadoRechazo !== -1 ? row[idxNotificadoRechazo] : ""
+      }))
+      .filter(p => {
+        const email = String(p.email || "").trim().toLowerCase();
+        return email &&
+          !emailsSelected.has(email) &&
+          !emailsWaitlist.has(email) &&
+          (!p.notificado || p.notificado === "");
+      });
   }
 
   if (type === 'CONTINUATION') {
@@ -235,11 +246,26 @@ function sendEmailBatch(type: string, asDraft: boolean = false, limit: number = 
 
   const ss = getSpreadsheet();
   const isWaitlist = (type === 'WAITLIST' || type === 'WAITLIST_REJECTED');
-  const sheetName = isWaitlist ? CONFIG.SHEETS.WAITLIST : CONFIG.SHEETS.SELECTED;
+  const isNoSelected = (type === 'NO_SELECTED');
+  let sheetName = CONFIG.SHEETS.SELECTED;
+  let colName = CONFIG.COLUMNS.NOTIFICATION_DATE;
+
+  if (isWaitlist) {
+    sheetName = CONFIG.SHEETS.WAITLIST;
+    colName = type === 'WAITLIST_REJECTED' ? "Fecha Notificación Cierre" : CONFIG.COLUMNS.NOTIFICATION_DATE;
+  } else if (isNoSelected) {
+    sheetName = CONFIG.SHEETS.OUTPUT;
+    colName = CONFIG.COLUMNS.REJECTION_NOTIFICATION_DATE || "Fecha Notificación Rechazo";
+  }
+
   const hojaS = ss.getSheetByName(sheetName);
   const headersS = hojaS?.getDataRange().getValues()[0];
-  const colName = type === 'WAITLIST_REJECTED' ? "Fecha Notificación Cierre" : CONFIG.COLUMNS.NOTIFICATION_DATE;
-  const idxNotificado = headersS?.indexOf(colName);
+  let idxNotificado = headersS?.indexOf(colName);
+  if (isNoSelected && hojaS && (idxNotificado === undefined || idxNotificado === -1)) {
+    const lastCol = hojaS.getLastColumn();
+    hojaS.getRange(1, lastCol + 1).setValue(colName);
+    idxNotificado = lastCol;
+  }
 
   let count = 0;
   let ultimosErrores: string[] = [];
@@ -306,7 +332,7 @@ function sendEmailBatch(type: string, asDraft: boolean = false, limit: number = 
               hojaCont.getRange(r.index, idxNotifCont + 1).setValue(new Date());
             }
           }
-        } else if (type !== 'NO_SELECTED' && hojaS && idxNotificado !== undefined && idxNotificado !== -1) {
+        } else if (hojaS && idxNotificado !== undefined && idxNotificado !== -1) {
           hojaS.getRange(r.index, idxNotificado + 1).setValue(new Date());
         }
       }
@@ -326,6 +352,47 @@ function sendEmailBatch(type: string, asDraft: boolean = false, limit: number = 
   }
 
   return `Se ${verb} ${count} ${noun} exitosamente para el lote '${type}'.`;
+}
+
+/**
+ * Sends a targeted notification email to a single selected/promoted candidate.
+ * Prevents mass accidental emailing to unnotified candidates in Seleccionados.
+ */
+function enviarCorreoIndividualSeleccionado(email: string, nombre: string, nivel: string, rowNum?: number): void {
+  cargarConfiguracionDesdeHoja();
+  const quota = MailApp.getRemainingDailyQuota();
+  if (quota < 1) {
+    logToWebApp(`Error: Cuota de Gmail insuficiente para enviar correo a ${email}.`);
+    return;
+  }
+
+  const subject = "Resultado de Postulación Programas de Inglés PUCV";
+  const htmlBody = HtmlService.createTemplateFromFile('CorreoSeleccionado');
+  (htmlBody as any).nombre = nombre;
+  (htmlBody as any).nivel = nivel;
+  (htmlBody as any).programData = PROGRAM_DATA;
+  (htmlBody as any).fechaLimite = calcularFechaLimite(new Date(), PROGRAM_DATA.DEADLINE_DAYS || 3);
+
+  const token = generarToken(email);
+  (htmlBody as any).urlAceptar = obtenerUrlConfirmacionConToken(token, 'accept');
+  (htmlBody as any).urlRechazar = obtenerUrlConfirmacionConToken(token, 'reject');
+
+  const finishedHtml = htmlBody.evaluate().getContent();
+  GmailApp.sendEmail(email, subject, "", {
+    htmlBody: finishedHtml
+  });
+
+  if (rowNum && rowNum > 0) {
+    const ss = getSpreadsheet();
+    const hojaS = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
+    if (hojaS) {
+      const headersS = hojaS.getDataRange().getValues()[0];
+      const idxNotificado = headersS.indexOf(CONFIG.COLUMNS.NOTIFICATION_DATE);
+      if (idxNotificado !== -1) {
+        hojaS.getRange(rowNum, idxNotificado + 1).setValue(new Date());
+      }
+    }
+  }
 }
 
 
@@ -421,8 +488,15 @@ function sendTestEmail(targetEmail: string, type: string): string {
  * Calculates a future limit date.
  */
 function calcularFechaLimite(fechaInicio: Date, dias: number): string {
+  const tz = PROGRAM_DATA.TIMEZONE || "America/Santiago";
   const fechaLimite = new Date(fechaInicio.getTime() + dias * 24 * 60 * 60 * 1000);
-  const opciones: Intl.DateTimeFormatOptions = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+  const opciones: Intl.DateTimeFormatOptions = {
+    timeZone: tz,
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  };
   const str = fechaLimite.toLocaleDateString('es-ES', opciones);
   return str.charAt(0).toUpperCase() + str.slice(1);
 }

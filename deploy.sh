@@ -53,6 +53,10 @@ JS_FILES=(
   "Dashboard.js"
   "WebApp.js"
   "TestInicioClases.js"
+  "TestRechazoPorNivel.js"
+  "Placement.js"
+  "RechazoPorNivel.js"
+  "TestCriticalPaths.js"
 )
 
 COPIED=0
@@ -60,7 +64,7 @@ for file in "${JS_FILES[@]}"; do
   if [[ -f "dist/$file" ]]; then
     cp "dist/$file" "PUCV2English/$file"
     echo -e "  ${GREEN}✓${NC} $file"
-    ((COPIED++))
+    COPIED=$((COPIED + 1))
   else
     echo -e "  ${RED}✗${NC} $file (not found)"
   fi
@@ -94,7 +98,7 @@ HTML_OK=0
 for file in "${HTML_FILES[@]}"; do
   if [[ -f "PUCV2English/$file" ]]; then
     echo -e "  ${GREEN}✓${NC} $file"
-    ((HTML_OK++))
+    HTML_OK=$((HTML_OK + 1))
   else
     echo -e "  ${RED}✗${NC} $file (missing)"
   fi

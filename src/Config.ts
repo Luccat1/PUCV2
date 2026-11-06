@@ -36,6 +36,7 @@ interface IConfig {
  * Program specific data like dates and class schedules.
  */
 interface IProgramData {
+  TIMEZONE: string;
   FECHA_LIMITE: string;
   FECHA_INICIO: string;
   FECHA_TERMINO: string;
@@ -160,6 +161,7 @@ const CONFIG: IConfig = {
     ENDORSEMENT_LETTER: "Adjunta la carta de respaldo de tu jefatura (opcional)",
     ENDORSEMENT_SCHEDULE: "¿Tu jefatura está en conocimiento y aprueba tu participación en el horario establecido?",
     NOTIFICATION_DATE: "Fecha Notificación",
+    REJECTION_NOTIFICATION_DATE: "Fecha Notificación Rechazo",
     INICIO_NOTIFICATION_DATE: "Notificado Inicio",
     SALA: "Sala",
     LEVEL_APPLIED: "Nivel al que postula",
@@ -223,6 +225,7 @@ let SCORING_PARAMS: IScoringParams = JSON.parse(JSON.stringify(DEFAULT_SCORING_P
  * Default program specific data (fallback).
  */
 const DEFAULT_PROGRAM_DATA: IProgramData = {
+  TIMEZONE: "America/Santiago",
   FECHA_LIMITE: "jueves 11 de diciembre",
   FECHA_INICIO: "23 de marzo de 2026",
   FECHA_TERMINO: "2 de julio de 2026",

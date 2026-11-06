@@ -157,7 +157,6 @@ function evaluarPostulacionesPUCV2() {
             }
         }
         if (nuevasProcesadas === 0) {
-            lock.releaseLock();
             return "No hay nuevas postulaciones para añadir.";
         }
         // Ensure all rows in resultados have the exact same length as the header row
@@ -267,7 +266,9 @@ function cargarDatosPrograma() {
         if (!criterio || !perfil || !valor)
             return;
         if (criterio === "PROGRAMA") {
-            if (perfil === "FECHA_LIMITE")
+            if (perfil === "TIMEZONE")
+                PROGRAM_DATA.TIMEZONE = valor;
+            else if (perfil === "FECHA_LIMITE")
                 PROGRAM_DATA.FECHA_LIMITE = valor;
             else if (perfil === "FECHA_INICIO")
                 PROGRAM_DATA.FECHA_INICIO = valor;

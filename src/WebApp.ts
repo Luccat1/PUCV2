@@ -33,6 +33,13 @@ function doGet(e: GoogleAppsScript.Events.DoGet): GoogleAppsScript.HTML.HtmlOutp
  * @returns {GoogleAppsScript.HTML.HtmlOutput} The confirmation page.
  */
 function crearPaginaConfirmacion(accion: string, nombre: string, exito: boolean, mensaje: string, paymentUrl?: string): GoogleAppsScript.HTML.HtmlOutput {
+  const esc = (s: string) => String(s || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
   const logoUrl = "https://www.pucv.cl/pucv/site/artic/20220615/imag/foto_0000000120220615160256/logo_header.png";
   const color = exito ? (accion === 'accept' ? "#4CAF50" : "#f44336") : "#ff9800";
 
@@ -66,8 +73,8 @@ function crearPaginaConfirmacion(accion: string, nombre: string, exito: boolean,
       <body>
         <div class="card">
           <img src="${logoUrl}" alt="PUCV Logo">
-          <h2>Hola, ${nombre}</h2>
-          <p>${mensaje}</p>
+          <h2>Hola, ${esc(nombre)}</h2>
+          <p>${esc(mensaje)}</p>
           ${paymentButtonHtml}
           <div class="footer">
             Pontificia Universidad Católica de Valparaíso<br>
@@ -278,8 +285,8 @@ function updateApplicantStatus(correo: string, verificacion: string, nivel: stri
 
   for (let i = 1; i < datos.length; i++) {
     if (datos[i][idxCorreo] === correo) {
-      if (verificacion !== undefined) hojaS.getRange(i + 1, idxVerificacion).setValue(verificacion);
-      if (nivel !== undefined) hojaS.getRange(i + 1, idxNivel).setValue(nivel);
+      if (verificacion !== undefined && idxVerificacion > 0) hojaS.getRange(i + 1, idxVerificacion).setValue(verificacion);
+      if (nivel !== undefined && idxNivel > 0) hojaS.getRange(i + 1, idxNivel).setValue(nivel);
       if (pago !== undefined && idxPago > 0) hojaS.getRange(i + 1, idxPago).setValue(pago);
       return "Estado de " + correo + " actualizado.";
     }

@@ -169,7 +169,6 @@ function evaluarPostulacionesPUCV2(): string {
     }
 
     if (nuevasProcesadas === 0) {
-      lock.releaseLock();
       return "No hay nuevas postulaciones para añadir.";
     }
 
@@ -289,7 +288,8 @@ function cargarDatosPrograma(): void {
     if (!criterio || !perfil || !valor) return;
 
     if (criterio === "PROGRAMA") {
-      if (perfil === "FECHA_LIMITE") PROGRAM_DATA.FECHA_LIMITE = valor;
+      if (perfil === "TIMEZONE") PROGRAM_DATA.TIMEZONE = valor;
+      else if (perfil === "FECHA_LIMITE") PROGRAM_DATA.FECHA_LIMITE = valor;
       else if (perfil === "FECHA_INICIO") PROGRAM_DATA.FECHA_INICIO = valor;
       else if (perfil === "FECHA_TERMINO") PROGRAM_DATA.FECHA_TERMINO = valor;
       else if (perfil === "PAYMENT_URL") PROGRAM_DATA.PAYMENT_URL = valor;

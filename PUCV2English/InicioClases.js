@@ -158,7 +158,10 @@ function enviarCorreosInicioClases(salas, asDraft = false, limit = 0) {
     recipients.forEach(r => {
         try {
             const horario = PROGRAM_DATA.HORARIOS[r.nivel] || PROGRAM_DATA.HORARIOS["Default"];
-            const sala = (salas && salas[r.nivel]) ? salas[r.nivel].trim() : horario.sala;
+            let sala = salas && salas[r.nivel] ? salas[r.nivel].trim() : undefined;
+            if (!sala) {
+                sala = horario.sala;
+            }
             if (!sala || sala.trim() === "") {
                 throw new Error(`Sala no ingresada para nivel ${r.nivel}. Ejecuta el diálogo de inicio de clases antes de llamar enviarCorreosInicioClases().`);
             }
@@ -223,4 +226,3 @@ function sendTestInicioClases() {
     GmailApp.sendEmail(adminEmail, subject, "", { htmlBody });
     return `✅ Correo de prueba de inicio de clases enviado a ${adminEmail}. Revisa tu bandeja de entrada.`;
 }
-
