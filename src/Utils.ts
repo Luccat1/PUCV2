@@ -62,10 +62,17 @@ function contarPalabrasClave(texto: string, palabrasClave: string[]): number {
  * @param message The message to log.
  */
 function logToWebApp(message: string): void {
-  const userProperties = PropertiesService.getUserProperties();
-  let logs: string[] = JSON.parse(userProperties.getProperty('webAppLogs') || '[]');
-  logs.push(`${new Date().toLocaleTimeString()} - ${message}`);
-  userProperties.setProperty('webAppLogs', JSON.stringify(logs));
+  try {
+    const userProperties = PropertiesService.getUserProperties();
+    let logs: string[] = JSON.parse(userProperties.getProperty('webAppLogs') || '[]');
+    logs.push(`${new Date().toLocaleTimeString()} - ${message}`);
+    if (logs.length > 100) {
+      logs = logs.slice(-50);
+    }
+    userProperties.setProperty('webAppLogs', JSON.stringify(logs));
+  } catch (e: any) {
+    Logger.log("logToWebApp warning: " + e.message);
+  }
 }
 
 /**

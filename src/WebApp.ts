@@ -363,21 +363,36 @@ function guardarRevisionPostulante(data: { correo: string, verificacion: string,
 
 /**
  * Generates a UUID token for an applicant and stores it in script properties.
- * Per Plan 3.1, Task 3.1.1.
+ * Uses Utilities.getUuid() to produce unique collision-free keys, avoiding
+ * lock contention and timeouts during batch operations.
  */
 function generarToken(correo: string): string {
-  const lock = LockService.getScriptLock();
   try {
-    lock.waitLock(10000);
     const token = Utilities.getUuid();
     PropertiesService.getScriptProperties().setProperty('token_' + token, correo);
     return token;
   } catch (e: any) {
     logToWebApp("Error generando token: " + e.message);
     throw e;
-  } finally {
-    lock.releaseLock();
   }
+}
+
+/**
+ * Generates and persists multiple tokens in a single batch operation.
+ * Eliminates repetitive property store calls during mass email dispatch.
+ */
+function generarTokensBatch(correos: string[]): Record<string, string> {
+  const props: Record<string, string> = {};
+  const tokenMap: Record<string, string> = {};
+  correos.forEach(correo => {
+    const token = Utilities.getUuid();
+    props['token_' + token] = correo;
+    tokenMap[correo] = token;
+  });
+  if (Object.keys(props).length > 0) {
+    PropertiesService.getScriptProperties().setProperties(props);
+  }
+  return tokenMap;
 }
 
 /**

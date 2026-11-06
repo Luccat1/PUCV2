@@ -359,6 +359,7 @@ function promoverCandidatoActivo(): void {
     "Válido", // Verificación Certificado
     nivelPostulado, // Nivel Asignado
     "Pendiente", // Aceptación
+    "Pendiente", // Pago Matrícula
     "Promovido manualmente", // Comentarios
     "" // Fecha Notificación
   ];
@@ -369,6 +370,7 @@ function promoverCandidatoActivo(): void {
   const idxAceptacion = headersS.indexOf("Aceptación") + 1;
   const idxVerificacion = headersS.indexOf("Verificación Certificado") + 1;
   const idxNivel = headersS.indexOf("Nivel Asignado") + 1;
+  const idxPago = headersS.indexOf("Pago Matrícula") + 1;
 
   if (idxAceptacion > 0 && idxVerificacion > 0 && idxNivel > 0) {
     const ruleAceptacion = SpreadsheetApp.newDataValidation().requireValueInList(['Acepta', 'Rechaza', 'Pendiente'], true).build();
@@ -379,6 +381,11 @@ function promoverCandidatoActivo(): void {
     hojaSelected.getRange(newRowNum, idxAceptacion).setDataValidation(ruleAceptacion);
     hojaSelected.getRange(newRowNum, idxVerificacion).setDataValidation(ruleVerificacion);
     hojaSelected.getRange(newRowNum, idxNivel).setDataValidation(ruleNivel);
+
+    if (idxPago > 0) {
+      const rulePago = SpreadsheetApp.newDataValidation().requireValueInList(['Pagado', 'Pendiente'], true).build();
+      hojaSelected.getRange(newRowNum, idxPago).setDataValidation(rulePago);
+    }
   }
 
   ui.alert("Promoción Exitosa", `Se ha promovido a ${nombres} ${apellidos} al nivel ${nivelPostulado} de seleccionados.`, ui.ButtonSet.OK);
