@@ -38,74 +38,38 @@ else
 fi
 echo
 
-# Step 2: Copy JavaScript files
-echo -e "${YELLOW}▶ Copying compiled files to PUCV2English/...${NC}"
-
-JS_FILES=(
-  "Config.js"
-  "Utils.js"
-  "Correos.js"
-  "ListaFinal.js"
-  "Evaluacion.js"
-  "Seleccionados.js"
-  "InicioClases.js"
-  "Menu.js"
-  "Dashboard.js"
-  "WebApp.js"
-  "TestInicioClases.js"
-  "TestRechazoPorNivel.js"
-  "Placement.js"
-  "RechazoPorNivel.js"
-  "TestCriticalPaths.js"
-)
+# Step 2: Clean and Copy JavaScript files (excluding test suites from production)
+echo -e "${YELLOW}▶ Preparing files for PUCV2English/...${NC}"
+mkdir -p PUCV2English
+rm -f PUCV2English/*.js PUCV2English/*.html
 
 COPIED=0
-for file in "${JS_FILES[@]}"; do
-  if [[ -f "dist/$file" ]]; then
-    cp "dist/$file" "PUCV2English/$file"
-    echo -e "  ${GREEN}✓${NC} $file"
-    COPIED=$((COPIED + 1))
+for js in dist/*.js; do
+  fname=$(basename "$js")
+  if [[ "$fname" == Test* ]]; then
+    echo -e "  ${BLUE}ℹ${NC} $fname (omitted from production package)"
   else
-    echo -e "  ${RED}✗${NC} $file (not found)"
+    cp "$js" "PUCV2English/$fname"
+    echo -e "  ${GREEN}✓${NC} $fname"
+    COPIED=$((COPIED + 1))
   fi
 done
 
-echo -e "${GREEN}✓ Copied: $COPIED/${#JS_FILES[@]} files${NC}"
+echo -e "${GREEN}✓ Copied: $COPIED JavaScript production files${NC}"
 echo
 
 # Step 2.5: Copy HTML templates
 echo -e "${YELLOW}▶ Copying HTML templates from src/...${NC}"
 cp src/*.html PUCV2English/
-echo -e "${GREEN}✓ HTML templates copied${NC}"
+HTML_COUNT=$(ls -1 src/*.html 2>/dev/null | wc -l)
+echo -e "${GREEN}✓ All $HTML_COUNT HTML templates copied${NC}"
 echo
 
-# Step 3: Verify HTML files
-echo -e "${YELLOW}▶ Verifying HTML templates...${NC}"
-
-HTML_FILES=(
-  "index.html"
-  "DialogSalas.html"
-  "CorreoInicioClases.html"
-  "CorreoSeleccionado.html"
-  "CorreoTestNivel.html"
-  "CorreoListaEspera.html"
-  "CorreoNoSeleccionado.html"
-  "CorreoConfirmacionAcepta.html"
-  "CorreoConfirmacionRechaza.html"
-)
-
-HTML_OK=0
-for file in "${HTML_FILES[@]}"; do
-  if [[ -f "PUCV2English/$file" ]]; then
-    echo -e "  ${GREEN}✓${NC} $file"
-    HTML_OK=$((HTML_OK + 1))
-  else
-    echo -e "  ${RED}✗${NC} $file (missing)"
-  fi
-done
-
-echo -e "${GREEN}✓ Found: $HTML_OK/${#HTML_FILES[@]} files${NC}"
-echo
+# Step 3: Verify build integrity
+if [ "$COPIED" -eq 0 ] || [ "$HTML_COUNT" -eq 0 ]; then
+  echo -e "${RED}✗ Error: No files were prepared for deployment.${NC}"
+  exit 1
+fi
 
 # Step 4: Summary
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"

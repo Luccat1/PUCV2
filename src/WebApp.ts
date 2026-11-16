@@ -11,16 +11,82 @@ function doGet(e: GoogleAppsScript.Events.DoGet): GoogleAppsScript.HTML.HtmlOutp
   cargarConfiguracionDesdeHoja();
   const action = e.parameter.action;
   const token = e.parameter.token;
+  const confirmed = e.parameter.confirmed;
 
   if (action && token) {
+    // If not confirmed yet, show intermediate confirmation screen (Fix #5: prevents email scanner pre-fetch)
+    if (confirmed !== 'true' && confirmed !== '1') {
+      const scriptProperties = PropertiesService.getScriptProperties();
+      const correo = scriptProperties.getProperty('token_' + token);
+      if (!correo) {
+        return crearPaginaConfirmacion(action, "Postulante", false, "Este enlace ya fue utilizado o no es válido.");
+      }
+      return crearPaginaConfirmacionPrevia(action, token);
+    }
+
     const result = procesarAccionPostulante(token, action);
     const paymentUrl = (action === 'accept' && result.exito) ? result.paymentUrl : undefined;
     return crearPaginaConfirmacion(action, result.nombre || "Postulante", result.exito, result.mensaje, paymentUrl);
   }
 
-  return HtmlService.createHtmlOutputFromFile('index')
-    .setTitle('Panel de Control de Evaluación PUCV')
+  // Deny public access to admin dashboard via WebApp URL (Fix #1)
+  return HtmlService.createHtmlOutput(
+    '<div style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif; text-align: center; padding: 40px; color: #333;">' +
+    '<h2 style="color: #0055a2;">Programa de Inglés PUCV</h2>' +
+    '<p>Este enlace es de uso exclusivo para la confirmación de postulaciones.</p>' +
+    '<p style="color: #666; font-size: 13px;">Si eres administrador, accede al panel de control directamente desde el menú de la planilla de Google Sheets.</p>' +
+    '</div>'
+  )
+    .setTitle('Programa de Inglés PUCV')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DEFAULT);
+}
+
+/**
+ * Creates an intermediate confirmation page so email anti-virus scanners
+ * do not trigger acceptance/rejection on GET pre-fetch (Fix #5).
+ */
+function crearPaginaConfirmacionPrevia(action: string, token: string): GoogleAppsScript.HTML.HtmlOutput {
+  const isAccept = action === 'accept';
+  const accionTexto = isAccept ? 'Aceptar Cupo' : 'Rechazar Cupo';
+  const accionDesc = isAccept ? 'aceptar tu vacante seleccionada en el Programa de Inglés PUCV' : 'rechazar tu vacante y liberarla para la lista de espera';
+  const colorBoton = isAccept ? '#2e7d32' : '#c62828';
+  let webAppUrl = CONFIG.WEB_APP_URL || ScriptApp.getService().getUrl();
+  webAppUrl = webAppUrl.replace(/\/u\/\d+/, '');
+  const targetUrl = `${webAppUrl}?action=${encodeURIComponent(action)}&token=${encodeURIComponent(token)}&confirmed=true`;
+
+  const logoUrl = "https://www.pucv.cl/pucv/site/artic/20220615/imag/foto_0000000120220615160256/logo_header.png";
+
+  const html = `
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Confirmación — Programa de Inglés PUCV</title>
+      <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background-color: #f0f2f5; }
+        .card { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-width: 480px; width: 90%; text-align: center; }
+        .logo { max-width: 180px; margin-bottom: 24px; }
+        h1 { font-size: 20px; color: #1a1a1a; margin-bottom: 12px; }
+        p { color: #555; line-height: 1.5; font-size: 15px; margin-bottom: 24px; }
+        .btn { background-color: ${colorBoton}; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px; display: inline-block; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
+        .btn:hover { opacity: 0.92; }
+      </style>
+    </head>
+    <body>
+      <div class="card">
+        <img src="${logoUrl}" alt="PUCV" class="logo">
+        <h1>Confirmación de Decisión</h1>
+        <p>Estás a punto de <strong>${accionDesc}</strong>.<br><br>Para formalizar tu respuesta, presiona el botón a continuación:</p>
+        <a href="${targetUrl}" target="_top" class="btn">Confirmar ${accionTexto}</a>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return HtmlService.createHtmlOutput(html)
+    .setTitle('Confirmación — Programa de Inglés PUCV')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
 /**
@@ -158,7 +224,7 @@ function getSelectionData(): object {
     seleccionados,
     listaDeEspera,
     estadisticas: stats,
-    logs: getWebAppLogs()
+    logs: []
   };
 }
 
@@ -431,9 +497,6 @@ function procesarAccionPostulante(token: string, action: string): { exito: boole
       return { exito: false, mensaje: "Este enlace ya fue utilizado o no es válido." };
     }
 
-    // Atomic gate: immediately delete the token so any concurrent or duplicate request is rejected
-    scriptProperties.deleteProperty('token_' + token);
-
     const ss = getSpreadsheet();
     const hojaS = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
     if (!hojaS) {
@@ -448,7 +511,7 @@ function procesarAccionPostulante(token: string, action: string): { exito: boole
 
     let isRealCandidate = false;
     let isContinuationStudent = false;
-    let nombre = "Usuario de Prueba (Sandbox)";
+    let nombre = "Postulante";
     let targetSheet = hojaS;
     let rowIndex = -1;
     let idxAceptacionCol = idxAceptacion;
@@ -498,22 +561,20 @@ function procesarAccionPostulante(token: string, action: string): { exito: boole
       }
     }
 
-    // --- SANDBOX / TEST HANDLING ---
+    // If candidate not found in Seleccionados nor Continuación (Fix #2: do not give false success)
     if (!isRealCandidate) {
-      const mockPaymentUrl = PROGRAM_DATA.PAYMENT_URL || "https://www.mercadopago.cl/link-pago-matricula";
       return {
-        exito: true,
-        mensaje: action === 'accept' ?
-          `[MODO SANDBOX] Confirmación de aceptación simulada con éxito para el correo ${correo}. En producción, recibirías un correo y serías redirigido al portal de pago.` :
-          `[MODO SANDBOX] Confirmación de rechazo simulada con éxito para el correo ${correo}. En producción, tu cupo se liberaría para lista de espera manual.`,
-        nombre: nombre,
-        paymentUrl: mockPaymentUrl
+        exito: false,
+        mensaje: "No encontramos tu postulación en la lista de seleccionados ni de continuación. Por favor contacta a la coordinación del programa de inglés.",
+        nombre: "Postulante"
       };
     }
 
     // Real candidate processing
     const estadoActual = targetValues[rowIndex - 1][idxAceptacionCol - 1];
     if (estadoActual === 'Acepta' || estadoActual === 'Rechaza') {
+      // Consume token to prevent repeated accesses once recorded
+      scriptProperties.deleteProperty('token_' + token);
       return { 
         exito: true, 
         mensaje: "Tu respuesta ya fue registrada anteriormente.", 
@@ -524,6 +585,9 @@ function procesarAccionPostulante(token: string, action: string): { exito: boole
 
     const nuevoEstado = action === 'accept' ? 'Acepta' : 'Rechaza';
     targetSheet.getRange(rowIndex, idxAceptacionCol).setValue(nuevoEstado);
+
+    // Consume token only after writing successfully to the sheet (Fix #3)
+    scriptProperties.deleteProperty('token_' + token);
 
     if (isContinuationStudent) {
       logToWebApp(`${action === 'accept' ? 'Aceptación' : 'Rechazo'} de continuación recibida de ${correo}.`);

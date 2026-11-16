@@ -22,7 +22,7 @@ graph TD
 
     Eval -->|3. Escribe Puntajes| SheetOutput["Hoja: Evaluación automatizada"]:::sheet
     Eval -->|4. Genera Dashboard| SheetDash["Hoja: Dashboard"]:::sheet
-    Eval -->|5. Filtra Top 15 por nivel| SheetSelected["Hoja: Seleccionados (Congelada)"]:::sheet
+    Eval -->|5. Filtra cupos abiertos por nivel (B1+ 25, resto 15)| SheetSelected["Hoja: Seleccionados (Congelada)"]:::sheet
     Eval -->|6. Sgtes 30 por nivel| SheetWaitlist["Hoja: Lista de Espera"]:::waitlist
 
     AdminRev["Admin: Sidebar de Revisión"]:::process -->|7. Verifica Certificados| SheetSelected
@@ -87,6 +87,9 @@ A continuación, se detalla qué requiere y qué produce cada script de la carpe
 *   **Funciones clave**:
     *   `evaluarPostulacionesPUCV2()`: Lee filas no procesadas, realiza la validación de duplicados por correo, calcula los puntajes detallados, escribe los resultados e invoca a las hojas derivadas.
     *   `calcularPuntajeUsoIngles()`, `calcularPuntajeInternacionalizacion()`, `calcularPuntajeCertificado()`, `calcularPuntajeAnioIngreso()`: Funciones modulares que calculan los puntajes de acuerdo al perfil del postulante.
+    *   `motivoNoElegible()`: Aplica los requisitos e impedimentos de las bases (n.º 4, 5.1 y 5.2). Si devuelve un motivo, la fila se marca `NO ELEGIBLE: <motivo>` en `Estado de Procesamiento` y no se evalúa.
+    *   **Pauta**: Uso del inglés y respaldo de jefatura solo aplican a académicos y funcionarios; el año de ingreso solo a pregrado (desde 3.er año, 2 pts); Alumni queda en 0. Disponibilidad y compromisos no puntúan. El desempate usa `compararPostulantes()` (n.º 7.5).
+    *   `normalizarFecha()` / `formatearColumnaFecha()` (`Utils.ts`): guardan la marca temporal como fecha real y la muestran como `dd/MM/yyyy HH:mm`.
 
 ### 3. Seleccionados.ts
 *   **Propósito**: Seleccionar, ordenar y gestionar a los postulantes, incluyendo lista de espera y promociones.
@@ -100,7 +103,7 @@ A continuación, se detalla qué requiere y qué produce cada script de la carpe
     *   Aplica validación de datos a las columnas de gestión (`Aceptación`, `Verificación Certificado`, `Nivel Asignado`, `Pago Matrícula`).
     *   Aplica formato condicional de color (verde para aceptados, rojo para rechazados).
 *   **Funciones clave**:
-    *   `generarHojaSeleccionados()`: Filtra y extrae el **Top 15 por nivel** (B1+, B2.1, B2.2, C1). Solo se ejecuta si la hoja no existe o está vacía.
+    *   `generarHojaSeleccionados()`: Filtra y extrae el **cupos abiertos por nivel (B1+ 25, resto 15)** (B1+, B2.1, B2.2, C1). Solo se ejecuta si la hoja no existe o está vacía.
     *   `generarHojaListaEspera()`: Genera los siguientes 30 candidatos por nivel, preservando las fechas de notificación y cierre existentes, y excluyendo a los ya seleccionados.
     *   `promoverDesdeListaEspera()`: Mueve al candidato seleccionado de la fila activa de la lista de espera a `"Seleccionados"`, lo elimina de la lista de espera y re-secuencia los rankings.
     *   `restaurarHojaSeleccionadosPerdida()`: Recuperación de emergencia con datos backup hardcoded.
@@ -205,7 +208,7 @@ A continuación, se detalla qué requiere y qué produce cada script de la carpe
 3. El motor calcula el puntaje y actualiza:
     *   `"Evaluación automatizada"` (listado de puntuaciones).
     *   `"Dashboard"` (gráficos y métricas).
-    *   `"Seleccionados"` (Top 15 por nivel, solo la primera vez).
+    *   `"Seleccionados"` (cupos abiertos por nivel (B1+ 25, resto 15), solo la primera vez).
     *   `"Lista de Espera"` (Siguientes 30 por nivel, se regenera cada vez).
 
 ### Paso 3: Validación Administrativa de Certificados

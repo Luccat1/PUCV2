@@ -4,6 +4,39 @@
  */
 
 /**
+ * Helper to apply dropdown data validation rules to the Seleccionados sheet (Fix #9).
+ */
+function aplicarValidacionesSeleccionados(
+  sheet: GoogleAppsScript.Spreadsheet.Sheet,
+  startRow: number,
+  numRows: number,
+  headers: any[]
+): void {
+  if (numRows <= 0) return;
+  const idxAceptacion = headers.indexOf("Aceptación") + 1;
+  const idxVerificacion = headers.indexOf("Verificación Certificado") + 1;
+  const idxNivel = headers.indexOf("Nivel Asignado") + 1;
+  const idxPago = headers.indexOf("Pago Matrícula") + 1;
+
+  if (idxAceptacion > 0) {
+    const rule = SpreadsheetApp.newDataValidation().requireValueInList(['Acepta', 'Rechaza', 'Pendiente'], true).build();
+    sheet.getRange(startRow, idxAceptacion, numRows, 1).setDataValidation(rule);
+  }
+  if (idxVerificacion > 0) {
+    const rule = SpreadsheetApp.newDataValidation().requireValueInList(['Válido', 'Test de nivel', 'Hand picked', 'Manual'], true).setAllowInvalid(true).build();
+    sheet.getRange(startRow, idxVerificacion, numRows, 1).setDataValidation(rule);
+  }
+  if (idxNivel > 0) {
+    const rule = SpreadsheetApp.newDataValidation().requireValueInList(['B1+', 'B2.1', 'B2.2', 'C1'], true).setAllowInvalid(true).build();
+    sheet.getRange(startRow, idxNivel, numRows, 1).setDataValidation(rule);
+  }
+  if (idxPago > 0) {
+    const rule = SpreadsheetApp.newDataValidation().requireValueInList(['Pagado', 'Pendiente'], true).build();
+    sheet.getRange(startRow, idxPago, numRows, 1).setDataValidation(rule);
+  }
+}
+
+/**
  * Generates the "Seleccionados" sheet with ranking and data validation.
  * @param resultados The processed evaluation results array.
  * @param ss The target Spreadsheet.
@@ -14,8 +47,9 @@ function generarHojaSeleccionados(resultados: any[][], ss: GoogleAppsScript.Spre
   const idxFecha = resultados[0].indexOf("Fecha de Postulación");
   const idxNivelPostulado = resultados[0].indexOf("Nivel Postulado");
   const idxEmail = resultados[0].indexOf("Correo Electrónico");
+  const idxCat = resultados[0].indexOf("Categoría Postulante");
 
-  logToWebApp("Generando lista de seleccionados por nivel (Top 15 por nivel)...");
+  logToWebApp("Generando lista de seleccionados por nivel (cupos abiertos: B1+ 25, resto 15)...");
 
   // Read existing candidates from Seleccionados to preserve their states
   const emailMap: Record<string, { verificacion: string, nivel: string, aceptacion: string, pagoMatricula: string, comentarios: string, fechaNotif: string }> = {};
@@ -67,8 +101,17 @@ function generarHojaSeleccionados(resultados: any[][], ss: GoogleAppsScript.Spre
       return nivelPost === nivel;
     });
 
-    // 2. Candidates from existing selected sheet for this level (mapped by assigned level)
-    const alreadySelectedEmails = Object.keys(emailMap).filter(email => emailMap[email].nivel === nivel);
+    // 2. Candidates from existing selected sheet for this level (mapped by assigned level, or fallback to nivel postulado)
+    const alreadySelectedEmails = Object.keys(emailMap).filter(email => {
+      const assignedNivel = emailMap[email].nivel;
+      if (assignedNivel === nivel) return true;
+      if (!assignedNivel || !niveles.includes(assignedNivel)) {
+        const match = datosPostulantes.find(f => idxEmail !== -1 && String(f[idxEmail]).trim().toLowerCase() === email);
+        const postNivel = match && idxNivelPostulado !== -1 ? String(match[idxNivelPostulado]).trim() : "";
+        return postNivel === nivel;
+      }
+      return false;
+    });
     
     // Build the list of already selected candidates for this level
     const yaSeleccionados: any[][] = [];
@@ -88,18 +131,28 @@ function generarHojaSeleccionados(resultados: any[][], ss: GoogleAppsScript.Spre
     });
 
     // Sort new candidates by score desc, date asc (tie breaker)
-    nuevosCandidatos.sort((a, b) => {
-      const pB = parseFloat(b[idxTotal] || 0);
-      const pA = parseFloat(a[idxTotal] || 0);
-      if (pB !== pA) return pB - pA;
-      return new Date(a[idxFecha]).getTime() - new Date(b[idxFecha]).getTime();
-    });
+    nuevosCandidatos.sort((a, b) => compararPostulantes(a, b, idxTotal, idxCat, idxFecha));
 
-    // Available spots: 15 minus those already selected
-    const cuposDisponibles = Math.max(0, 15 - yaSeleccionados.length);
+    // Cupos de convocatoria abierta del nivel (bases n.º 3) menos los ya seleccionados
+    const cuposDisponibles = Math.max(0, (CUPOS_CONVOCATORIA_ABIERTA[nivel] || 15) - yaSeleccionados.length);
     const nuevosAceptados = nuevosCandidatos.slice(0, cuposDisponibles);
 
     seleccionadosPorNivel.push(...yaSeleccionados, ...nuevosAceptados);
+  });
+
+  // Preserve any candidate from emailMap that wasn't captured in the 4 level loops (Fix #4)
+  const capturedEmails = new Set(
+    seleccionadosPorNivel.map(row => idxEmail !== -1 ? String(row[idxEmail]).trim().toLowerCase() : "")
+  );
+  Object.keys(emailMap).forEach(email => {
+    if (!capturedEmails.has(email)) {
+      const matchInResults = datosPostulantes.find(f => idxEmail !== -1 && String(f[idxEmail]).trim().toLowerCase() === email);
+      if (matchInResults) {
+        seleccionadosPorNivel.push(matchInResults);
+      } else if (existingRowsMap[email]) {
+        seleccionadosPorNivel.push(existingRowsMap[email]);
+      }
+    }
   });
 
   // Sort combined candidates: by level, then score desc
@@ -109,13 +162,11 @@ function generarHojaSeleccionados(resultados: any[][], ss: GoogleAppsScript.Spre
     const existA = emailMap[emailA];
     const existB = emailMap[emailB];
 
-    const nivelA = existA ? existA.nivel : (idxNivelPostulado !== -1 ? String(a[idxNivelPostulado]).trim() : "");
-    const nivelB = existB ? existB.nivel : (idxNivelPostulado !== -1 ? String(b[idxNivelPostulado]).trim() : "");
+    const nivelA = existA ? (existA.nivel || (idxNivelPostulado !== -1 ? String(a[idxNivelPostulado]).trim() : "")) : (idxNivelPostulado !== -1 ? String(a[idxNivelPostulado]).trim() : "");
+    const nivelB = existB ? (existB.nivel || (idxNivelPostulado !== -1 ? String(b[idxNivelPostulado]).trim() : "")) : (idxNivelPostulado !== -1 ? String(b[idxNivelPostulado]).trim() : "");
     if (nivelA !== nivelB) return nivelA.localeCompare(nivelB);
 
-    const pB = parseFloat(b[idxTotal] || 0);
-    const pA = parseFloat(a[idxTotal] || 0);
-    return pB - pA;
+    return compararPostulantes(a, b, idxTotal, idxCat, idxFecha);
   });
 
   const rankedData = seleccionadosPorNivel.map((f, i) => [i + 1, ...f]);
@@ -136,7 +187,7 @@ function generarHojaSeleccionados(resultados: any[][], ss: GoogleAppsScript.Spre
     return [
       ...f,
       existing ? existing.verificacion : "",
-      existing ? existing.nivel : nivelPost,
+      existing ? (existing.nivel || nivelPost) : nivelPost,
       existing ? existing.aceptacion : "Pendiente",
       existing ? existing.pagoMatricula : "Pendiente",
       existing ? existing.comentarios : "",
@@ -156,28 +207,13 @@ function generarHojaSeleccionados(resultados: any[][], ss: GoogleAppsScript.Spre
   if (sheetData.length > 0) {
     const range = sheet.getRange(1, 1, sheetData.length, sheetData[0].length);
     range.setValues(sheetData);
+    formatearColumnaFecha(sheet, headersS, sheetData.length);
 
     if (sheetData.length > 1) {
       const idxAceptacion = headersS.indexOf("Aceptación") + 1;
-      const idxVerificacion = headersS.indexOf("Verificación Certificado") + 1;
-      const idxNivel = headersS.indexOf("Nivel Asignado") + 1;
-      const idxPago = headersS.indexOf("Pago Matrícula") + 1;
 
-      // Data validations
-      const ruleAceptacion = SpreadsheetApp.newDataValidation().requireValueInList(['Acepta', 'Rechaza', 'Pendiente'], true).build();
-      const ruleVerificacion = SpreadsheetApp.newDataValidation().requireValueInList(['Válido', 'Test de nivel', 'Hand picked', 'Manual'], true).setAllowInvalid(true).build();
-      const ruleNivel = SpreadsheetApp.newDataValidation().requireValueInList(['B1+', 'B2.1', 'B2.2', 'C1'], true).setAllowInvalid(true).build();
-      const rulePago = SpreadsheetApp.newDataValidation().requireValueInList(['Pagado', 'Pendiente'], true).build();
-
-      const rangeA = sheet.getRange(2, idxAceptacion, sheetData.length - 1, 1);
-      const rangeV = sheet.getRange(2, idxVerificacion, sheetData.length - 1, 1);
-      const rangeN = sheet.getRange(2, idxNivel, sheetData.length - 1, 1);
-      const rangeP = sheet.getRange(2, idxPago, sheetData.length - 1, 1);
-
-      rangeA.setDataValidation(ruleAceptacion);
-      rangeV.setDataValidation(ruleVerificacion);
-      rangeN.setDataValidation(ruleNivel);
-      rangeP.setDataValidation(rulePago);
+      // Data validations via shared helper (Fix #9)
+      aplicarValidacionesSeleccionados(sheet, 2, sheetData.length - 1, headersS);
 
       // Conditional formatting
       const fullRange = sheet.getRange(2, 1, sheetData.length - 1, sheetData[0].length);
@@ -223,12 +259,7 @@ function gestionarListaDeEspera(nivelTarget?: string): void {
     const idxFecha = headersOutput.indexOf("Fecha de Postulación");
     let candidates = valuesOutput
       .filter(row => row[idxEmail] && !emailsSelected.has(String(row[idxEmail]).trim().toLowerCase()))
-      .sort((a, b) => {
-        const pB = parseFloat(b[idxScore] || 0);
-        const pA = parseFloat(a[idxScore] || 0);
-        if (pB !== pA) return pB - pA;
-        return new Date(a[idxFecha]).getTime() - new Date(b[idxFecha]).getTime();
-      });
+      .sort((a, b) => compararPostulantes(a, b, idxScore, headersOutput.indexOf("Categoría Postulante"), idxFecha));
 
     if (nivelTarget && idxNivelPostulado !== -1) {
       candidates = candidates.filter(row => String(row[idxNivelPostulado]).trim() === nivelTarget);
@@ -259,6 +290,35 @@ function gestionarListaDeEspera(nivelTarget?: string): void {
     ];
     hojaSelected.appendRow(newRow);
     const newRowNum = hojaSelected.getLastRow();
+
+    // Apply validations for new row (Fix #9)
+    aplicarValidacionesSeleccionados(hojaSelected, newRowNum, 1, headersS);
+
+    // Remove candidate from Waitlist sheet to prevent duplicate/contradictory emails (Fix #10)
+    const hojaWaitlist = ss.getSheetByName(CONFIG.SHEETS.WAITLIST);
+    if (hojaWaitlist) {
+      const waitlistValues = hojaWaitlist.getDataRange().getValues();
+      if (waitlistValues.length > 1) {
+        const hW = waitlistValues[0];
+        const idxEmailW = hW.indexOf("Correo Electrónico");
+        if (idxEmailW !== -1) {
+          for (let w = 1; w < waitlistValues.length; w++) {
+            if (String(waitlistValues[w][idxEmailW]).trim().toLowerCase() === candidateEmail.toLowerCase()) {
+              hojaWaitlist.deleteRow(w + 1);
+              const lastRowW = hojaWaitlist.getLastRow();
+              if (lastRowW > 1) {
+                const ranks = [];
+                for (let r = 1; r <= lastRowW - 1; r++) {
+                  ranks.push([r]);
+                }
+                hojaWaitlist.getRange(2, 1, lastRowW - 1, 1).setValues(ranks);
+              }
+              break;
+            }
+          }
+        }
+      }
+    }
 
     logToWebApp(`Candidato ${candidateEmail} (${candidateNivel}) promovido de lista de espera.`);
 
@@ -366,27 +426,8 @@ function promoverCandidatoActivo(): void {
 
   hojaSelected.appendRow(newRow);
 
-  // Apply validations for drop-downs
-  const idxAceptacion = headersS.indexOf("Aceptación") + 1;
-  const idxVerificacion = headersS.indexOf("Verificación Certificado") + 1;
-  const idxNivel = headersS.indexOf("Nivel Asignado") + 1;
-  const idxPago = headersS.indexOf("Pago Matrícula") + 1;
-
-  if (idxAceptacion > 0 && idxVerificacion > 0 && idxNivel > 0) {
-    const ruleAceptacion = SpreadsheetApp.newDataValidation().requireValueInList(['Acepta', 'Rechaza', 'Pendiente'], true).build();
-    const ruleVerificacion = SpreadsheetApp.newDataValidation().requireValueInList(['Válido', 'Test de nivel', 'Hand picked', 'Manual'], true).setAllowInvalid(true).build();
-    const ruleNivel = SpreadsheetApp.newDataValidation().requireValueInList(['B1+', 'B2.1', 'B2.2', 'C1'], true).setAllowInvalid(true).build();
-
-    const newRowNum = hojaSelected.getLastRow();
-    hojaSelected.getRange(newRowNum, idxAceptacion).setDataValidation(ruleAceptacion);
-    hojaSelected.getRange(newRowNum, idxVerificacion).setDataValidation(ruleVerificacion);
-    hojaSelected.getRange(newRowNum, idxNivel).setDataValidation(ruleNivel);
-
-    if (idxPago > 0) {
-      const rulePago = SpreadsheetApp.newDataValidation().requireValueInList(['Pagado', 'Pendiente'], true).build();
-      hojaSelected.getRange(newRowNum, idxPago).setDataValidation(rulePago);
-    }
-  }
+  // Apply validations for drop-downs (Fix #9)
+  aplicarValidacionesSeleccionados(hojaSelected, hojaSelected.getLastRow(), 1, headersS);
 
   ui.alert("Promoción Exitosa", `Se ha promovido a ${nombres} ${apellidos} al nivel ${nivelPostulado} de seleccionados.`, ui.ButtonSet.OK);
 }
@@ -402,6 +443,7 @@ function generarHojaListaEspera(resultados: any[][], ss: GoogleAppsScript.Spread
   const idxFecha = resultados[0].indexOf("Fecha de Postulación");
   const idxNivelPostulado = resultados[0].indexOf("Nivel Postulado");
   const idxEmail = resultados[0].indexOf("Correo Electrónico");
+  const idxCat = resultados[0].indexOf("Categoría Postulante");
 
   logToWebApp("Generando lista de espera por nivel (Siguientes 30 por nivel)...");
 
@@ -491,12 +533,7 @@ function generarHojaListaEspera(resultados: any[][], ss: GoogleAppsScript.Spread
     });
 
     // Sort new candidates by score desc, date asc
-    nuevosCandidatos.sort((a, b) => {
-      const pB = parseFloat(b[idxTotal] || 0);
-      const pA = parseFloat(a[idxTotal] || 0);
-      if (pB !== pA) return pB - pA;
-      return new Date(a[idxFecha]).getTime() - new Date(b[idxFecha]).getTime();
-    });
+    nuevosCandidatos.sort((a, b) => compararPostulantes(a, b, idxTotal, idxCat, idxFecha));
 
     // 30 spots for waitlist per level
     const spotsDisponibles = Math.max(0, 30 - yaEnEspera.length);
@@ -511,9 +548,7 @@ function generarHojaListaEspera(resultados: any[][], ss: GoogleAppsScript.Spread
     const nivelB = idxNivelPostulado !== -1 ? String(b[idxNivelPostulado]).trim() : "";
     if (nivelA !== nivelB) return nivelA.localeCompare(nivelB);
 
-    const pB = parseFloat(b[idxTotal] || 0);
-    const pA = parseFloat(a[idxTotal] || 0);
-    return pB - pA;
+    return compararPostulantes(a, b, idxTotal, idxCat, idxFecha);
   });
 
   const rankedData = waitlistPorNivel.map((f, i) => [i + 1, ...f]);
@@ -543,6 +578,7 @@ function generarHojaListaEspera(resultados: any[][], ss: GoogleAppsScript.Spread
   if (sheetData.length > 0) {
     const range = sheet.getRange(1, 1, sheetData.length, sheetData[0].length);
     range.setValues(sheetData);
+    formatearColumnaFecha(sheet, headersW, sheetData.length);
     
     // Formatting
     sheet.setTabColor("#ff9900"); // Orange for Waitlist
@@ -661,28 +697,8 @@ function restaurarHojaSeleccionadosPerdida(): void {
     sheet.setFrozenRows(1);
     sheet.autoResizeColumns(1, sheetData[0].length);
 
-    // Apply validations for drop-downs
-    const idxAceptacion = headers.indexOf("Aceptación") + 1;
-    const idxVerificacion = headers.indexOf("Verificación Certificado") + 1;
-    const idxNivel = headers.indexOf("Nivel Asignado") + 1;
-    const idxPago = headers.indexOf("Pago Matrícula") + 1;
-
-    if (idxAceptacion > 0 && idxVerificacion > 0 && idxNivel > 0 && idxPago > 0 && sheetData.length > 1) {
-      const ruleAceptacion = SpreadsheetApp.newDataValidation().requireValueInList(['Acepta', 'Rechaza', 'Pendiente'], true).build();
-      const ruleVerificacion = SpreadsheetApp.newDataValidation().requireValueInList(['Válido', 'Test de nivel', 'Hand picked', 'Manual'], true).setAllowInvalid(true).build();
-      const ruleNivel = SpreadsheetApp.newDataValidation().requireValueInList(['B1+', 'B2.1', 'B2.2', 'C1'], true).setAllowInvalid(true).build();
-      const rulePago = SpreadsheetApp.newDataValidation().requireValueInList(['Pagado', 'Pendiente'], true).build();
-
-      const validationRangeAceptacion = sheet.getRange(2, idxAceptacion, sheetData.length - 1, 1);
-      const validationRangeVerificacion = sheet.getRange(2, idxVerificacion, sheetData.length - 1, 1);
-      const validationRangeNivel = sheet.getRange(2, idxNivel, sheetData.length - 1, 1);
-      const validationRangePago = sheet.getRange(2, idxPago, sheetData.length - 1, 1);
-
-      validationRangeAceptacion.setDataValidation(ruleAceptacion);
-      validationRangeVerificacion.setDataValidation(ruleVerificacion);
-      validationRangeNivel.setDataValidation(ruleNivel);
-      validationRangePago.setDataValidation(rulePago);
-    }
+    // Apply validations for drop-downs (Fix #9)
+    aplicarValidacionesSeleccionados(sheet, 2, sheetData.length - 1, headers);
 
     SpreadsheetApp.flush();
     ui.alert("Restauración Exitosa", "Se ha restaurado la hoja 'Seleccionados' con el listado de respaldo.", ui.ButtonSet.OK);
@@ -786,24 +802,8 @@ function promoverDesdeListaEspera(): void {
 
   hojaSelected.appendRow(newRow);
 
-  // Apply validations for drop-downs
-  const idxAceptacion = headersS.indexOf("Aceptación") + 1;
-  const idxVerificacion = headersS.indexOf("Verificación Certificado") + 1;
-  const idxNivel = headersS.indexOf("Nivel Asignado") + 1;
-  const idxPago = headersS.indexOf("Pago Matrícula") + 1;
-
-  if (idxAceptacion > 0 && idxVerificacion > 0 && idxNivel > 0 && idxPago > 0) {
-    const ruleAceptacion = SpreadsheetApp.newDataValidation().requireValueInList(['Acepta', 'Rechaza', 'Pendiente'], true).build();
-    const ruleVerificacion = SpreadsheetApp.newDataValidation().requireValueInList(['Válido', 'Test de nivel', 'Hand picked', 'Manual'], true).setAllowInvalid(true).build();
-    const ruleNivel = SpreadsheetApp.newDataValidation().requireValueInList(['B1+', 'B2.1', 'B2.2', 'C1'], true).setAllowInvalid(true).build();
-    const rulePago = SpreadsheetApp.newDataValidation().requireValueInList(['Pagado', 'Pendiente'], true).build();
-
-    const newRowNum = hojaSelected.getLastRow();
-    hojaSelected.getRange(newRowNum, idxAceptacion).setDataValidation(ruleAceptacion);
-    hojaSelected.getRange(newRowNum, idxVerificacion).setDataValidation(ruleVerificacion);
-    hojaSelected.getRange(newRowNum, idxNivel).setDataValidation(ruleNivel);
-    hojaSelected.getRange(newRowNum, idxPago).setDataValidation(rulePago);
-  }
+  // Apply validations for drop-downs (Fix #9)
+  aplicarValidacionesSeleccionados(hojaSelected, hojaSelected.getLastRow(), 1, headersS);
 
   // Delete from waitlist
   activeSheet.deleteRow(rowNum);

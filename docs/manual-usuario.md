@@ -9,7 +9,7 @@ Este manual describe el flujo de trabajo operacional y explica detalladamente c�
 El ecosistema de Google Sheets contiene las siguientes pestañas, cada una con un rol bien definido en la administración:
 
 ```
-[Respuestas de Formulario 1] ──(Evaluar)──> [Evaluación automatizada] ──(Top 15)──> [Seleccionados]
+[Respuestas de Formulario 1] ──(Evaluar)──> [Evaluación automatizada] ──(Cupos por nivel)──> [Seleccionados]
                                                        │                                    │
                                                        │                              [Pago + Acepta]
                                                        │                                    │
@@ -30,8 +30,17 @@ El ecosistema de Google Sheets contiene las siguientes pestañas, cada una con u
 3.  **`Evaluación automatizada` (Base de Datos Puntajeada)**:
     *   **Qué es**: El listado completo de todos los postulantes evaluados con sus puntajes detallados columna por columna y el `PUNTAJE TOTAL`.
     *   **Cómo usarla**: Es una hoja de lectura. Se refresca automáticamente al evaluar y tiene formato condicional degradado de color (verde es puntaje alto, rojo bajo) para facilitar auditorías de puntuación.
+    *   **Reglas a considerar al leer los puntajes** (siguen las bases de la convocatoria):
+        *   Solo aparecen las postulaciones **elegibles**. Las que no cumplen requisitos o tienen un impedimento (reprobó, renunció a la beca, ya cursó C1, completó dos cursos, estudiante sin matrícula vigente, sin PILE aprobado, declaraciones sin aceptar) quedan marcadas `NO ELEGIBLE: <motivo>` en `Estado de Procesamiento` de la hoja de respuestas.
+        *   Si una postulación se corrigió (enmienda por correo), borra el `Estado de Procesamiento` de esa fila y vuelve a evaluar.
+        *   `Puntaje Disponibilidad` y `Puntaje Compromiso` están siempre en 0: son requisitos, no puntaje.
+        *   `Puntaje Uso Inglés` y el respaldo de jefatura solo puntúan a académicos y funcionarios; el año de ingreso solo a pregrado (desde 3.er año, 2 pts).
+        *   Los **Alumni** tienen puntaje 0: solo acceden a un cupo si no quedan elegibles de la comunidad activa.
+        *   En Internacionalización, "En proceso de postulación" suma 2 puntos y "Interés general" no suma.
+        *   El desempate prefiere académicos y postgrado, luego funcionarios, luego pregrado, y por último quien postuló primero.
+        *   `Fecha de Postulación` se muestra como `dd/MM/yyyy HH:mm`.
 4.  **`Seleccionados` (Tablero de Control Operativo)**:
-    *   **Qué es**: La hoja de gestión principal de admisiones. Contiene el **Top 15 por nivel** (máx 60 postulantes) ordenados por puntaje descendente y marca de tiempo en caso de empates, más los candidatos promovidos manualmente.
+    *   **Qué es**: La hoja de gestión principal de admisiones. Contiene el **cupos de convocatoria abierta por nivel** (B1+ 25; B2.1, B2.2 y C1 15 cada uno; máx 70 postulantes) ordenados por puntaje descendente y marca de tiempo en caso de empates, más los candidatos promovidos manualmente.
     *   **⚠️ Protegida**: Esta hoja **no se sobreescribe** al regenerar la lista de espera. Las promociones manuales y los cambios de estado se preservan.
     *   **Cómo usarla**: El administrador interactúa directamente con las siguientes columnas desplegables:
         *   **`Verificación Certificado`**: Elige `"Válido"` (certificado correcto) o `"Test de nivel"` (requiere examen de nivelación).
@@ -83,7 +92,7 @@ Sigue esta secuencia para operar el programa completo desde el cierre de postula
 
 ### Fase 2: Auditoría de Certificados
 1.  Ve a la hoja **`Seleccionados`**.
-2.  Para cada uno de los 60 postulantes listados (15 por nivel), haz clic en el link de la columna `"Enlace Certificado"` para visualizar el documento.
+2.  Para cada uno de los postulantes listados (25 en B1+ y 15 en los demás niveles), haz clic en el link de la columna `"Enlace Certificado"` para visualizar el documento.
 3.  Establece el valor en la columna **`Verificación Certificado`**:
     *   Selecciona **`Válido`** si tiene un certificado C1/B2/B1 que concuerde con el nivel postulado.
     *   Selecciona **`Test de nivel`** si no subió certificado o si es necesario re-evaluarlo en un examen presencial/remoto.

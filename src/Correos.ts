@@ -269,6 +269,15 @@ function sendEmailBatch(type: string, asDraft: boolean = false, limit: number = 
 
   let count = 0;
   let ultimosErrores: string[] = [];
+
+  // Batch generate tokens for templates that need them (Fix #13)
+  const typesWithTokens = ['SELECTED', 'TEST_LEVEL_ONLY', 'HAND_PICKED', 'CONTINUATION'];
+  const tokenMap: Record<string, string> = typesWithTokens.includes(type) ?
+    generarTokensBatch(recipients.map(r => r.email)) : {};
+
+  // Cache continuation sheet lookup outside loop (Fix #17)
+  const hojaCont = type === 'CONTINUATION' ? ss.getSheetByName(CONFIG.SHEETS.CONTINUATION) : null;
+  const idxNotifCont = hojaCont ? hojaCont.getDataRange().getValues()[0].indexOf(CONFIG.COLUMNS.NOTIFICATION_DATE) : -1;
   
   recipients.forEach(r => {
     try {
@@ -300,13 +309,13 @@ function sendEmailBatch(type: string, asDraft: boolean = false, limit: number = 
       (htmlBody as any).fechaLimite = calcularFechaLimite(new Date(), PROGRAM_DATA.DEADLINE_DAYS || 3);
 
       if (templateName === 'CorreoSeleccionado' || templateName === 'CorreoHandPicked' || templateName === 'CorreoTestNivel') {
-        const token = generarToken(r.email);
+        const token = tokenMap[r.email] || generarToken(r.email);
         (htmlBody as any).urlAceptar = obtenerUrlConfirmacionConToken(token, 'accept');
         (htmlBody as any).urlRechazar = obtenerUrlConfirmacionConToken(token, 'reject');
       } else if (templateName === 'CorreoContinuacion') {
         (htmlBody as any).cursoAnterior = r.cursoAnterior;
         (htmlBody as any).nivelSiguiente = r.nivelSiguiente;
-        const token = generarToken(r.email);
+        const token = tokenMap[r.email] || generarToken(r.email);
         (htmlBody as any).urlAceptar = obtenerUrlConfirmacionConToken(token, 'accept');
         (htmlBody as any).urlRechazar = obtenerUrlConfirmacionConToken(token, 'reject');
       }
@@ -324,13 +333,8 @@ function sendEmailBatch(type: string, asDraft: boolean = false, limit: number = 
 
         // Update notification date for idempotency only when sending real emails
         if (type === 'CONTINUATION') {
-          const hojaCont = ss.getSheetByName(CONFIG.SHEETS.CONTINUATION);
-          if (hojaCont) {
-            const headersCont = hojaCont.getDataRange().getValues()[0];
-            const idxNotifCont = headersCont.indexOf(CONFIG.COLUMNS.NOTIFICATION_DATE);
-            if (idxNotifCont !== -1) {
-              hojaCont.getRange(r.index, idxNotifCont + 1).setValue(new Date());
-            }
+          if (hojaCont && idxNotifCont !== -1) {
+            hojaCont.getRange(r.index, idxNotifCont + 1).setValue(new Date());
           }
         } else if (hojaS && idxNotificado !== undefined && idxNotificado !== -1) {
           hojaS.getRange(r.index, idxNotificado + 1).setValue(new Date());

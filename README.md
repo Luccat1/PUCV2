@@ -1,24 +1,36 @@
-# PUCV2 / PUCV2English v2.5.0 — Sistema de Gestión Automatizada
+# PUCV2 / PUCV2English v2.6.0 — Sistema de Gestión Automatizada
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
 [![Platform](https://img.shields.io/badge/Platform-Google%20Apps%20Script-green.svg)](https://developers.google.com/apps-script)
 
 **PUCV2English** es un ecosistema modular desarrollado en **TypeScript** para la gestión profesional de postulaciones al Programa de Inglés PUCV. El sistema automatiza el ciclo completo: desde la evaluación masiva con criterios ponderados, hasta la gestión de matrícula, lista de espera, control de pagos y comunicación automatizada con los postulantes.
 
+> **Novedades v2.6.0 (Noviembre 2026) — Sexta convocatoria, 1.er semestre 2027:**
+>
+> - **Evaluación alineada con las bases**: los requisitos e impedimentos (n.º 4, 5.1 y 5.2) son un filtro previo; quien no los cumple queda marcado `NO ELEGIBLE: <motivo>` y no se puntúa. La pauta solo contiene los criterios del n.º 7.2.
+> - **Formulario 2026 soportado**: `CONFIG.COLUMNS` coincide con los encabezados vigentes. Antes varias columnas no se encontraban y todos quedaban en nivel B1+, con 1 punto de certificado.
+> - **Uso del inglés y respaldo de jefatura** puntúan solo a académicos y funcionarios; **año de ingreso** solo a pregrado (prioridad desde el 3.er año).
+> - **Alumni** puntúan 0: solo acceden a cupo si no quedan elegibles de la comunidad activa.
+> - **Cupos de convocatoria abierta**: 25 en B1+ y 15 en B2.1, B2.2 y C1 (el resto son de continuidad).
+> - **Desempate** según n.º 7.5: académicos y postgrado, funcionarios, pregrado, y luego quien postuló primero.
+> - **Etapa "En proceso de postulación"** suma 2 pts; "Interés general" no suma. **Fecha de postulación** se guarda como fecha (`dd/MM/yyyy HH:mm`).
+>
 > **Novedades v2.5.0 (Julio 2026):**
-> * **Módulo Prueba de Nivel (CEPT)** — Sistema completo para gestionar el Cambridge English Placement Test: sincronización de candidatos, envío de credenciales iniciales, recordatorios y nuevos códigos.
-> * **Hoja `"Prueba de Nivel"`** — Hoja automática con credenciales CEPT y control de envíos por checkbox.
-> * **Sub-menú `🧪 Prueba de Nivel (CEPT)`** — 4 nuevas opciones de gestión del placement test en el menú.
+>
+> - **Módulo Prueba de Nivel (CEPT)** — Sistema completo para gestionar el Cambridge English Placement Test: sincronización de candidatos, envío de credenciales iniciales, recordatorios y nuevos códigos.
+> - **Hoja `"Prueba de Nivel"`** — Hoja automática con credenciales CEPT y control de envíos por checkbox.
+> - **Sub-menú `🧪 Prueba de Nivel (CEPT)`** — 4 nuevas opciones de gestión del placement test en el menú.
 >
 > **Novedades v2.4.0 (Julio 2026):**
-> * **Lista de Espera Ampliada**: Hoja física `"Lista de Espera"` con capacidad de hasta 30 candidatos por nivel (120 total).
-> * **Control de Pagos**: Columna `"Pago Matrícula"` con dropdown interactivo en `"Seleccionados"`. La Lista Final exige `Acepta` + `Pagado`.
-> * **Promoción desde Lista de Espera**: Función de un clic para promover al siguiente candidato de la lista de espera a seleccionados.
-> * **Correo de Cierre de Espera**: Nueva plantilla `CorreoEsperaSinCupo` para notificar a la lista de espera cuando el proceso concluye sin vacantes.
-> * **Modo Borrador Gmail**: Opción de crear correos como borradores antes de enviarlos realmente para revisión previa.
-> * **Seleccionados Protegidos**: La hoja `"Seleccionados"` ya no se sobreescribe al regenerar; las promociones manuales se preservan.
-> * **Exclusión Segura**: Los correos de rechazo excluyen automáticamente a seleccionados y lista de espera.
-> * **Soporte Bilingüe**: Templates y lógica para ambos programas — PUCV2 (español) y PUCV2English (inglés).
+>
+> - **Lista de Espera Ampliada**: Hoja física `"Lista de Espera"` con capacidad de hasta 30 candidatos por nivel (120 total).
+> - **Control de Pagos**: Columna `"Pago Matrícula"` con dropdown interactivo en `"Seleccionados"`. La Lista Final exige `Acepta` + `Pagado`.
+> - **Promoción desde Lista de Espera**: Función de un clic para promover al siguiente candidato de la lista de espera a seleccionados.
+> - **Correo de Cierre de Espera**: Nueva plantilla `CorreoEsperaSinCupo` para notificar a la lista de espera cuando el proceso concluye sin vacantes.
+> - **Modo Borrador Gmail**: Opción de crear correos como borradores antes de enviarlos realmente para revisión previa.
+> - **Seleccionados Protegidos**: La hoja `"Seleccionados"` ya no se sobreescribe al regenerar; las promociones manuales se preservan.
+> - **Exclusión Segura**: Los correos de rechazo excluyen automáticamente a seleccionados y lista de espera.
+> - **Soporte Bilingüe**: Templates y lógica para ambos programas — PUCV2 (español) y PUCV2English (inglés).
 >
 > Ver historial completo en [CHANGELOG.md](CHANGELOG.md).
 
@@ -27,17 +39,20 @@
 ## ✨ Características Principales
 
 ### 📊 Evaluación Automatizada
+
 - **Procesamiento Incremental**: Evalúa solo postulaciones nuevas usando la columna `"Estado de Procesamiento"`.
 - **Deduplicación**: Detecta y descarta automáticamente postulaciones duplicadas por correo electrónico.
 - **Filtro de Incompletos**: Marca y omite postulaciones sin datos esenciales (correo, RUT o nombre).
 - **Pesos Configurables**: Todos los criterios de puntuación son ajustables desde la hoja `"Configuración"` o el sidebar lateral.
 
 ### 📈 Dashboard y Ranking
+
 - **Dashboard Dinámico**: Métricas en tiempo real por categoría, sede, año de ingreso y distribución por nivel.
-- **Ranking de Seleccionados**: Top 15 por nivel (B1+, B2.1, B2.2, C1) con empates resueltos por antigüedad de postulación.
+- **Ranking de Seleccionados**: cupos de convocatoria abierta por nivel (B1+ 25; B2.1, B2.2 y C1 15) con empates resueltos según las bases (n.º 7.5).
 - **Formato Condicional**: Filas coloreadas automáticamente según estado (verde = Acepta, rojo = Rechaza).
 
 ### 📋 Gestión de Seleccionados y Lista de Espera
+
 - **Columnas de Gestión Interactivas**: Dropdowns para `Verificación Certificado`, `Nivel Asignado`, `Aceptación` y `Pago Matrícula`.
 - **Lista de Espera Física**: Hoja `"Lista de Espera"` con hasta 30 candidatos por nivel, preservando fechas de notificación.
 - **Promoción Manual**: Botón para promover al siguiente candidato de la lista de espera a seleccionados con un clic.
@@ -45,10 +60,11 @@
 - **Restauración de Emergencia**: Función `restaurarHojaSeleccionadosPerdida` para recuperar datos en caso de pérdida accidental.
 
 ### ✉️ Sistema de Correos Automatizados
+
 El sistema soporta **7 tipos de envío masivo** y **2 correos de confirmación automática**:
 
 | Tipo de Lote | Plantilla HTML | Descripción |
-|---|---|---|
+| --- | --- | --- |
 | `SELECTED` | `CorreoSeleccionado` | Invitación a seleccionados con certificado válido |
 | `TEST_LEVEL_ONLY` | `CorreoTestNivel` | Convocatoria a test de nivel para candidatos sin certificado |
 | `HAND_PICKED` | `CorreoHandPicked` | Invitación a candidatos seleccionados manualmente fuera de plazo |
@@ -58,10 +74,12 @@ El sistema soporta **7 tipos de envío masivo** y **2 correos de confirmación a
 | `CONTINUATION` | `CorreoContinuacion` | Acceso preferencial para estudiantes de continuación (sin matrícula) |
 
 **Correos Automáticos de Confirmación:**
+
 - `CorreoConfirmacionAcepta`: Se envía al aceptar, incluye link de pago y plazo dinámico de 3 días.
 - `CorreoConfirmacionRechaza`: Se envía al rechazar el cupo.
 
 **Funcionalidades Adicionales:**
+
 - **Modo Borrador**: Crear correos como borradores de Gmail antes de enviar (con opción de limitar a 5 muestras).
 - **Tokens UUID**: Cada postulante recibe enlaces únicos de aceptar/rechazar de un solo uso.
 - **Fecha Límite Dinámica**: El plazo se calcula automáticamente desde la fecha de envío del correo.
@@ -69,10 +87,12 @@ El sistema soporta **7 tipos de envío masivo** y **2 correos de confirmación a
 - **Verificación de Cuota Gmail**: Se valida la cuota disponible antes de cada envío masivo.
 
 ### 📋 Lista Final e Inicio de Clases
+
 - **Filtro Estricto**: Solo candidatos con `Aceptación = "Acepta"` **y** `Pago Matrícula = "Pagado"` entran a la lista final.
 - **Inicio de Clases**: Diálogo interactivo para asignar salas por nivel y enviar correos de bienvenida con horarios y fechas.
 
 ### 🛡️ Robustez y Seguridad
+
 - **Control de Concurrencia**: `LockService` previene ejecuciones simultáneas.
 - **Manejo de Errores por Fila**: Bloques `try...catch` aíslan errores sin detener el procesamiento completo.
 - **Sandbox de Pruebas**: Tokens de confirmación inválidos operan en modo seguro sin afectar datos reales.
@@ -83,7 +103,7 @@ El sistema soporta **7 tipos de envío masivo** y **2 correos de confirmación a
 
 El código está organizado de forma modular en TypeScript con compilación a JavaScript para Google Apps Script.
 
-```
+```text
 src/
 ├── Config.ts              # Configuración global, tipos e interfaces
 ├── Evaluacion.ts          # Motor de evaluación y cálculo de puntajes
@@ -160,11 +180,14 @@ const CONFIG = {
 ### **Paso 3: Compilar y Preparar los Archivos**
 
 1. Asegúrate de tener Node.js instalado. Ejecuta en la raíz del proyecto:
+
    ```bash
    npm install
    npm run build
    ```
+
 2. Copia los archivos compilados y las plantillas HTML a la carpeta de producción:
+
    ```bash
    # Los archivos .js se copian desde dist/ a PUCV2English/
    # Los archivos .html se copian desde src/ a PUCV2English/
@@ -201,6 +224,7 @@ const CONFIG = {
 ### Ejecución Automática
 
 Una vez configurado el activador, el sistema es **100% autónomo**:
+
 1. El script `evaluarPostulacionesPUCV2` se ejecuta con cada formulario enviado.
 2. Procesa únicamente la nueva fila.
 3. Actualiza `"Evaluación automatizada"`, `"Dashboard"` y `"Lista de Espera"`.
@@ -211,7 +235,7 @@ Una vez configurado el activador, el sistema es **100% autónomo**:
 El menú superior `PUCV2English` ofrece las siguientes opciones:
 
 | Opción | Descripción |
-|---|---|
+| --- | --- |
 | 📊 Evaluar Postulaciones | Ejecuta la evaluación manual de postulaciones pendientes |
 | 🔄 Reevaluar Todo desde Cero | Limpia y recalcula todos los puntajes |
 | 📋 Generar Lista Final | Crea la hoja `"Lista Final Curso"` |
@@ -225,7 +249,7 @@ El menú superior `PUCV2English` ofrece las siguientes opciones:
 **Submenú 📧 Enviar Correos:**
 
 | Opción | Descripción |
-|---|---|
+| --- | --- |
 | ✅ Seleccionados | Envía invitaciones a candidatos con certificado válido |
 | 🧪 Test de Nivel | Notifica a candidatos que deben rendir prueba de nivelación |
 | 💎 Hand Picked | Invita a candidatos seleccionados manualmente |
@@ -239,7 +263,7 @@ El menú superior `PUCV2English` ofrece las siguientes opciones:
 **Submenú 🧪 Prueba de Nivel (CEPT):**
 
 | Opción | Descripción |
-|---|---|
+| --- | --- |
 | 🔄 Sincronizar Candidatos a Test | Copia candidatos elegibles (`Test de nivel` + `Acepta` + `Pagado`) a la hoja `"Prueba de Nivel"` |
 | 📧 Enviar Credenciales Iniciales | Abre diálogo para configurar URL del CEPT y enviar credenciales por primera vez |
 | 🔔 Enviar Recordatorios | Envía recordatorio a candidatos que aún no han completado el test |
@@ -266,11 +290,34 @@ El menú superior `PUCV2English` ofrece las siguientes opciones:
 
 El puntaje total es la suma de varias áreas, con pesos ajustables desde la hoja `Configuración`:
 
-- **Disponibilidad (máx 4 pts):** 1 punto por cada respuesta afirmativa a preguntas de compromiso de tiempo.
-- **Tipo de Postulante (máx 2 pts):** `Académico/Funcionario` (2), `Postgrado` (1.5), `Otro` (1).
-- **Uso del Inglés (máx 4 pts):** Pondera frecuencia, tipo de actividades y análisis de palabras clave.
-- **Internacionalización (máx 5 pts):** Asigna puntaje según la etapa del proceso y análisis de palabras clave.
-- **Nivel de Inglés (máx 5 pts):** Mapea certificaciones (C1, B2.2, etc.) a un puntaje.
-- **Año de Ingreso (máx 2 pts):** Da más puntaje a años de ingreso más recientes.
-- **Compromiso (máx 3 pts):** 1 punto por cada declaración de compromiso aceptada.
-- **Carta de Respaldo (máx 3 pts):** Evalúa el respaldo de la jefatura y la adjunción de documentos.
+Siguiendo las bases de la convocatoria, la evaluación tiene dos partes: un filtro de elegibilidad y una pauta de puntaje.
+
+**1. Elegibilidad (n.º 4, 5.1 y 5.2).** Quien no cumple no se evalúa: la fila queda marcada `NO ELEGIBLE: <motivo>` en `Estado de Procesamiento` y no aparece en `Evaluación automatizada`. Se exige:
+
+- Disponibilidad para todo el horario (lunes, miércoles y jueves 17:45–18:55) y sin compromisos que lo impidan.
+- Compromiso de asistir al menos al 80 % de las sesiones.
+- Las 7 declaraciones del formulario aceptadas (`DECLARACIONES_REQUERIDAS` en `Config.ts`).
+- Ningún impedimento: no haber reprobado un curso PUCV2English, no haber renunciado a la beca después de la primera semana, no haber cursado C1 ni completado dos cursos del programa.
+- Estudiantes: matrícula vigente y, en pregrado, cursos obligatorios de inglés del PILE aprobados o eximidos.
+- Con más de una postulación del mismo correo se considera la primera enviada.
+
+**2. Pauta de puntaje (n.º 7.2).** Los criterios y su peso relativo:
+
+- **Proyección internacional (importancia alta, máx 5 pts):** puntaje por etapa del proceso más 0.5 por tipo de actividad planificada (postgrado, doble titulación, pasantía, intercambio, práctica profesional, curso especializado, congreso o seminario). Etapas: `Carta de aceptación` (3.5, +0.5 con documentos), `Postulación enviada` (2.5), `En proceso de postulación` (2), `Programa identificado` / `En contacto` (1.5), `Buscando programa` (0.5). Otras respuestas, como `Interés general`, no suman.
+- **Vínculo y etapa (media):** tipo de vínculo (máx 2: `Académico/Funcionario` 2, `Postgrado` 1.5, otros 1) y, solo en pregrado, año de ingreso (máx 2): desde el 3.er año de la carrera 2 pts, 2.º año 0.5, 1.er año 0. El año del programa sale de `FECHA_INICIO`.
+- **Nivel de inglés (media, máx 5 pts):** certificado Cambridge vigente (C1, B2.2, etc.). `No tengo certificado Cambridge` = 0.
+- **Uso del inglés en las funciones (media-alta, máx 4 pts):** solo académicos y funcionarios.
+- **Respaldo de la jefatura (máx 3 pts):** solo académicos y funcionarios: respaldo (1) + carta adjunta (1), multiplicado por el peso 1.5.
+
+Las columnas `Puntaje Disponibilidad` y `Puntaje Compromiso` se mantienen en las hojas por compatibilidad, pero quedan en 0: son requisitos, no puntaje.
+
+**3. Prioridades y desempate.**
+
+- **Alumni** (n.º 4): puntaje 0; solo acceden a un cupo si no quedan elegibles de la comunidad activa pendientes.
+- **Empate** (n.º 7.5): académicos y estudiantes de postgrado, luego funcionarios, luego pregrado, y por último quien postuló primero.
+- **Cupos de convocatoria abierta** (n.º 3): B1+ 25; B2.1, B2.2 y C1 15 cada uno. Los otros 10 cupos de esos niveles son de continuidad, por invitación, y no los asigna esta pauta.
+
+> La pauta ordena; la selección la hace la coordinación al revisar cada caso (n.º 7.1). El nivel del formulario es una solicitud: el nivel de ingreso lo asigna la coordinación según el n.º 6.
+> Preguntas que no puntúan: fecha de nacimiento, teléfono, carrera, unidad, cargo, antigüedad, nivel y semestre cursados antes, y descripciones libres.
+> Los encabezados de la hoja de respuestas deben coincidir exactamente con `CONFIG.COLUMNS` (`src/Config.ts`). Una columna no encontrada puntúa como vacía sin avisar.
+> Si la hoja `Configuración` ya existe, sus valores pisan los de código. Para esta convocatoria revisa ahí que `FECHA_INICIO` sea 22 de marzo de 2027 (de ella sale el año del programa), `FECHA_TERMINO`, `FECHA_LIMITE`, `TEST_FECHA` y que el peso de Carta de Respaldo para Funcionario y Académico sea 1.5.

@@ -37,6 +37,11 @@ Probaremos que el motor de evaluación procese las filas nuevas, calcule correct
   *   Inserta manualmente en `"Respuestas de formulario 1"` dos filas de prueba:
       *   **Fila A (Estudiante)**: Nombre: "Juan Estudiante", Correo: "juan.estud@test.com", Categoría: "Estudiante de Pregrado", Año Ingreso: 2024, Certificación de Inglés: "B2.1", Disponibilidad: Contesta "Sí" a compromiso y tiempo.
       *   **Fila B (Funcionario)**: Nombre: "Ana Funcionaria", Correo: "ana.func@test.com", Categoría: "Funcionario/Administrativo", Año Ingreso: 2012, Certificación de Inglés: "C1", Disponibilidad: Contesta "Sí" a todo.
+      *   **Fila C (Alumni)**: Vínculo con la PUCV: "Alumni", resto de respuestas favorables y las 7 declaraciones en "Sí". **Esperado**: puntaje 0 en todas las áreas y último en el ranking de su nivel.
+      *   **Fila D (Estudiante sin matrícula)**: Vínculo: "Estudiante de pregrado", `¿Tienes matrícula vigente en la PUCV?` = "No". **Esperado**: `Estado de Procesamiento` = `NO ELEGIBLE: estudiante sin matrícula vigente`; no aparece en `Evaluación automatizada`.
+      *   **Fila E (Reprobó antes)**: `¿Has reprobado algún curso PUCV2English?` = "Sí". **Esperado**: `NO ELEGIBLE: reprobó un curso PUCV2English`.
+      *   **Fila F (Estudiante, año de ingreso)**: dos estudiantes con año de ingreso 2025 y 2027 (programa 2027). **Esperado**: `Puntaje Año Ingreso` = 2 y 0 respectivamente.
+      *   Los encabezados de la hoja deben ser los del formulario vigente (ver `CONFIG.COLUMNS`). Verifica que `Nivel Postulado` refleje "Nivel al que solicitas ingresar" y que "No tengo certificado Cambridge" dé 0 en `Puntaje Nivel Inglés`.
   *   Verifica que la columna `"Estado de Procesamiento"` de ambas filas esté **vacía**.
 
 - [ ] **2.2. Ejecutar la Evaluación**
@@ -122,7 +127,7 @@ Validaremos el flujo de confirmación a través de la Web App que interactúa co
 Verificaremos que al liberarse una vacante, el sistema pueda promover ordenadamente al siguiente postulante de la lista de espera.
 
 - [ ] **6.1. Simular Rechazo y Promoción de Lista de Espera**
-  *   Asegúrate de tener candidatos evaluados en `"Evaluación automatizada"` que no entraron en el Top 15 de `"Seleccionados"` (estos actúan como lista de espera).
+  *   Asegúrate de tener candidatos evaluados en `"Evaluación automatizada"` que no entraron en el cupo abierto de `"Seleccionados"` (estos actúan como lista de espera).
   *   Desde el Panel de Control Web o ejecutando `promoverSiguienteEsperaAPI(nivel)` (por ejemplo, para nivel `"B2.1"`), gatilla la promoción.
   *   **Verificación esperada**:
       *   El candidato mejor puntuado de ese nivel (que no estuviese en Seleccionados) debe ser copiado y anexado al final de la hoja `"Seleccionados"`.

@@ -1,4 +1,4 @@
-# 📋 PUCV2English v2.5.0 Deployment Checklist
+# 📋 PUCV2English v2.6.0 Deployment Checklist
 
 **Updated:** 2026-07-16
 **Status:** Ready for Google Apps Script deployment

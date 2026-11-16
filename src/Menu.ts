@@ -32,7 +32,7 @@ function onOpen(): void {
       .addItem('👁️ Vista Previa Siguiente (Lista de Espera)', 'mostrarVistaPreviaProximo')
       .addItem('✉️ Enviar Correo de Prueba', 'abrirDialogoCorreoPrueba')
       .addSeparator()
-      .addItem('❌ Rechazo por Nivel Insuficiente', 'enviarCorreosRechazoPorNivel')
+      .addItem('❌ Rechazo por Nivel Insuficiente', 'ejecutarEnvioRechazoPorNivel')
       .addItem('🏫 Inicio de Clases', 'abrirDialogoInicioClases'))
     .addSeparator()
     .addSubMenu(ui.createMenu('🧪 Prueba de Nivel (CEPT)')
@@ -126,28 +126,28 @@ function ejecutarAnalisisDesdeMenu() {
   SpreadsheetApp.getUi().alert("Análisis de Equilibrio", report, SpreadsheetApp.getUi().ButtonSet.OK);
 }
 
-function abrirDashboard() {
-  const url = ScriptApp.getService().getUrl();
-  const html = `<div style="font-family: 'Inter', -apple-system, sans-serif; padding: 15px; text-align: center;">
-                  <p style="color: #1a1a1a; font-size: 14px; margin-bottom: 20px; line-height: 1.5;">
-                    El panel de control administrativo se abrirá en una nueva pestaña. Si tu navegador bloqueó la apertura automática, haz clic en el botón de abajo:
-                  </p>
-                  <a href="${url}" target="_blank" style="background-color: #0055a2; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" onclick="google.script.host.close();">
-                    🚀 Abrir Panel de Control (Dashboard)
-                  </a>
-                </div>
-                <script>
-                  try {
-                    var win = window.open("${url}", "_blank");
-                    if (win) {
-                      google.script.host.close();
-                    }
-                  } catch (e) {
-                    console.error("Popup blocker active", e);
-                  }
-                </script>`;
-  const output = HtmlService.createHtmlOutput(html).setWidth(420).setHeight(180);
-  SpreadsheetApp.getUi().showModalDialog(output, "Abriendo Dashboard...");
+function abrirDashboard(): void {
+  const html = HtmlService.createHtmlOutputFromFile('index')
+    .setTitle('Panel de Control de Evaluación PUCV')
+    .setWidth(1200)
+    .setHeight(850);
+  SpreadsheetApp.getUi().showModelessDialog(html, 'Panel de Control de Evaluación PUCV');
+}
+
+/**
+ * Confirms and executes rejection emails for applicants with insufficient level (Fix #11).
+ */
+function ejecutarEnvioRechazoPorNivel(): void {
+  const ui = SpreadsheetApp.getUi();
+  const respuesta = ui.alert(
+    'Confirmar Envío de Rechazos por Nivel',
+    '¿Deseas enviar los correos de rechazo a postulantes con nivel insuficiente?',
+    ui.ButtonSet.YES_NO
+  );
+  if (respuesta === ui.Button.YES) {
+    const res = enviarCorreosRechazoPorNivel();
+    ui.alert('Resultado Rechazo por Nivel', res, ui.ButtonSet.OK);
+  }
 }
 
 /**
@@ -171,12 +171,12 @@ function abrirDialogoCorreoPrueba() {
 }
 
 /**
- * Shows a preview of the next candidate in the waitlist.
+ * Shows a preview of the next candidate in the waitlist (Fix #12).
  */
 function mostrarVistaPreviaProximo(): void {
   const ui = SpreadsheetApp.getUi();
-  const preview = previewEmailBatch('SELECTED'); // This currently shows all pending SELECTED
-  ui.alert('Próximos Notificables', preview, ui.ButtonSet.OK);
+  const preview = previewEmailBatch('WAITLIST');
+  ui.alert('Próximos Notificables (Lista de Espera)', preview, ui.ButtonSet.OK);
 }
 
 /**

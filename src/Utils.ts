@@ -26,6 +26,64 @@ function esEstudiante(tipoPostulante: string): boolean {
 }
 
 /**
+ * Alumni (egresados) reciben puntaje 0: menor prioridad entre los postulantes.
+ */
+function esAlumni(tipoPostulante: string): boolean {
+  return /alumni/i.test(String(tipoPostulante || ""));
+}
+
+/**
+ * Académicos y funcionarios: los únicos a quienes aplican "Uso del inglés" y el respaldo de jefatura
+ * (bases n.º 7.2). Los estudiantes de postgrado cuentan como estudiantes.
+ */
+function esAcademicoOFuncionario(tipoPostulante: string): boolean {
+  return /acad[eé]mico|funcionario/i.test(String(tipoPostulante || "")) && !/postgrado|posgrado/i.test(String(tipoPostulante || ""));
+}
+
+/**
+ * Orden de preferencia en caso de empate total (bases n.º 7.5):
+ * académicos y postgrado, luego funcionarios, luego pregrado, luego alumni.
+ */
+function rangoDesempate(tipoPostulante: string): number {
+  const t = String(tipoPostulante || "");
+  if (esAlumni(t)) return 3;
+  if (/postgrado|posgrado|acad[eé]mico/i.test(t)) return 0;
+  if (/funcionario/i.test(t)) return 1;
+  return 2;
+}
+
+/**
+ * Comparador de postulantes: puntaje (desc), categoría de desempate (n.º 7.5) y fecha de postulación (asc).
+ */
+function compararPostulantes(a: any[], b: any[], idxTotal: number, idxCat: number, idxFecha: number): number {
+  const dif = parseFloat(b[idxTotal] || 0) - parseFloat(a[idxTotal] || 0);
+  if (dif) return dif;
+  const rango = rangoDesempate(a[idxCat]) - rangoDesempate(b[idxCat]);
+  if (rango) return rango;
+  return (new Date(a[idxFecha]).getTime() - new Date(b[idxFecha]).getTime()) || 0;
+}
+
+/**
+ * Normaliza la marca temporal del formulario a Date para que la hoja la formatee y ordene bien.
+ * Acepta Date o texto "dd/mm/aaaa hh:mm:ss"; si no se reconoce, devuelve el texto original.
+ */
+function normalizarFecha(valor: any): Date | string {
+  if (valor instanceof Date) return valor;
+  const txt = String(valor || "").trim();
+  const m = txt.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+  if (!m) return txt;
+  return new Date(+m[3], +m[2] - 1, +m[1], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0));
+}
+
+/**
+ * Aplica formato dd/MM/yyyy HH:mm a la columna "Fecha de Postulación" de una hoja.
+ */
+function formatearColumnaFecha(sheet: GoogleAppsScript.Spreadsheet.Sheet, headers: any[], filas: number): void {
+  const col = headers.indexOf("Fecha de Postulación") + 1;
+  if (col > 0 && filas > 1) sheet.getRange(2, col, filas - 1, 1).setNumberFormat("dd/MM/yyyy HH:mm");
+}
+
+/**
  * Checks if a value string is an affirmative response ("Sí", "Si", etc.).
  * @param valor The raw string.
  */
@@ -62,7 +120,9 @@ function contarPalabrasClave(texto: string, palabrasClave: string[]): number {
  * @param message The message to log.
  */
 function logToWebApp(message: string): void {
+  const lock = LockService.getUserLock();
   try {
+    lock.waitLock(2000);
     const userProperties = PropertiesService.getUserProperties();
     let logs: string[] = JSON.parse(userProperties.getProperty('webAppLogs') || '[]');
     logs.push(`${new Date().toLocaleTimeString()} - ${message}`);
@@ -72,6 +132,8 @@ function logToWebApp(message: string): void {
     userProperties.setProperty('webAppLogs', JSON.stringify(logs));
   } catch (e: any) {
     Logger.log("logToWebApp warning: " + e.message);
+  } finally {
+    try { lock.releaseLock(); } catch (_) {}
   }
 }
 

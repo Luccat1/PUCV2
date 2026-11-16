@@ -138,45 +138,65 @@ const CONFIG: IConfig = {
     LAST_NAME_P: "Apellido paterno",
     LAST_NAME_M: "Apellido materno",
     RUT: "RUT",
-    APPLICANT_TYPE: "Indica si eres funcionario, alumno, profesor, académico, etc.",
+    APPLICANT_TYPE: "¿Cuál es tu vínculo actual con la PUCV?",
     CAMPUS: "¿En qué sede realizas la mayoría de tus actividades académicas o profesionales?",
-    AVAILABILITY_SESSIONS: "¿Tienes disponibilidad para participar en 3 sesiones semanales?",
-    AVAILABILITY_CONFLICTS: "¿Tienes compromisos académicos/laborales que podrían impedir cumplir con la asistencia obligatoria?",
-    AVAILABILITY_ASSISTANCE: "¿Estás en condiciones de asistir al menos al 80 % de las clases?",
-    AVAILABILITY_STUDY: "¿Puedes comprometerte a dedicar 4 horas semanales de estudio autónomo además de las clases?",
+    AVAILABILITY_SESSIONS: "¿Tienes disponibilidad para asistir durante todo el semestre los lunes, miércoles y jueves, de 17:45 a 18:55?",
+    AVAILABILITY_CONFLICTS: "¿Tienes compromisos académicos o laborales que te impedirían asistir en ese horario?",
+    AVAILABILITY_ASSISTANCE: "¿Puedes comprometerte a asistir al menos al 80 % del total de sesiones, considerando cátedras y ayudantías?",
+    AVAILABILITY_STUDY: "¿Estás en conocimiento de que el programa considera una dedicación orientativa de cuatro horas semanales de estudio autónomo, además de las clases?",
     ENGLISH_USE_FREQUENCY: "¿Con qué frecuencia requieres utilizar el idioma inglés en tus funciones actuales?",
     ENGLISH_USE_ACTIVITIES: "Seleccione las actividades que realizas en inglés como parte de tus funciones:",
-    ENGLISH_USE_FUTURE_PROJECTS: "¿Tu unidad tiene proyectos futuros que requerirán mayor uso del inglés?",
+    ENGLISH_USE_FUTURE_PROJECTS: "Proyectos futuros que requieren inglés",
     ENGLISH_USE_CONTRIBUTION: "¿Cómo contribuiría el mejoramiento de tu nivel de inglés a tu desempeño profesional?",
     INTL_STAGE: "¿En qué etapa se encuentra tu proceso de internacionalización?",
     INTL_PLAN: "¿Cómo has planeado internacionalizar tu carrera?",
     INTL_SUPPORT_DOCS: "Adjunta los documentos de respaldo",
     CERTIFICATE_ATTACHMENT: "Adjunta la certificación que permita verificar tu nivel de inglés más alto (certificado oficial).",
-    CERTIFICATE_LEVEL: "Certificación de inglés",
+    CERTIFICATE_LEVEL: "¿Cuentas con un certificado Cambridge B1 o B2 vigente para acreditar tu nivel?",
     ENTRY_YEAR: "¿En qué año ingresaste a tu carrera actual?",
-    COMMITMENT_PROGRAM: "Compromiso con el programa",
-    COMMITMENT_VERACITY: "Veracidad de la información",
-    COMMITMENT_BREACH: "Consecuencias por incumplimiento",
-    ENDORSEMENT_APPROVAL: "¿Cuentas con el respaldo de tu jefatura directa para participar en este programa?",
+    ENDORSEMENT_APPROVAL: "¿Tu jefatura directa está en conocimiento de tu postulación y respalda tu participación en el horario establecido?",
     ENDORSEMENT_LETTER: "Adjunta la carta de respaldo de tu jefatura (opcional)",
-    ENDORSEMENT_SCHEDULE: "¿Tu jefatura está en conocimiento y aprueba tu participación en el horario establecido?",
     NOTIFICATION_DATE: "Fecha Notificación",
     REJECTION_NOTIFICATION_DATE: "Fecha Notificación Rechazo",
     INICIO_NOTIFICATION_DATE: "Notificado Inicio",
     SALA: "Sala",
-    LEVEL_APPLIED: "Nivel al que postula",
+    LEVEL_APPLIED: "Nivel al que solicitas ingresar",
     SCORE: "PUNTAJE TOTAL",
     PHONE: "Número de teléfono de contacto",
     CARGO_ACTUAL: "¿Cuál es tu cargo actual en la PUCV?",
     ANTIGUEDAD_CARGO: "¿Cuánto tiempo llevas en tu cargo actual?",
     SITUACIONES_INGLES: "Describe brevemente las situaciones específicas en las que requieres usar inglés en tu trabajo:",
-    PROYECTOS_FUTUROS_DESC: "Si respondiste \"Sí\"; por favor, describe estos proyectos y su rol en ellos.",
+    PROYECTOS_FUTUROS_DESC: "Descripción de proyectos y participación",
     DOCUMENTOS_RESPALDO_SITUACION: "¿Tienes algún documento que respalde este proceso?",
-    AUTORIZACION_COMUNICACIONES: "Autorización de comunicaciones",
-    NUCLEO: "¿Eres parte del programa Núcleo?"
+    NUCLEO: "¿Eres parte del programa Núcleo?",
+    PREV_COURSES: "¿Cuántos cursos PUCV2English has completado anteriormente?",
+    PREV_C1: "¿Has cursado anteriormente el nivel C1 en PUCV2English?",
+    PREV_FAILED: "¿Has reprobado algún curso PUCV2English?",
+    PREV_WITHDREW: "¿Has renunciado a una beca PUCV2English después de la primera semana de clases?",
+    ENROLLED: "¿Tienes matrícula vigente en la PUCV?",
+    PILE_STATUS: "Respecto de los cursos obligatorios de inglés del PILE correspondientes a tu carrera, ¿cuál es tu situación?"
     // Note: The "Seleccionados" sheet also includes: "Ranking", "Verificación Certificado", "Nivel Asignado", "Aceptación", "Comentarios"
   }
 };
+
+/**
+ * Cupos de la convocatoria abierta por nivel (bases 2027, n.º 3). Los cupos de continuidad
+ * (10 en B2.1, B2.2 y C1) se gestionan por invitación, fuera de esta pauta.
+ */
+const CUPOS_CONVOCATORIA_ABIERTA: Record<string, number> = { "B1+": 25, "B2.1": 15, "B2.2": 15, "C1": 15 };
+
+/**
+ * Declaraciones del formulario que deben estar aceptadas para postular (bases n.º 5.1 e).
+ */
+const DECLARACIONES_REQUERIDAS: string[] = [
+  "1. Conocimiento de las bases y el reglamento",
+  "2. Compromiso de participación y aprobación",
+  "3. Veracidad de la información",
+  "4. Acreditación y asignación del nivel",
+  "5. Matrícula y devolución",
+  "6. Renuncia y consecuencias por incumplimiento",
+  "7. Comunicaciones y tratamiento de datos"
+];
 
 /**
  * These parameters can be modified by the 'cargarConfiguracionDesdeHoja' function.
@@ -195,7 +215,7 @@ const DEFAULT_SCORING_PARAMS: IScoringParams = {
     }
   },
   Internacionalizacion: {
-    PalabrasClavePlan: ["pasantía", "postdoctorado", "doctorado", "magíster", "investigación", "colaboración", "congreso", "publicar"],
+    PalabrasClavePlan: ["postgrado", "doble titulación", "pasantía", "intercambio", "práctica profesional", "curso especializado", "congreso"],
     PuntajePorPalabraClave: 0.5,
     MaxPuntaje: 5,
     peso: {
@@ -205,10 +225,11 @@ const DEFAULT_SCORING_PARAMS: IScoringParams = {
     }
   },
   CartaRespaldo: {
+    // Máx. de la carta para no estudiantes = 2 (respaldo + carta) x 1.5 = 3
     peso: {
       estudiante: 0.5,
-      funcionario: 1,
-      academico: 1,
+      funcionario: 1.5,
+      academico: 1.5,
       _perfil: {
         estudiante: "perfil",
       }
@@ -226,9 +247,9 @@ let SCORING_PARAMS: IScoringParams = JSON.parse(JSON.stringify(DEFAULT_SCORING_P
  */
 const DEFAULT_PROGRAM_DATA: IProgramData = {
   TIMEZONE: "America/Santiago",
-  FECHA_LIMITE: "jueves 11 de diciembre",
-  FECHA_INICIO: "23 de marzo de 2026",
-  FECHA_TERMINO: "2 de julio de 2026",
+  FECHA_LIMITE: "viernes 11 de diciembre",
+  FECHA_INICIO: "22 de marzo de 2027",
+  FECHA_TERMINO: "1 de julio de 2027",
   PAYMENT_URL: "https://www.mercadopago.cl/link-pago-matricula",
   DEADLINE_DAYS: 3,
   TEST_FECHA: "2.ª semana de marzo de 2026",

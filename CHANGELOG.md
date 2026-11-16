@@ -5,8 +5,35 @@ Todos los cambios notables del proyecto PUCV2 (Motor de Evaluación de Postulaci
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 El versionado sigue [Semantic Versioning](https://semver.org/lang/es/).
 
-> [!NOTE]
-> El changelog del framework de planificación GSD (herramienta del agente IA) está en `.gsd/CHANGELOG-GSD.md`.
+---
+
+## [2.6.0] — 2026-11-16
+
+Sexta convocatoria (1.er semestre 2027): la evaluación sigue las bases de postulación.
+
+### Corregido
+- **Columnas del formulario 2026** — `CONFIG.COLUMNS` actualizado a los encabezados vigentes. Con los nombres antiguos todos los postulantes quedaban en B1+, con 1 punto de certificado y sin disponibilidad ni compromisos reconocidos.
+- **Fecha de postulación** — se guarda como fecha (antes texto largo) y se formatea `dd/MM/yyyy HH:mm` en Evaluación automatizada, Seleccionados y Lista de Espera. Admite textos `dd/mm/aaaa hh:mm:ss`.
+- **Internacionalización** — "Interés general" ya no activa el bono de +0.5 para estudiantes.
+- **Nivel de inglés** — un certificado en blanco ahora da 0 (antes 1).
+- **Estados de procesamiento** — `INCOMPLETA`, `DUPLICADO` y `NO ELEGIBLE` se guardan aunque no haya postulaciones nuevas válidas.
+
+### Cambiado
+- **Elegibilidad como filtro** (`motivoNoElegible()`, bases n.º 4, 5.1 y 5.2): disponibilidad, 80 % de asistencia, 7 declaraciones, impedimentos (reprobó, renunció, C1 previo, dos cursos), matrícula vigente y PILE en pregrado. Quien no cumple queda `NO ELEGIBLE: <motivo>` y no se puntúa. Disponibilidad y Compromiso dejan de puntuar: sus columnas quedan en 0.
+- **Uso del inglés** y **respaldo de jefatura**: solo académicos y funcionarios (n.º 7.2). Peso de carta 1.5 para funcionarios y académicos; se eliminó el punto de "horario" (fusionado en el formulario).
+- **Año de ingreso**: solo pregrado; 3.er año o superior 2 pts, 2.º año 0.5, 1.er año 0 (n.º 7.3). El año del programa sale de `FECHA_INICIO`.
+- **Proyección internacional**: las palabras clave del plan son los tipos de actividad de las bases (postgrado, doble titulación, pasantía, intercambio, práctica profesional, curso especializado, congreso). La etapa "En proceso de postulación" suma 2.
+- **Alumni**: puntaje 0 en todas las áreas.
+- **Cupos de convocatoria abierta** (`CUPOS_CONVOCATORIA_ABIERTA`): B1+ 25; B2.1, B2.2 y C1 15 (antes 15 en todos).
+- **Desempate** (`compararPostulantes()`, n.º 7.5): puntaje, luego académicos y postgrado > funcionarios > pregrado, luego fecha de postulación. Aplicado en Seleccionados, Lista de Espera y promoción desde espera.
+- **Datos del programa por defecto**: inicio 22 de marzo de 2027, término 1 de julio de 2027, límite viernes 11 de diciembre.
+
+### Añadido
+- Nuevas columnas en `CONFIG.COLUMNS`: `PREV_COURSES`, `PREV_C1`, `PREV_FAILED`, `PREV_WITHDREW`, `ENROLLED`, `PILE_STATUS`; y la lista `DECLARACIONES_REQUERIDAS`.
+- Helpers en `Utils.ts`: `esAlumni()`, `esAcademicoOFuncionario()`, `rangoDesempate()`, `compararPostulantes()`, `normalizarFecha()`, `formatearColumnaFecha()`.
+
+### Nota de despliegue
+Archivos modificados: `Config.js`, `Utils.js`, `Evaluacion.js`, `Seleccionados.js`. Para recalcular usa `🔄 Reevaluar Todo desde Cero` (borra Seleccionados: hazlo antes de registrar aceptaciones o pagos). Si la hoja `Configuración` existe, actualiza ahí `FECHA_INICIO`, `FECHA_TERMINO`, `FECHA_LIMITE`, `TEST_FECHA` y el peso de Carta de Respaldo (1.5).
 
 ---
 

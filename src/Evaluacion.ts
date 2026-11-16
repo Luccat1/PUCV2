@@ -107,52 +107,50 @@ function evaluarPostulacionesPUCV2(): string {
         }
         if (correo) correosProcesados.add(correo);
 
-        const fecha = obtenerValor(fila, CONFIG.COLUMNS.TIMESTAMP, indiceColumnas);
+        const fecha = normalizarFecha(fila[indiceColumnas[CONFIG.COLUMNS.TIMESTAMP]]);
         const tipo = obtenerValor(fila, CONFIG.COLUMNS.APPLICANT_TYPE, indiceColumnas);
         const sede = obtenerValor(fila, CONFIG.COLUMNS.CAMPUS, indiceColumnas);
 
-        // 1. Availability
-        let pDisp = 0;
-        if (esSi(obtenerValor(fila, CONFIG.COLUMNS.AVAILABILITY_SESSIONS, indiceColumnas))) pDisp++;
-        if (!esSi(obtenerValor(fila, CONFIG.COLUMNS.AVAILABILITY_CONFLICTS, indiceColumnas))) pDisp++;
-        if (esSi(obtenerValor(fila, CONFIG.COLUMNS.AVAILABILITY_ASSISTANCE, indiceColumnas))) pDisp++;
-        if (esSi(obtenerValor(fila, CONFIG.COLUMNS.AVAILABILITY_STUDY, indiceColumnas))) pDisp++;
-
-        // 2. Specialized Scoring
-        const pTipo = calcularPuntajeTipoPostulante(tipo);
-        const pUso = calcularPuntajeUsoIngles(fila, tipo, indiceColumnas);
-        const pIntl = calcularPuntajeInternacionalizacion(fila, tipo, indiceColumnas);
-        const pCert = calcularPuntajeCertificado(fila, indiceColumnas);
-        const pAnio = calcularPuntajeAnioIngreso(fila, tipo, indiceColumnas);
-
-        // 3. Commitment
-        let pComp = 0;
-        if (esSi(obtenerValor(fila, CONFIG.COLUMNS.COMMITMENT_PROGRAM, indiceColumnas))) pComp++;
-        if (esSi(obtenerValor(fila, CONFIG.COLUMNS.COMMITMENT_VERACITY, indiceColumnas))) pComp++;
-        if (esSi(obtenerValor(fila, CONFIG.COLUMNS.COMMITMENT_BREACH, indiceColumnas))) pComp++;
-
-        // 4. Endorsement Letter
-        const pesoCarta = SCORING_PARAMS.CartaRespaldo.peso[esEstudiante(tipo) ? "estudiante" : "funcionario"] || 1;
-        let pCarta = 0;
-        const tieneCarta = !!obtenerValor(fila, CONFIG.COLUMNS.ENDORSEMENT_LETTER, indiceColumnas);
-
-        if (esEstudiante(tipo)) {
-          pCarta = 1;
-          if (tieneCarta) pCarta += 1.5;
-        } else {
-          if (esSi(obtenerValor(fila, CONFIG.COLUMNS.ENDORSEMENT_APPROVAL, indiceColumnas))) pCarta += 1;
-          if (tieneCarta) pCarta += 1;
-          if (esSi(obtenerValor(fila, CONFIG.COLUMNS.ENDORSEMENT_SCHEDULE, indiceColumnas))) pCarta++;
+        // Elegibilidad (bases n.º 4, 5.1 y 5.2): quien no cumple los requisitos no se evalúa
+        const motivo = motivoNoElegible(fila, tipo, indiceColumnas);
+        if (motivo) {
+          logToWebApp(`Fila ${r + 1} (${correo}) no elegible: ${motivo}`);
+          if (indiceEstado !== -1) {
+            actualizacionesEstado.push({ fila: r + 1, valor: `NO ELEGIBLE: ${motivo}` });
+          }
+          continue;
         }
 
+        // Pauta (bases n.º 7.2): proyección internacional, vínculo y etapa, nivel de inglés y uso del inglés.
+        // Disponibilidad y compromisos son requisitos, no puntaje: sus columnas quedan en 0.
+        const pDisp = 0;
+        const pComp = 0;
+        const alumni = esAlumni(tipo); // n.º 4: solo acceden a cupo después de toda la comunidad activa
+        const pTipo = alumni ? 0 : calcularPuntajeTipoPostulante(tipo);
+        const pUso = alumni ? 0 : calcularPuntajeUsoIngles(fila, tipo, indiceColumnas);
+        const pIntl = alumni ? 0 : calcularPuntajeInternacionalizacion(fila, tipo, indiceColumnas);
+        const pCert = alumni ? 0 : calcularPuntajeCertificado(fila, indiceColumnas);
+        const pAnio = alumni ? 0 : calcularPuntajeAnioIngreso(fila, tipo, indiceColumnas);
+
+        // Respaldo de la jefatura: solo académicos y funcionarios
+        let pCarta = 0;
+        if (!alumni && esAcademicoOFuncionario(tipo)) {
+          if (esSi(obtenerValor(fila, CONFIG.COLUMNS.ENDORSEMENT_APPROVAL, indiceColumnas))) pCarta += 1;
+          if (obtenerValor(fila, CONFIG.COLUMNS.ENDORSEMENT_LETTER, indiceColumnas)) pCarta += 1;
+        }
+        const pesoCarta = SCORING_PARAMS.CartaRespaldo.peso[/acad[eé]mico/i.test(tipo) ? "academico" : "funcionario"] || 1;
         const pTotal = pDisp + pTipo + pUso + pIntl + pCert + pAnio + pComp + (pCarta * pesoCarta);
         const enlaceCert = obtenerValor(fila, CONFIG.COLUMNS.CERTIFICATE_ATTACHMENT, indiceColumnas);
         const nivelPostulado = obtenerNivelDesdeFila(fila, indiceColumnas);
 
+        const pUsoNum = Math.round(pUso * 100) / 100;
+        const pIntlNum = Math.round(pIntl * 100) / 100;
+        const pTotalNum = Math.round(pTotal * 100) / 100;
+
         resultados.push([
           apellidos, nombres, correo, rut, fecha, tipo, sede,
-          pDisp, pTipo, pUso.toFixed(2), pIntl.toFixed(2), pCert, pAnio,
-          pComp, pCarta, pTotal.toFixed(2), enlaceCert, nivelPostulado
+          pDisp, pTipo, pUsoNum, pIntlNum, pCert, pAnio,
+          pComp, pCarta, pTotalNum, enlaceCert, nivelPostulado
         ]);
         nuevasProcesadas++;
 
@@ -169,6 +167,10 @@ function evaluarPostulacionesPUCV2(): string {
     }
 
     if (nuevasProcesadas === 0) {
+      // Guarda igual los estados (INCOMPLETA, DUPLICADO, NO ELEGIBLE) para no re-evaluar esas filas
+      if (indiceEstado !== -1) {
+        actualizacionesEstado.forEach(upd => hojaEntrada.getRange(upd.fila, indiceEstado + 1).setValue(upd.valor));
+      }
       return "No hay nuevas postulaciones para añadir.";
     }
 
@@ -194,6 +196,7 @@ function evaluarPostulacionesPUCV2(): string {
     }
 
     hojaResultados.getRange(1, 1, resultados.length, expectedCols).setValues(resultados);
+    formatearColumnaFecha(hojaResultados, resultados[0], resultados.length);
     applyConditionalFormattingToScores(hojaResultados, resultados.length);
 
     // Update processing states
@@ -387,21 +390,16 @@ function calcularPuntajeTipoPostulante(texto: string): number {
 }
 
 function calcularPuntajeUsoIngles(fila: any[], tipo: string, idxs: Record<string, number>): number {
+  // Bases n.º 7.2: este criterio aplica solo a académicos y funcionarios
+  if (!esAcademicoOFuncionario(tipo)) return 0;
   let p = 0;
-  const contrib = obtenerValor(fila, CONFIG.COLUMNS.ENGLISH_USE_CONTRIBUTION, idxs);
-  const normTipo = tipo.toLowerCase();
-  let peso = 1;
+  let peso: number;
 
-  if (normTipo.includes("académico") || normTipo.includes("postgrado")) {
+  if (/acad[eé]mico/i.test(tipo)) {
+    const contrib = obtenerValor(fila, CONFIG.COLUMNS.ENGLISH_USE_CONTRIBUTION, idxs);
     peso = SCORING_PARAMS.UsoIngles.peso.academico;
     const kw = ["investigación", "publicar", "paper", "revista", "indexada", "congreso", "ponente", "expositor", "colaboración internacional", "clases", "docencia"];
     p += contarPalabrasClave(contrib, kw) * 0.8 + 1.0;
-  } else if (esEstudiante(tipo)) {
-    peso = SCORING_PARAMS.UsoIngles.peso.estudiante;
-    if (contrib.length > 20) p += 0.5;
-    const hi = ["intercambio", "magíster", "doctorado", "postgrado", "investigación", "publicar", "congreso", "pasantía"];
-    const gen = ["oportunidades", "desarrollo", "competitividad", "laboral", "profesional", "herramienta", "bibliografía", "papers", "libros", "comunicarme"];
-    p += contarPalabrasClave(contrib, hi) * 0.75 + contarPalabrasClave(contrib, gen) * 0.25;
   } else {
     peso = SCORING_PARAMS.UsoIngles.peso.funcionario;
     const freq = obtenerValor(fila, CONFIG.COLUMNS.ENGLISH_USE_FREQUENCY, idxs).toLowerCase();
@@ -427,51 +425,78 @@ function calcularPuntajeInternacionalizacion(fila: any[], tipo: string, idxs: Re
     p += 3.5 + (docs ? 0.5 : 0);
   } else if (etapa.includes("postulación enviada")) {
     p += 2.5;
+  } else if (etapa.includes("en proceso de postulación")) {
+    p += 2;
   } else if (etapa.includes("programa identificado") || etapa.includes("en contacto")) {
     p += 1.5;
   } else if (etapa.includes("buscando programa")) {
     p += 0.5;
   }
 
+  const pEtapa = p; // "Interés general" u otras etapas no reconocidas no suman
   const plan = obtenerValor(fila, CONFIG.COLUMNS.INTL_PLAN, idxs);
   p += contarPalabrasClave(plan, SCORING_PARAMS.Internacionalizacion.PalabrasClavePlan) * SCORING_PARAMS.Internacionalizacion.PuntajePorPalabraClave;
 
-  if (esEstudiante(tipo) && (etapa.length > 0 || plan.length > 10)) {
+  if (esEstudiante(tipo) && (pEtapa > 0 || plan.length > 10)) {
     p += 0.5;
   }
 
   return Math.min(SCORING_PARAMS.Internacionalizacion.MaxPuntaje, p) * peso;
 }
 
+/**
+ * Requisitos e impedimentos de las bases (n.º 4, 5.1 y 5.2). Devuelve el motivo si la postulación
+ * no se evalúa, o null si es elegible. Los nivel de ingreso y certificados NO filtran: se verifican después.
+ * shortcut: "cursos completados" y "situación PILE" se reconocen por palabras clave del texto de la opción;
+ * revisar si el formulario cambia esas opciones.
+ */
+function motivoNoElegible(fila: any[], tipo: string, idxs: Record<string, number>): string | null {
+  const C = CONFIG.COLUMNS;
+  const v = (col: string) => obtenerValor(fila, col, idxs);
+
+  if (!esSi(v(C.AVAILABILITY_SESSIONS)) || esSi(v(C.AVAILABILITY_CONFLICTS))) return "sin disponibilidad para el horario del programa";
+  if (!esSi(v(C.AVAILABILITY_ASSISTANCE))) return "no se compromete al 80 % de asistencia";
+  const sinAceptar = DECLARACIONES_REQUERIDAS.filter(d => !esSi(v(d)));
+  if (sinAceptar.length > 0) return `no aceptó ${sinAceptar.length} declaración(es) del formulario`;
+
+  if (esSi(v(C.PREV_FAILED))) return "reprobó un curso PUCV2English";
+  if (esSi(v(C.PREV_WITHDREW))) return "renunció a la beca después de la primera semana";
+  if (esSi(v(C.PREV_C1))) return "ya cursó el nivel C1";
+  if (/\b(dos|tres|cuatro|[2-9])\b|m[aá]s de/i.test(v(C.PREV_COURSES))) return "completó dos o más cursos del programa";
+
+  if (/estudiante|alumno/i.test(tipo) && /^no$/i.test(v(C.ENROLLED))) return "estudiante sin matrícula vigente";
+  if (esEstudiante(tipo) && !/aprob|exim/i.test(v(C.PILE_STATUS))) return "no aprobó ni se eximió de los cursos obligatorios de inglés del PILE";
+  return null;
+}
+
 function calcularPuntajeCertificado(fila: any[], idxs: Record<string, number>): number {
   const txt = obtenerValor(fila, CONFIG.COLUMNS.CERTIFICATE_LEVEL, idxs);
-  if (/no sé|no se|no tengo/i.test(txt)) return 0;
+  if (!txt || /no sé|no se|no tengo/i.test(txt)) return 0; // sin respuesta o sin certificado Cambridge
   if (/C1/i.test(txt)) return 5;
   if (/B2\.2/i.test(txt)) return 4;
-  if (/B2\.1/i.test(txt)) return 3;
-  if (/B2/i.test(txt)) return 3;
-  if (/\bexim/i.test(txt)) return 3;
-  if (/B1\+/i.test(txt)) return 2;
-  if (/B1/i.test(txt)) return 2;
-  if (/inglés 4|ingles 4/i.test(txt)) return 2;
+  if (/B2/i.test(txt) || /\bexim/i.test(txt)) return 3;
+  if (/B1/i.test(txt) || /ingl[eé]s 4/i.test(txt)) return 2;
   return 1;
 }
 
-function calcularPuntajeAnioIngreso(fila: any[], tipo: string, idxs: Record<string, number>): number {
-  const anio = parseInt(obtenerValor(fila, CONFIG.COLUMNS.ENTRY_YEAR, idxs), 10);
-  const current = new Date().getFullYear();
+/**
+ * Año en que comienza el programa, tomado de FECHA_INICIO (hoja Configuración).
+ * shortcut: si FECHA_INICIO no trae año se usa el año actual; actualizar FECHA_INICIO en cada convocatoria.
+ */
+function anioDelPrograma(): number {
+  const m = String(PROGRAM_DATA.FECHA_INICIO || "").match(/\d{4}/);
+  return m ? parseInt(m[0], 10) : new Date().getFullYear();
+}
 
-  if (esEstudiante(tipo)) {
-    if (anio === current - 2) return 2;
-    if (anio === current - 1) return 1.5;
-    if (anio === current - 3) return 1;
-    if (anio === current) return 0.5;
-    return 0;
-  } else {
-    if (anio < current - 10) return 2;
-    if (anio < current - 5) return 1;
-    return 0.5;
-  }
+function calcularPuntajeAnioIngreso(fila: any[], tipo: string, idxs: Record<string, number>): number {
+  // Bases n.º 7.2 y 7.3: solo pregrado; se prioriza a quienes cursan desde el tercer año de su carrera
+  if (!esEstudiante(tipo)) return 0;
+  const anio = parseInt(obtenerValor(fila, CONFIG.COLUMNS.ENTRY_YEAR, idxs), 10);
+  if (isNaN(anio)) return 0;
+  const programa = anioDelPrograma();
+  if (anio <= programa - 2) return 2;    // 3.er año o superior
+  if (anio === programa - 1) return 0.5; // 2.º año
+  return 0;                              // 1.er año
 }
 
 function applyConditionalFormattingToScores(sheet: GoogleAppsScript.Spreadsheet.Sheet, rowCount: number): void {
@@ -531,7 +556,7 @@ function getAnalysisReport(): string {
 
     lineas.push("\nSeleccionados por Nivel:");
     ["B1+", "B2.1", "B2.2", "C1"].forEach(nivel => {
-      lineas.push(`  - ${nivel}: ${distNivel[nivel] || 0} / 15`);
+      lineas.push(`  - ${nivel}: ${distNivel[nivel] || 0} / ${CUPOS_CONVOCATORIA_ABIERTA[nivel]}`);
     });
 
     return lineas.join("\n");
@@ -559,12 +584,8 @@ function obtenerNivelDesdeFila(fila: any[], idxs: Record<string, number>): strin
   // Normalize mapping
   if (/C1/i.test(txt)) return "C1";
   if (/B2\.2/i.test(txt)) return "B2.2";
-  if (/B2\.1/i.test(txt)) return "B2.1";
-  if (/\bexim/i.test(txt)) return "B2.1";
-  if (/B2/i.test(txt)) return "B2.1"; // Map generic B2 to B2.1
-  if (/B1\+/i.test(txt)) return "B1+";
-  if (/B1/i.test(txt)) return "B1+"; // Map generic B1 to B1+
-  if (/inglés 4|ingles 4/i.test(txt)) return "B1+";
+  if (/B2/i.test(txt) || /\bexim/i.test(txt)) return "B2.1";
+  if (/B1/i.test(txt) || /ingl[eé]s 4/i.test(txt)) return "B1+";
 
   return "B1+"; // Default fallback
 }
