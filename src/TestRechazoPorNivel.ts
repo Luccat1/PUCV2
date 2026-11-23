@@ -7,7 +7,7 @@
 
 // Forward declaration for RechazoPorNivel.ts (implemented in Plan 03-03).
 // At GAS runtime all .ts files compile into one global scope — this function will exist.
-declare function enviarCorreosRechazoPorNivel(): string;
+declare function enviarCorreosRechazoPorNivel_(): string;
 
 /**
  * NIVEL-01, NIVEL-02: Verifies that a student with "Test de nivel" and a valid
@@ -89,13 +89,13 @@ function testGenerarListaFinal_SinResultado(): void {
 }
 
 /**
- * NIVEL-05: Verifies that renderCorreoInicioClases() output contains the exact
+ * NIVEL-05: Verifies that renderCorreoInicioClases_() output contains the exact
  * nivel-assignment phrase defined in D-08.
  *
  * No sheet setup required — uses HtmlService directly.
  */
 function testRenderCorreoInicioClases_FraseNivel(): void {
-  const html = renderCorreoInicioClases({
+  const html = renderCorreoInicioClases_({
     nombre: "Test Usuario",
     nivel: "B2.1",
     catedra: "Lunes 14:00–16:00",
@@ -116,7 +116,7 @@ function testRenderCorreoInicioClases_FraseNivel(): void {
 }
 
 /**
- * NIVEL-06: Verifies idempotency of enviarCorreosRechazoPorNivel().
+ * NIVEL-06: Verifies idempotency of enviarCorreosRechazoPorNivel_().
  * On second call, should return "No hay destinatarios pendientes" (0 sends).
  *
  * SETUP REQUIRED: At least one row in "Prueba de Nivel" with "Nivel Insuficiente" = "Sí"
@@ -126,11 +126,11 @@ function testRenderCorreoInicioClases_FraseNivel(): void {
  */
 function testEnviarCorreosRechazoPorNivel_Idempotencia(): void {
   // First call — sends to any pending recipients
-  const result1 = enviarCorreosRechazoPorNivel();
+  const result1 = enviarCorreosRechazoPorNivel_();
   Logger.log("[NIVEL-06] First call result: " + result1);
 
   // Second call — should find no pending recipients (all already sent)
-  const result2 = enviarCorreosRechazoPorNivel();
+  const result2 = enviarCorreosRechazoPorNivel_();
   Logger.log("[NIVEL-06] Second call result: " + result2);
 
   const isIdempotent = result2.includes("No hay destinatarios pendientes") || result2.includes("0 correos");

@@ -7,7 +7,7 @@
  * Generates the final list of course participants who have accepted and have an assigned level.
  */
 function generarListaFinalCurso(): string {
-  const ss = getSpreadsheet();
+  const ss = getSpreadsheet_();
   const hojaS = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
   if (!hojaS) return "Error: Hoja 'Seleccionados' no encontrada.";
 
@@ -15,13 +15,13 @@ function generarListaFinalCurso(): string {
   const headers = datosS.shift();
   if (!headers) return "Error: Hoja vacía.";
 
-  const idxNombre = headers.indexOf("Nombre(s)");
-  const idxApellido = headers.indexOf("Apellido(s)");
-  const idxCorreo = headers.indexOf("Correo Electrónico");
-  const idxNivel = headers.indexOf("Nivel Asignado");
-  const idxAceptacion = headers.indexOf("Aceptación");
-  const idxVerificacion = headers.indexOf("Verificación Certificado");
-  const idxPago = headers.indexOf("Pago Matrícula");
+  const idxNombre = headers.indexOf(HEADERS.FIRST_NAME);
+  const idxApellido = headers.indexOf(HEADERS.LAST_NAME);
+  const idxCorreo = headers.indexOf(HEADERS.EMAIL);
+  const idxNivel = headers.indexOf(HEADERS.LEVEL_ASSIGNED);
+  const idxAceptacion = headers.indexOf(HEADERS.ACCEPTANCE);
+  const idxVerificacion = headers.indexOf(HEADERS.CERT_VERIFICATION);
+  const idxPago = headers.indexOf(HEADERS.PAYMENT);
 
   // Filter: Candidate must have Accepted (Aceptación === 'Acepta') AND paid matriculation (Pago Matrícula === 'Pagado')
   // and either have an assigned level or be scheduled for a placement test.
@@ -38,7 +38,7 @@ function generarListaFinalCurso(): string {
 
   // Read "Prueba de Nivel" once before the loop for O(1) lookup (NIVEL-01 through NIVEL-04)
   const placSheet = ss.getSheetByName(CONFIG.SHEETS.PLACEMENT);
-  const placMap   = _buildPlacementEmailMap(placSheet);
+  const placMap   = buildPlacementEmailMap_(placSheet);
 
   const pendingTestEmails: string[] = [];
 
@@ -61,7 +61,7 @@ function generarListaFinalCurso(): string {
         nivel = resultado;
       } else {
         // NIVEL-03: insufficient level — mark in placement sheet, exclude from list
-        if (placSheet) _markNivelInsuficiente(placSheet, correo);
+        if (placSheet) markNivelInsuficiente_(placSheet, correo);
         return; // skip — do NOT push to grupos
       }
     }
@@ -81,9 +81,9 @@ function generarListaFinalCurso(): string {
       const idxNameC = headersC.indexOf("Name");
       const idxSurnameC = headersC.indexOf("Surname");
       let idxCorreoC = headersC.indexOf("Email");
-      if (idxCorreoC === -1) idxCorreoC = headersC.indexOf("Correo Electrónico");
+      if (idxCorreoC === -1) idxCorreoC = headersC.indexOf(HEADERS.EMAIL);
       const idxCursoC = headersC.indexOf("Curso");
-      const idxAceptacionC = headersC.indexOf("Aceptación");
+      const idxAceptacionC = headersC.indexOf(HEADERS.ACCEPTANCE);
 
       if (idxCursoC !== -1 && idxAceptacionC !== -1) {
         datosC.forEach(row => {
@@ -116,7 +116,7 @@ function generarListaFinalCurso(): string {
   else hojaF.clear();
 
   const finalRows: any[][] = [];
-  const HEADER = ["Apellido(s)", "Nombre(s)", "Correo", "Nivel", "Pagó (Sí/No)", "Sala", "Notificado Inicio"];
+  const HEADER = [HEADERS.LAST_NAME, HEADERS.FIRST_NAME, "Correo", "Nivel", "Pagó (Sí/No)", "Sala", "Notificado Inicio"];
   finalRows.push(HEADER);
 
   Object.keys(grupos).sort().forEach(nivel => {
@@ -148,7 +148,7 @@ function generarListaFinalCurso(): string {
  * Email keys are normalized to lowercase for case-insensitive match.
  * @param placSheet - The "Prueba de Nivel" sheet, or null if it doesn't exist.
  */
-function _buildPlacementEmailMap(
+function buildPlacementEmailMap_(
   placSheet: GoogleAppsScript.Spreadsheet.Sheet | null
 ): Map<string, string> {
   const map = new Map<string, string>();
@@ -169,7 +169,7 @@ function _buildPlacementEmailMap(
  * @param placSheet - The "Prueba de Nivel" sheet (must not be null — caller guards).
  * @param emailLower - Normalized (lowercase) student email to match.
  */
-function _markNivelInsuficiente(
+function markNivelInsuficiente_(
   placSheet: GoogleAppsScript.Spreadsheet.Sheet,
   emailLower: string
 ): void {

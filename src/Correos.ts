@@ -4,9 +4,93 @@
  */
 
 /**
+ * Tipos de correo masivo. Para agregar uno: una entrada en CORREOS, su rama en getRecipients_()
+ * y un ítem de menú. TypeScript falla si falta alguna entrada.
+ * Solo texto y claves de CONFIG (no CONFIG directo): así no depende del orden en que Apps Script carga los archivos.
+ */
+type TipoCorreo = 'SELECTED' | 'TEST_LEVEL_ONLY' | 'HAND_PICKED' | 'WAITLIST' | 'WAITLIST_REJECTED' | 'NO_SELECTED' | 'CONTINUATION';
+
+interface IDefCorreo {
+  plantilla: string;
+  asunto: string;
+  asuntoPrueba: string;
+  /** Clave de CONFIG.SHEETS de la hoja con los destinatarios y el sello de notificación. */
+  hoja: keyof IConfig['SHEETS'];
+  /** Clave de CONFIG.COLUMNS de la columna donde se sella la fecha de envío. */
+  columnaSello: string;
+  /** La plantilla trae los enlaces de aceptar y rechazar. */
+  conToken: boolean;
+}
+
+const CORREOS: Record<TipoCorreo, IDefCorreo> = {
+  SELECTED: {
+    plantilla: 'CorreoSeleccionado', asunto: "Resultado de Postulación Programas de Inglés PUCV", asuntoPrueba: "[TEST] Resultado Postulación PUCV",
+    hoja: 'SELECTED', columnaSello: 'NOTIFICATION_DATE', conToken: true
+  },
+  TEST_LEVEL_ONLY: {
+    plantilla: 'CorreoTestNivel', asunto: "Test de Nivel - Programas de Inglés PUCV", asuntoPrueba: "[TEST] Test de Nivel - PUCV",
+    hoja: 'SELECTED', columnaSello: 'NOTIFICATION_DATE', conToken: true
+  },
+  HAND_PICKED: {
+    plantilla: 'CorreoHandPicked', asunto: "Cupo Disponible - Programas de Inglés PUCV", asuntoPrueba: "[TEST] Cupo Disponible - PUCV",
+    hoja: 'SELECTED', columnaSello: 'NOTIFICATION_DATE', conToken: true
+  },
+  WAITLIST: {
+    plantilla: 'CorreoListaEspera', asunto: "Resultado de Postulación Programas de Inglés PUCV", asuntoPrueba: "[TEST] Lista de Espera - PUCV",
+    hoja: 'WAITLIST', columnaSello: 'NOTIFICATION_DATE', conToken: false
+  },
+  WAITLIST_REJECTED: {
+    plantilla: 'CorreoEsperaSinCupo', asunto: "Cierre de Proceso - Lista de Espera PUCV2English", asuntoPrueba: "[TEST] Cierre de Proceso - Lista de Espera PUCV2English",
+    hoja: 'WAITLIST', columnaSello: 'CLOSURE_NOTIFICATION_DATE', conToken: false
+  },
+  NO_SELECTED: {
+    plantilla: 'CorreoNoSeleccionado', asunto: "Resultado de Postulación Programas de Inglés PUCV", asuntoPrueba: "[TEST] Resultado de Postulación - PUCV",
+    hoja: 'OUTPUT', columnaSello: 'REJECTION_NOTIFICATION_DATE', conToken: false
+  },
+  CONTINUATION: {
+    plantilla: 'CorreoContinuacion', asunto: "Acceso Preferencial de Continuación - PUCV2English", asuntoPrueba: "[TEST] Acceso Preferencial de Continuación - PUCV",
+    hoja: 'CONTINUATION', columnaSello: 'NOTIFICATION_DATE', conToken: true
+  }
+};
+
+/** Correos que no son lotes de este módulo pero sí se prueban con sendTestEmail(). */
+const CORREOS_PRUEBA_EXTRA: Record<string, { plantilla: string; asunto: string }> = {
+  CONFIRM_ACCEPT: { plantilla: 'CorreoConfirmacionAcepta', asunto: "[TEST] Confirmación de Aceptación - PUCV" },
+  CONFIRM_REJECT: { plantilla: 'CorreoConfirmacionRechaza', asunto: "[TEST] Confirmación de Liberación de Cupo - PUCV" },
+  CLASS_START: { plantilla: 'CorreoInicioClases', asunto: "[TEST] Inicio de Clases - PUCV" },
+  RECHAZO_NIVEL: { plantilla: 'CorreoRechazoPorNivel', asunto: "[TEST] Resultado de Prueba de Nivel - PUCV" }
+};
+
+interface IDestinatarioCorreo extends IDestinatarioLote {
+  nombre: string;
+  nivel?: string;
+  cursoAnterior?: string;
+  nivelSiguiente?: string | null;
+}
+
+/** Variables que usan casi todas las plantillas. */
+function varsComunes_(): Record<string, unknown> {
+  const plazo = calcularFechaLimite_(new Date(), PROGRAM_DATA.DEADLINE_DAYS || 3);
+  return {
+    programData: PROGRAM_DATA,
+    fechaLimite: plazo,
+    fechaPagoLimite: plazo,
+    paymentUrl: PROGRAM_DATA.PAYMENT_URL || "https://www.mercadopago.cl/link-pago-matricula"
+  };
+}
+
+/** Enlaces de aceptar/rechazar para un token de postulante. */
+function varsToken_(token: string): Record<string, string> {
+  return {
+    urlAceptar: obtenerUrlConfirmacionConToken_(token, 'accept'),
+    urlRechazar: obtenerUrlConfirmacionConToken_(token, 'reject')
+  };
+}
+
+/**
  * Orchestrator called from Web App for batch sending.
  */
-function ejecutarEnvioCorreosDesdeWebApp(): string {
+function ejecutarEnvioCorreosDesdeWebApp_(): string {
   // Logic from original: defaults to 'SELECTED' batch
   return sendEmailBatch('SELECTED');
 }
@@ -18,28 +102,22 @@ function ejecutarEnvioCorreosDesdeWebApp(): string {
  * Retrieves recipients data based on type (SELECTED, TEST_LEVEL_ONLY, WAITLIST, NO_SELECTED).
  * Implements Plan 3.2.
  */
-function getRecipients(type: string): any[] {
-  const ss = getSpreadsheet();
-
+function getRecipients_(type: TipoCorreo): IDestinatarioCorreo[] {
   if (type === 'SELECTED' || type === 'TEST_LEVEL_ONLY' || type === 'HAND_PICKED') {
-    const hoja = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
-    if (!hoja) throw new Error(`Hoja ${CONFIG.SHEETS.SELECTED} no encontrada.`);
-    const datos = hoja.getDataRange().getValues();
-    const headers = datos.shift()!;
+    const h = leerHoja_(CONFIG.SHEETS.SELECTED);
+    const cCorreo = h.col(HEADERS.EMAIL);
+    const cNombre = h.col(HEADERS.FIRST_NAME);
+    const cNivel = h.col(HEADERS.LEVEL_ASSIGNED);
+    const cVerif = h.col(HEADERS.CERT_VERIFICATION);
+    const cNotif = h.colOpc(HEADERS.NOTIFICATION_DATE); // si falta, sendEmailBatch la crea antes de enviar
 
-    const idxCorreo = headers.indexOf("Correo Electrónico");
-    const idxNombre = headers.indexOf("Nombre(s)");
-    const idxNivel = headers.indexOf("Nivel Asignado");
-    const idxVerificacion = headers.indexOf("Verificación Certificado");
-    const idxNotificado = headers.indexOf(CONFIG.COLUMNS.NOTIFICATION_DATE);
-
-    return datos.map((row, i) => ({
-      index: i + 2, // 1-indexed + header row
-      nombre: row[idxNombre],
-      email: row[idxCorreo],
-      nivel: row[idxNivel],
-      verificacion: row[idxVerificacion],
-      notificado: row[idxNotificado]
+    return h.filas.map((row, i) => ({
+      rowNum: i + 2, // 1-indexed + header row
+      nombre: row[cNombre],
+      email: row[cCorreo],
+      nivel: row[cNivel],
+      verificacion: row[cVerif],
+      notificado: cNotif === -1 ? "" : row[cNotif]
     })).filter(p => {
       // Idempotency: skip if already notified
       if (p.notificado && p.notificado !== "") return false;
@@ -50,103 +128,49 @@ function getRecipients(type: string): any[] {
     });
   }
 
-  if (type === 'WAITLIST') {
-    const hoja = ss.getSheetByName(CONFIG.SHEETS.WAITLIST);
-    if (!hoja) throw new Error(`Hoja ${CONFIG.SHEETS.WAITLIST} no encontrada.`);
-    const datos = hoja.getDataRange().getValues();
-    const headers = datos.shift()!;
+  if (type === 'WAITLIST' || type === 'WAITLIST_REJECTED') {
+    const h = leerHoja_(CONFIG.SHEETS.WAITLIST);
+    const cCorreo = h.col(HEADERS.EMAIL);
+    const cNombre = h.col(HEADERS.FIRST_NAME);
+    const cNivel = h.col(HEADERS.LEVEL_APPLIED);
+    // WAITLIST sella "Fecha Notificación"; WAITLIST_REJECTED (cierre sin cupo) sella "Fecha Notificación Cierre"
+    const cNotif = h.col(type === 'WAITLIST' ? HEADERS.NOTIFICATION_DATE : HEADERS.CLOSURE_NOTIFICATION_DATE);
 
-    const idxCorreo = headers.indexOf("Correo Electrónico");
-    const idxNombre = headers.indexOf("Nombre(s)");
-    const idxNivel = headers.indexOf("Nivel Postulado");
-    const idxNotificado = headers.indexOf("Fecha Notificación");
-
-    if (idxCorreo === -1 || idxNombre === -1 || idxNivel === -1 || idxNotificado === -1) {
-      throw new Error(`Faltan columnas necesarias en la hoja de Lista de Espera.`);
-    }
-
-    return datos.map((row, i) => ({
-      index: i + 2, // 1-indexed + header row
-      nombre: row[idxNombre],
-      email: row[idxCorreo],
-      nivel: row[idxNivel],
-      notificado: row[idxNotificado]
+    return h.filas.map((row, i) => ({
+      rowNum: i + 2, // 1-indexed + header row
+      nombre: row[cNombre],
+      email: row[cCorreo],
+      nivel: row[cNivel],
+      notificado: row[cNotif]
     })).filter(p => {
       // Idempotency: skip if already notified
       return p.email && p.nombre && p.nivel && (!p.notificado || p.notificado === "");
     });
   }
 
-  if (type === 'WAITLIST_REJECTED') {
-    const hoja = ss.getSheetByName(CONFIG.SHEETS.WAITLIST);
-    if (!hoja) throw new Error(`Hoja ${CONFIG.SHEETS.WAITLIST} no encontrada.`);
-    const datos = hoja.getDataRange().getValues();
-    const headers = datos.shift()!;
-
-    const idxCorreo = headers.indexOf("Correo Electrónico");
-    const idxNombre = headers.indexOf("Nombre(s)");
-    const idxNivel = headers.indexOf("Nivel Postulado");
-    const idxNotificadoCierre = headers.indexOf("Fecha Notificación Cierre");
-
-    if (idxCorreo === -1 || idxNombre === -1 || idxNivel === -1 || idxNotificadoCierre === -1) {
-      throw new Error(`Faltan columnas necesarias en la hoja de Lista de Espera.`);
-    }
-
-    return datos.map((row, i) => ({
-      index: i + 2, // 1-indexed + header row
-      nombre: row[idxNombre],
-      email: row[idxCorreo],
-      nivel: row[idxNivel],
-      notificadoCierre: row[idxNotificadoCierre]
-    })).filter(p => {
-      // Idempotency: skip if already notified of closure rejection
-      return p.email && p.nombre && p.nivel && (!p.notificadoCierre || p.notificadoCierre === "");
-    });
-  }
-
   if (type === 'NO_SELECTED') {
-    const hojaOutput = ss.getSheetByName(CONFIG.SHEETS.OUTPUT);
-    const hojaSelected = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
-    const hojaWaitlist = ss.getSheetByName(CONFIG.SHEETS.WAITLIST);
-    if (!hojaOutput || !hojaSelected || !hojaWaitlist) {
-      throw new Error("Faltan hojas de evaluación, seleccionados o lista de espera.");
-    }
+    const salida = leerHoja_(CONFIG.SHEETS.OUTPUT);
+    const cCorreo = salida.col(HEADERS.EMAIL);
+    const cNombre = salida.col(HEADERS.FIRST_NAME);
+    const cNivel = salida.col(HEADERS.LEVEL_APPLIED);
+    const cRechazo = salida.colOpc(HEADERS.REJECTION_NOTIFICATION_DATE); // si falta, sendEmailBatch la crea antes de enviar
 
-    const valuesOutput = hojaOutput.getDataRange().getValues();
-    const headersOutput = valuesOutput.shift()!;
-    const idxCorreoOut = headersOutput.indexOf("Correo Electrónico");
-    const idxNombreOut = headersOutput.indexOf("Nombre(s)");
-    const idxNivelOut = headersOutput.indexOf("Nivel Postulado");
-    const colRejection = CONFIG.COLUMNS.REJECTION_NOTIFICATION_DATE || "Fecha Notificación Rechazo";
-    let idxNotificadoRechazo = headersOutput.indexOf(colRejection);
+    // Excluye a quienes ya están seleccionados o en lista de espera
+    const correosDe = (nombreHoja: string): Set<string> => {
+      const h = leerHoja_(nombreHoja);
+      const c = h.col(HEADERS.EMAIL);
+      return new Set(h.filas.map(row => String(row[c]).trim().toLowerCase()));
+    };
+    const emailsSelected = correosDe(CONFIG.SHEETS.SELECTED);
+    const emailsWaitlist = correosDe(CONFIG.SHEETS.WAITLIST);
 
-    if (idxCorreoOut === -1 || idxNombreOut === -1 || idxNivelOut === -1) {
-      throw new Error(`Faltan columnas esenciales en la hoja de evaluación.`);
-    }
-
-    if (idxNotificadoRechazo === -1) {
-      hojaOutput.getRange(1, headersOutput.length + 1).setValue(colRejection);
-      headersOutput.push(colRejection);
-      idxNotificadoRechazo = headersOutput.length - 1;
-    }
-
-    const valS = hojaSelected.getDataRange().getValues();
-    const headS = valS.shift() || [];
-    const idxS = headS.indexOf("Correo Electrónico");
-    const emailsSelected = new Set(valS.map(row => String(row[idxS]).trim().toLowerCase()));
-
-    const valW = hojaWaitlist.getDataRange().getValues();
-    const headW = valW.shift() || [];
-    const idxW = headW.indexOf("Correo Electrónico");
-    const emailsWaitlist = new Set(valW.map(row => String(row[idxW]).trim().toLowerCase()));
-
-    return valuesOutput
+    return salida.filas
       .map((row, i) => ({
-        index: i + 2,
-        nombre: row[idxNombreOut],
-        email: row[idxCorreoOut],
-        nivel: row[idxNivelOut],
-        notificado: idxNotificadoRechazo !== -1 ? row[idxNotificadoRechazo] : ""
+        rowNum: i + 2,
+        nombre: row[cNombre],
+        email: row[cCorreo],
+        nivel: row[cNivel],
+        notificado: cRechazo === -1 ? "" : row[cRechazo]
       }))
       .filter(p => {
         const email = String(p.email || "").trim().toLowerCase();
@@ -158,47 +182,37 @@ function getRecipients(type: string): any[] {
   }
 
   if (type === 'CONTINUATION') {
-    const hoja = ss.getSheetByName(CONFIG.SHEETS.CONTINUATION);
-    if (!hoja) throw new Error(`Hoja ${CONFIG.SHEETS.CONTINUATION} no encontrada.`);
-    const datos = hoja.getDataRange().getValues();
-    const headers = datos.shift();
-    if (!headers) return [];
+    const h = leerHoja_(CONFIG.SHEETS.CONTINUATION);
+    const cName = h.col("Name");
+    const cSurname = h.col("Surname");
+    const cCurso = h.col("Curso");
+    const cAsistencia = h.col("Asistencia");
+    const cPromedio = h.col("Promedio Final");
+    const cEmail = h.colOpc("Email") !== -1 ? h.colOpc("Email") : h.colOpc(HEADERS.EMAIL);
+    const cNotif = h.colOpc(HEADERS.NOTIFICATION_DATE);
 
-    const idxName = headers.indexOf("Name");
-    const idxSurname = headers.indexOf("Surname");
-    const idxCurso = headers.indexOf("Curso");
-    const idxAsistencia = headers.indexOf("Asistencia");
-    const idxPromedio = headers.indexOf("Promedio Final");
-    let idxEmail = headers.indexOf("Email");
-    if (idxEmail === -1) idxEmail = headers.indexOf("Correo Electrónico");
-    const idxNotificado = headers.indexOf(CONFIG.COLUMNS.NOTIFICATION_DATE);
-
-    if (idxName === -1 || idxSurname === -1 || idxCurso === -1 || idxAsistencia === -1 || idxPromedio === -1) {
-      throw new Error(`Faltan columnas necesarias en la hoja de Continuación (Name, Surname, Curso, Asistencia, Promedio Final).`);
-    }
-
-    return datos.map((row, i) => {
-      const cursoRaw = String(row[idxCurso]).trim();
+    return h.filas.map((row, i) => {
+      const cursoRaw = String(row[cCurso]).trim();
       const cursoMatch = cursoRaw.match(/^(B1\+|B2\.1|B2\.2|C1)/i);
       const cursoNivel = cursoMatch ? cursoMatch[1] : cursoRaw.split(' ')[0];
 
-      const asistenciaRaw = String(row[idxAsistencia]).replace(',', '.');
+      const asistenciaRaw = String(row[cAsistencia]).replace(',', '.');
       const asistencia = parseFloat(asistenciaRaw) || 0;
 
-      const promedioRaw = String(row[idxPromedio]).replace(',', '.');
+      const promedioRaw = String(row[cPromedio]).replace(',', '.');
       const promedio = parseFloat(promedioRaw) || 0;
 
       const nivelSiguiente = CONTINUATION_MAP[cursoNivel] || null;
 
       return {
-        index: i + 2,
-        nombre: `${row[idxName]} ${row[idxSurname]}`.trim(),
-        email: idxEmail !== -1 ? String(row[idxEmail]).trim() : '',
+        rowNum: i + 2,
+        nombre: `${row[cName]} ${row[cSurname]}`.trim(),
+        email: cEmail !== -1 ? String(row[cEmail]).trim() : '',
         cursoAnterior: cursoNivel,
         nivelSiguiente: nivelSiguiente,
         asistencia: asistencia,
         promedio: promedio,
-        notificado: idxNotificado !== -1 ? row[idxNotificado] : ''
+        notificado: cNotif !== -1 ? row[cNotif] : ''
       };
     }).filter(p => {
       if (p.notificado && p.notificado !== '') return false;
@@ -210,288 +224,129 @@ function getRecipients(type: string): any[] {
     });
   }
 
-  return [];
+  throw new Error(`Tipo de correo desconocido: ${type}`);
 }
 
 /**
  * Returns a preview string for the batch.
  */
-function previewEmailBatch(type: string): string {
-  const recipients = getRecipients(type);
+function previewEmailBatch(type: TipoCorreo): string {
+  const recipients = getRecipients_(type);
   if (recipients.length === 0) return "No hay destinatarios que cumplan los requisitos para el envío de '" + type + "'.";
   return `Se enviarán ${recipients.length} correos de tipo '${type}'. Destinatarios: ${recipients.map(r => r.email).join(', ')}`;
 }
 
 /**
- * Sends a batch of emails using the appropriate template.
- * Updates "Fecha Notificación" on success.
- * @param type The category of recipients to notify.
- * @returns {string} Status message for the UI.
+ * Envía un lote de correos del tipo dado y sella "Fecha Notificación" en cada envío real.
+ * @param type Tipo de correo (clave de CORREOS).
+ * @param asDraft Crea borradores de Gmail en vez de enviar.
+ * @param limit Si es > 0, procesa solo los primeros N (muestra).
+ * @returns Mensaje para la UI.
  */
-function sendEmailBatch(type: string, asDraft: boolean = false, limit: number = 0): string {
-  cargarConfiguracionDesdeHoja();
-  let recipients = getRecipients(type);
+function sendEmailBatch(type: TipoCorreo, asDraft: boolean = false, limit: number = 0): string {
+  cargarConfiguracionDesdeHoja_();
+  const recipients = getRecipients_(type);
   if (recipients.length === 0) return "No hay destinatarios pendientes para enviar '" + type + "'.";
 
-  if (limit > 0) {
-    recipients = recipients.slice(0, limit);
+  const def = CORREOS[type];
+  const lote = limit > 0 ? recipients.slice(0, limit) : recipients;
+  const hojaSello = getSpreadsheet_().getSheetByName(CONFIG.SHEETS[def.hoja]);
+  if (!hojaSello) return `ERROR: Hoja ${CONFIG.SHEETS[def.hoja]} no encontrada.`;
+
+  // Si la plantilla lleva enlaces, falla una sola vez y antes de crear tokens (no una vez por destinatario)
+  if (def.conToken) {
+    try { urlBaseWebApp_(); } catch (e) { return "ERROR: " + mensajeError_(e); }
   }
 
-  // Gmail Quota Check
-  // QUAL-01 verified: MailApp.getRemainingDailyQuota() is the only GAS quota API. GmailApp has no quota method.
-  const quota = MailApp.getRemainingDailyQuota();
-  if (quota < recipients.length) {
-    return `ERROR: Cuota de Gmail insuficiente. Te quedan ${quota} envíos y quieres enviar ${recipients.length}.`;
-  }
+  // Todos los tokens de aceptar/rechazar en una sola escritura a Script Properties
+  const tokens: Record<string, string> = def.conToken ? generarTokensBatch_(lote.map(r => r.email)) : {};
 
-  const ss = getSpreadsheet();
-  const isWaitlist = (type === 'WAITLIST' || type === 'WAITLIST_REJECTED');
-  const isNoSelected = (type === 'NO_SELECTED');
-  let sheetName = CONFIG.SHEETS.SELECTED;
-  let colName = CONFIG.COLUMNS.NOTIFICATION_DATE;
-
-  if (isWaitlist) {
-    sheetName = CONFIG.SHEETS.WAITLIST;
-    colName = type === 'WAITLIST_REJECTED' ? "Fecha Notificación Cierre" : CONFIG.COLUMNS.NOTIFICATION_DATE;
-  } else if (isNoSelected) {
-    sheetName = CONFIG.SHEETS.OUTPUT;
-    colName = CONFIG.COLUMNS.REJECTION_NOTIFICATION_DATE || "Fecha Notificación Rechazo";
-  }
-
-  const hojaS = ss.getSheetByName(sheetName);
-  const headersS = hojaS?.getDataRange().getValues()[0];
-  let idxNotificado = headersS?.indexOf(colName);
-  if (isNoSelected && hojaS && (idxNotificado === undefined || idxNotificado === -1)) {
-    const lastCol = hojaS.getLastColumn();
-    hojaS.getRange(1, lastCol + 1).setValue(colName);
-    idxNotificado = lastCol;
-  }
-
-  let count = 0;
-  let ultimosErrores: string[] = [];
-
-  // Batch generate tokens for templates that need them (Fix #13)
-  const typesWithTokens = ['SELECTED', 'TEST_LEVEL_ONLY', 'HAND_PICKED', 'CONTINUATION'];
-  const tokenMap: Record<string, string> = typesWithTokens.includes(type) ?
-    generarTokensBatch(recipients.map(r => r.email)) : {};
-
-  // Cache continuation sheet lookup outside loop (Fix #17)
-  const hojaCont = type === 'CONTINUATION' ? ss.getSheetByName(CONFIG.SHEETS.CONTINUATION) : null;
-  const idxNotifCont = hojaCont ? hojaCont.getDataRange().getValues()[0].indexOf(CONFIG.COLUMNS.NOTIFICATION_DATE) : -1;
-  
-  recipients.forEach(r => {
-    try {
-      let templateName = 'CorreoSeleccionado';
-      let subject = "Resultado de Postulación Programas de Inglés PUCV";
-
-      if (type === 'TEST_LEVEL_ONLY') {
-        templateName = 'CorreoTestNivel';
-        subject = "Test de Nivel - Programas de Inglés PUCV";
-      } else if (type === 'WAITLIST') {
-        templateName = 'CorreoListaEspera';
-      } else if (type === 'WAITLIST_REJECTED') {
-        templateName = 'CorreoEsperaSinCupo';
-        subject = "Cierre de Proceso - Lista de Espera PUCV2English";
-      } else if (type === 'NO_SELECTED') {
-        templateName = 'CorreoNoSeleccionado';
-      } else if (type === 'HAND_PICKED') {
-        templateName = 'CorreoHandPicked';
-        subject = "Cupo Disponible - Programas de Inglés PUCV";
-      } else if (type === 'CONTINUATION') {
-        templateName = 'CorreoContinuacion';
-        subject = "Acceso Preferencial de Continuación - PUCV2English";
-      }
-
-      const htmlBody = HtmlService.createTemplateFromFile(templateName);
-      (htmlBody as any).nombre = r.nombre;
-      (htmlBody as any).nivel = r.nivel;
-      (htmlBody as any).programData = PROGRAM_DATA;
-      (htmlBody as any).fechaLimite = calcularFechaLimite(new Date(), PROGRAM_DATA.DEADLINE_DAYS || 3);
-
-      if (templateName === 'CorreoSeleccionado' || templateName === 'CorreoHandPicked' || templateName === 'CorreoTestNivel') {
-        const token = tokenMap[r.email] || generarToken(r.email);
-        (htmlBody as any).urlAceptar = obtenerUrlConfirmacionConToken(token, 'accept');
-        (htmlBody as any).urlRechazar = obtenerUrlConfirmacionConToken(token, 'reject');
-      } else if (templateName === 'CorreoContinuacion') {
-        (htmlBody as any).cursoAnterior = r.cursoAnterior;
-        (htmlBody as any).nivelSiguiente = r.nivelSiguiente;
-        const token = tokenMap[r.email] || generarToken(r.email);
-        (htmlBody as any).urlAceptar = obtenerUrlConfirmacionConToken(token, 'accept');
-        (htmlBody as any).urlRechazar = obtenerUrlConfirmacionConToken(token, 'reject');
-      }
-
-      const finishedHtml = htmlBody.evaluate().getContent();
-
-      if (asDraft) {
-        GmailApp.createDraft(r.email, subject, "", {
-          htmlBody: finishedHtml
-        });
-      } else {
-        GmailApp.sendEmail(r.email, subject, "", {
-          htmlBody: finishedHtml
-        });
-
-        // Update notification date for idempotency only when sending real emails
-        if (type === 'CONTINUATION') {
-          if (hojaCont && idxNotifCont !== -1) {
-            hojaCont.getRange(r.index, idxNotifCont + 1).setValue(new Date());
-          }
-        } else if (hojaS && idxNotificado !== undefined && idxNotificado !== -1) {
-          hojaS.getRange(r.index, idxNotificado + 1).setValue(new Date());
-        }
-      }
-
-      count++;
-    } catch (e: any) {
-      logToWebApp(`Error enviando a ${r.email}: ${e.message}`);
-      ultimosErrores.push(`[${r.email}]: ${e.message}`);
-    }
+  return enviarLote_({
+    etiqueta: `tipo '${type}'`,
+    destinatarios: lote,
+    asunto: def.asunto,
+    html: r => renderPlantilla_(def.plantilla, {
+      ...varsComunes_(),
+      nombre: r.nombre,
+      nivel: r.nivel,
+      cursoAnterior: r.cursoAnterior,
+      nivelSiguiente: r.nivelSiguiente,
+      ...(def.conToken ? varsToken_(tokens[r.email] || generarToken_(r.email)) : {})
+    }),
+    hojaSello,
+    columnaSello: asegurarColumna_(hojaSello, CONFIG.COLUMNS[def.columnaSello]),
+    asBorrador: asDraft,
+    limite: limit
   });
-
-  const verb = asDraft ? "crearon" : "enviaron";
-  const noun = asDraft ? "borradores" : "correos";
-
-  if (ultimosErrores.length > 0) {
-    return `Se ${verb} ${count} ${noun}.\n\nSin embargo, hubo ${ultimosErrores.length} errores. Algunos de ellos son:\n${ultimosErrores.slice(0, 3).join('\n')}`;
-  }
-
-  return `Se ${verb} ${count} ${noun} exitosamente para el lote '${type}'.`;
 }
 
 /**
  * Sends a targeted notification email to a single selected/promoted candidate.
  * Prevents mass accidental emailing to unnotified candidates in Seleccionados.
  */
-function enviarCorreoIndividualSeleccionado(email: string, nombre: string, nivel: string, rowNum?: number): void {
-  cargarConfiguracionDesdeHoja();
-  const quota = MailApp.getRemainingDailyQuota();
-  if (quota < 1) {
-    logToWebApp(`Error: Cuota de Gmail insuficiente para enviar correo a ${email}.`);
-    return;
-  }
+function enviarCorreoIndividualSeleccionado_(email: string, nombre: string, nivel: string, rowNum?: number): void {
+  cargarConfiguracionDesdeHoja_();
+  const def = CORREOS.SELECTED;
+  const hoja = getSpreadsheet_().getSheetByName(CONFIG.SHEETS.SELECTED);
 
-  const subject = "Resultado de Postulación Programas de Inglés PUCV";
-  const htmlBody = HtmlService.createTemplateFromFile('CorreoSeleccionado');
-  (htmlBody as any).nombre = nombre;
-  (htmlBody as any).nivel = nivel;
-  (htmlBody as any).programData = PROGRAM_DATA;
-  (htmlBody as any).fechaLimite = calcularFechaLimite(new Date(), PROGRAM_DATA.DEADLINE_DAYS || 3);
-
-  const token = generarToken(email);
-  (htmlBody as any).urlAceptar = obtenerUrlConfirmacionConToken(token, 'accept');
-  (htmlBody as any).urlRechazar = obtenerUrlConfirmacionConToken(token, 'reject');
-
-  const finishedHtml = htmlBody.evaluate().getContent();
-  GmailApp.sendEmail(email, subject, "", {
-    htmlBody: finishedHtml
+  const resultado = enviarLote_({
+    etiqueta: "aviso a candidato promovido",
+    destinatarios: [{ email, rowNum: rowNum || 0 }],
+    asunto: def.asunto,
+    html: () => renderPlantilla_(def.plantilla, { ...varsComunes_(), ...varsToken_(generarToken_(email)), nombre, nivel }),
+    hojaSello: hoja,
+    columnaSello: hoja && rowNum ? asegurarColumna_(hoja, CONFIG.COLUMNS.NOTIFICATION_DATE) : 0
   });
-
-  if (rowNum && rowNum > 0) {
-    const ss = getSpreadsheet();
-    const hojaS = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
-    if (hojaS) {
-      const headersS = hojaS.getDataRange().getValues()[0];
-      const idxNotificado = headersS.indexOf(CONFIG.COLUMNS.NOTIFICATION_DATE);
-      if (idxNotificado !== -1) {
-        hojaS.getRange(rowNum, idxNotificado + 1).setValue(new Date());
-      }
-    }
-  }
+  logToWebApp_(resultado);
 }
 
 
 /**
  * Sends a single test email.
+ * @param type Clave de CORREOS, de CORREOS_PRUEBA_EXTRA, 'CADENA_COMPLETA' (todos) o el nombre de una plantilla "Correo...".
  */
 function sendTestEmail(targetEmail: string, type: string): string {
   try {
-    cargarConfiguracionDesdeHoja();
+    cargarConfiguracionDesdeHoja_();
     if (type === 'CADENA_COMPLETA') {
-      const types = [
-        'SELECTED',
-        'TEST_LEVEL_ONLY',
-        'HAND_PICKED',
-        'WAITLIST',
-        'NOT_SELECTED',
-        'CONFIRM_ACCEPT',
-        'CONFIRM_REJECT',
-        'CLASS_START',
-        'CONTINUATION'
-      ];
-      types.forEach(t => {
-        sendTestEmail(targetEmail, t);
-      });
-      return `Cadena completa de ${types.length} correos de prueba enviada a ${targetEmail}`;
+      const tipos = [...Object.keys(CORREOS), ...Object.keys(CORREOS_PRUEBA_EXTRA)];
+      tipos.forEach(t => sendTestEmail(targetEmail, t));
+      return `Cadena completa de ${tipos.length} correos de prueba enviada a ${targetEmail}`;
     }
 
-    let templateName = 'CorreoSeleccionado';
-    let subject = "[TEST] Resultado Postulación PUCV";
+    if (type === 'NOT_SELECTED') type = 'NO_SELECTED'; // nombre antiguo que aún usa el panel web
+    const lote = CORREOS[type as TipoCorreo];
+    const def = lote ? { plantilla: lote.plantilla, asunto: lote.asuntoPrueba } : CORREOS_PRUEBA_EXTRA[type]
+      || (type && type.startsWith('Correo') ? { plantilla: type, asunto: "[TEST] " + type } : null);
+    if (!def) return `Error en test: tipo de correo desconocido '${type}'`;
 
-    if (type === 'TEST_LEVEL_ONLY') {
-      templateName = 'CorreoTestNivel';
-      subject = "[TEST] Test de Nivel - PUCV";
-    } else if (type === 'WAITLIST') {
-      templateName = 'CorreoListaEspera';
-      subject = "[TEST] Lista de Espera - PUCV";
-    } else if (type === 'NO_SELECTED' || type === 'NOT_SELECTED') {
-      templateName = 'CorreoNoSeleccionado';
-      subject = "[TEST] Resultado de Postulación - PUCV";
-    } else if (type === 'HAND_PICKED') {
-      templateName = 'CorreoHandPicked';
-      subject = "[TEST] Cupo Disponible - PUCV";
-    } else if (type === 'CONFIRM_ACCEPT') {
-      templateName = 'CorreoConfirmacionAcepta';
-      subject = "[TEST] Confirmación de Aceptación - PUCV";
-    } else if (type === 'CONFIRM_REJECT') {
-      templateName = 'CorreoConfirmacionRechaza';
-      subject = "[TEST] Confirmación de Liberación de Cupo - PUCV";
-    } else if (type === 'CLASS_START') {
-      templateName = 'CorreoInicioClases';
-      subject = "[TEST] Inicio de Clases - PUCV";
-    } else if (type === 'CONTINUATION') {
-      templateName = 'CorreoContinuacion';
-      subject = "[TEST] Acceso Preferencial de Continuación - PUCV";
-    } else if (type && type.startsWith('Correo')) {
-      templateName = type;
-    }
-
-    const htmlBody = HtmlService.createTemplateFromFile(templateName);
-    (htmlBody as any).nombre = "Usuario de Prueba";
-    (htmlBody as any).nivel = "B2.1";
-    (htmlBody as any).programData = PROGRAM_DATA;
-    (htmlBody as any).fechaLimite = calcularFechaLimite(new Date(), PROGRAM_DATA.DEADLINE_DAYS || 3);
-    (htmlBody as any).fechaPagoLimite = calcularFechaLimite(new Date(), PROGRAM_DATA.DEADLINE_DAYS || 3);
-    (htmlBody as any).paymentUrl = PROGRAM_DATA.PAYMENT_URL || "https://www.mercadopago.cl/link-pago-matricula";
-    const token = generarToken(targetEmail);
-    (htmlBody as any).urlAceptar = obtenerUrlConfirmacionConToken(token, 'accept');
-    (htmlBody as any).urlRechazar = obtenerUrlConfirmacionConToken(token, 'reject');
-    
-    (htmlBody as any).cursoAnterior = "B1+";
-    (htmlBody as any).nivelSiguiente = "B2.1";
-    
-    // Add dummy variables for CorreoInicioClases template backed by program data config
-    const levelHorario = PROGRAM_DATA.HORARIOS["B2.1"] || PROGRAM_DATA.HORARIOS["Default"];
-    (htmlBody as any).catedra = levelHorario ? levelHorario.catedra : "Lunes y Miércoles 14:30 - 16:00";
-    (htmlBody as any).ayudantia = levelHorario ? levelHorario.ayudantia : "Viernes 14:30 - 16:00";
-    (htmlBody as any).sala = "Sala 2-3 (Casa Central)";
-    (htmlBody as any).fechaInicio = PROGRAM_DATA.FECHA_INICIO || "Lunes, 30 de Marzo";
-    (htmlBody as any).fechaTermino = PROGRAM_DATA.FECHA_TERMINO || "Viernes, 10 de Julio";
-
-    const finishedHtml = htmlBody.evaluate().getContent();
-
-    GmailApp.sendEmail(targetEmail, subject, "", {
-      htmlBody: finishedHtml
+    // Datos de ejemplo para todas las plantillas (las que no los usan los ignoran)
+    const horario = PROGRAM_DATA.HORARIOS["B2.1"] || PROGRAM_DATA.HORARIOS["Default"];
+    const html = renderPlantilla_(def.plantilla, {
+      ...varsComunes_(),
+      ...varsToken_(generarToken_(targetEmail)),
+      nombre: "Usuario de Prueba",
+      nivel: "B2.1",
+      cursoAnterior: "B1+",
+      nivelSiguiente: "B2.1",
+      catedra: horario ? horario.catedra : "Lunes y Miércoles 14:30 - 16:00",
+      ayudantia: horario ? horario.ayudantia : "Viernes 14:30 - 16:00",
+      sala: "Sala 2-3 (Casa Central)",
+      fechaInicio: PROGRAM_DATA.FECHA_INICIO || "Lunes, 30 de Marzo",
+      fechaTermino: PROGRAM_DATA.FECHA_TERMINO || "Viernes, 10 de Julio"
     });
-    return `Correo de prueba (${templateName}) enviado a ${targetEmail}`;
-  } catch (e: any) {
-    return `Error en test: ${e.message}`;
+
+    GmailApp.sendEmail(targetEmail, def.asunto, "", { htmlBody: html });
+    return `Correo de prueba (${def.plantilla}) enviado a ${targetEmail}`;
+  } catch (e) {
+    return `Error en test: ${mensajeError_(e)}`;
   }
 }
 
 /**
  * Calculates a future limit date.
  */
-function calcularFechaLimite(fechaInicio: Date, dias: number): string {
+function calcularFechaLimite_(fechaInicio: Date, dias: number): string {
   const tz = PROGRAM_DATA.TIMEZONE || "America/Santiago";
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone: tz,
@@ -520,58 +375,33 @@ function calcularFechaLimite(fechaInicio: Date, dias: number): string {
 /**
  * Sends a confirmation email to the applicant after they accept/reject their spot.
  */
-function enviarCorreoConfirmacion(correo: string, tipoConfirmacion: 'accept' | 'reject'): void {
-  cargarConfiguracionDesdeHoja();
-  const ss = getSpreadsheet();
-  const hojaS = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
-  if (!hojaS) return;
-
-  const dataS = hojaS.getDataRange().getValues();
-  const headersS = dataS[0];
-  const idxCorreo = headersS.indexOf("Correo Electrónico");
-  const idxNombre = headersS.indexOf("Nombre(s)");
-  const idxNivel = headersS.indexOf("Nivel Asignado");
-
-  let candidateRow: any[] | null = null;
-  for (let i = 1; i < dataS.length; i++) {
-    if (String(dataS[i][idxCorreo]).trim().toLowerCase() === correo.trim().toLowerCase()) {
-      candidateRow = dataS[i];
-      break;
-    }
-  }
-
-  if (!candidateRow) {
-    logToWebApp(`No se encontró candidato para enviar confirmación a ${correo}`);
-    return;
-  }
-
-  const nombre = candidateRow[idxNombre];
-  const nivel = candidateRow[idxNivel] || "B1+";
-
+function enviarCorreoConfirmacion_(correo: string, tipoConfirmacion: 'accept' | 'reject'): void {
+  cargarConfiguracionDesdeHoja_();
   const templateName = tipoConfirmacion === 'accept' ? 'CorreoConfirmacionAcepta' : 'CorreoConfirmacionRechaza';
   const subject = tipoConfirmacion === 'accept' ?
     "Confirmación de Aceptación y Pago - PUCV2English" :
     "Confirmación de Liberación de Cupo - PUCV2English";
 
   try {
-    const htmlBody = HtmlService.createTemplateFromFile(templateName);
-    (htmlBody as any).nombre = nombre;
-    (htmlBody as any).nivel = nivel;
-    (htmlBody as any).programData = PROGRAM_DATA;
-    
-    if (tipoConfirmacion === 'accept') {
-      (htmlBody as any).paymentUrl = PROGRAM_DATA.PAYMENT_URL || "https://www.mercadopago.cl/link-pago-matricula";
-      (htmlBody as any).fechaPagoLimite = calcularFechaLimite(new Date(), PROGRAM_DATA.DEADLINE_DAYS || 3);
+    const h = leerHoja_(CONFIG.SHEETS.SELECTED);
+    const cCorreo = h.col(HEADERS.EMAIL);
+    const cNombre = h.col(HEADERS.FIRST_NAME);
+    const cNivel = h.col(HEADERS.LEVEL_ASSIGNED);
+
+    const candidateRow = h.filas.find(f => String(f[cCorreo]).trim().toLowerCase() === correo.trim().toLowerCase());
+    if (!candidateRow) {
+      logToWebApp_(`No se encontró candidato para enviar confirmación a ${correo}`);
+      return;
     }
 
-    const finishedHtml = htmlBody.evaluate().getContent();
+    const html = renderPlantilla_(templateName, { ...varsComunes_(), nombre: candidateRow[cNombre], nivel: candidateRow[cNivel] || "B1+" });
 
     GmailApp.sendEmail(correo, subject, "", {
-      htmlBody: finishedHtml
+      htmlBody: html
     });
 
-    logToWebApp(`Correo de confirmación (${tipoConfirmacion}) enviado a ${correo}`);
-  } catch (e: any) {
-    logToWebApp(`Error enviando correo de confirmación a ${correo}: ${e.message}`);
+    logToWebApp_(`Correo de confirmación (${tipoConfirmacion}) enviado a ${correo}`);
+  } catch (e) {
+    logToWebApp_(`Error enviando correo de confirmación a ${correo}: ${mensajeError_(e)}`);
   }
 }

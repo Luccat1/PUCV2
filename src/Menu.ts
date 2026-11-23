@@ -81,7 +81,7 @@ function ejecutarGenerarListaFinal(): void {
 /**
  * Menu action wrappers
  */
-function confirmarYEnviarCorreos(tipo: string): void {
+function confirmarYEnviarCorreos_(tipo: TipoCorreo): void {
   const ui = SpreadsheetApp.getUi();
   const vistaPrevia = previewEmailBatch(tipo);
   
@@ -113,16 +113,16 @@ function confirmarYEnviarCorreos(tipo: string): void {
   }
 }
 
-function enviarCorreosSeleccionados() { confirmarYEnviarCorreos('SELECTED'); }
-function enviarCorreosTestNivel() { confirmarYEnviarCorreos('TEST_LEVEL_ONLY'); }
-function enviarCorreosHandPicked() { confirmarYEnviarCorreos('HAND_PICKED'); }
-function enviarCorreosEspera() { confirmarYEnviarCorreos('WAITLIST'); }
-function enviarCorreosEsperaRechazada() { confirmarYEnviarCorreos('WAITLIST_REJECTED'); }
-function enviarCorreosNoSeleccionados() { confirmarYEnviarCorreos('NO_SELECTED'); }
-function enviarCorreosContinuacion() { confirmarYEnviarCorreos('CONTINUATION'); }
+function enviarCorreosSeleccionados() { confirmarYEnviarCorreos_('SELECTED'); }
+function enviarCorreosTestNivel() { confirmarYEnviarCorreos_('TEST_LEVEL_ONLY'); }
+function enviarCorreosHandPicked() { confirmarYEnviarCorreos_('HAND_PICKED'); }
+function enviarCorreosEspera() { confirmarYEnviarCorreos_('WAITLIST'); }
+function enviarCorreosEsperaRechazada() { confirmarYEnviarCorreos_('WAITLIST_REJECTED'); }
+function enviarCorreosNoSeleccionados() { confirmarYEnviarCorreos_('NO_SELECTED'); }
+function enviarCorreosContinuacion() { confirmarYEnviarCorreos_('CONTINUATION'); }
 
 function ejecutarAnalisisDesdeMenu() {
-  const report = getAnalysisReport();
+  const report = getAnalysisReport_();
   SpreadsheetApp.getUi().alert("Análisis de Equilibrio", report, SpreadsheetApp.getUi().ButtonSet.OK);
 }
 
@@ -145,7 +145,7 @@ function ejecutarEnvioRechazoPorNivel(): void {
     ui.ButtonSet.YES_NO
   );
   if (respuesta === ui.Button.YES) {
-    const res = enviarCorreosRechazoPorNivel();
+    const res = enviarCorreosRechazoPorNivel_();
     ui.alert('Resultado Rechazo por Nivel', res, ui.ButtonSet.OK);
   }
 }
@@ -198,26 +198,26 @@ function abrirDialogoInicioClases(): void {
  * Syncs paid+accepted+test-level candidates from "Seleccionados" to "Prueba de Nivel".
  */
 function ejecutarSincronizarPlacement(): void {
-  sincronizarPlacement();
+  sincronizarPlacement_();
 }
 
 /**
  * Opens the placement config dialog for sending initial credentials.
  */
 function ejecutarPlacementInicial(): void {
-  abrirDialogoPlacementInicial();
+  abrirDialogoPlacementInicial_();
 }
 
 /**
  * Opens the placement config dialog for sending reminders.
  */
 function ejecutarPlacementRecordatorio(): void {
-  abrirDialogoPlacementRecordatorio();
+  abrirDialogoPlacementRecordatorio_();
 }
 
 /**
  * Opens the placement config dialog for sending new credentials.
  */
 function ejecutarPlacementNuevoCodigo(): void {
-  abrirDialogoPlacementNuevoCodigo();
+  abrirDialogoPlacementNuevoCodigo_();
 }

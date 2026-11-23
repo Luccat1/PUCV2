@@ -108,7 +108,8 @@ src/
 ├── Config.ts              # Configuración global, tipos e interfaces
 ├── Evaluacion.ts          # Motor de evaluación y cálculo de puntajes
 ├── Seleccionados.ts       # Gestión de seleccionados, lista de espera y promoción
-├── Correos.ts             # Motor de envío de correos masivos y unitarios
+├── Correos.ts             # Tipos de correo (tabla CORREOS), destinatarios y correos de prueba
+├── EnvioLote.ts           # Envío por lote compartido: cuota, borrador, sello de fecha
 ├── ListaFinal.ts          # Generación de la lista final del curso
 ├── InicioClases.ts        # Notificaciones de inicio de clases
 ├── Placement.ts           # Cambridge English Placement Test (CEPT) workflow
@@ -127,7 +128,10 @@ src/
 ├── CorreoConfirmacionRechaza.html
 ├── CorreoContinuacion.html
 ├── CorreoInicioClases.html
-├── CorreoPlacementTest.html   # Correo de credenciales CEPT
+├── CorreoBase_Estilos.html    # Estilos comunes de los correos (fragmento compartido)
+├── CorreoBase_Cabecera.html   # Logo y apertura del contenido (fragmento compartido)
+├── CorreoBase_Pie.html        # Pie institucional (fragmento compartido)
+├── CorreoPlacementTest.html   # Correo de credenciales CEPT (diseño propio)
 ├── DialogPlacementConfig.html # Diálogo de configuración del placement test
 ├── DialogSalas.html
 ├── DialogConfirmEval.html

@@ -11,41 +11,41 @@ function evaluarPostulacionesPUCV2(): string {
   const lock = LockService.getScriptLock();
   const tuvoExito = lock.tryLock(10000);
 
-  logToWebApp("Intentando iniciar evaluación de postulaciones...");
+  logToWebApp_("Intentando iniciar evaluación de postulaciones...");
   if (!tuvoExito) {
-    logToWebApp("No se pudo obtener el bloqueo. Reintenta en unos segundos.");
+    logToWebApp_("No se pudo obtener el bloqueo. Reintenta en unos segundos.");
     return "No se pudo iniciar la evaluación. Otra operación está en curso.";
   }
 
   try {
-    const ss = getSpreadsheet();
+    const ss = getSpreadsheet_();
 
     // ADR-006: Load configuration BEFORE the evaluation loop
-    logToWebApp("Cargando configuración de pesos desde la hoja...");
-    cargarConfiguracionDesdeHoja();
+    logToWebApp_("Cargando configuración de pesos desde la hoja...");
+    cargarConfiguracionDesdeHoja_();
 
     const hojaEntrada = ss.getSheetByName(CONFIG.SHEETS.INPUT);
     if (!hojaEntrada) throw new Error("Hoja de entrada no encontrada: " + CONFIG.SHEETS.INPUT);
 
     const ultimaFila = hojaEntrada.getLastRow();
     if (ultimaFila < 2) {
-      logToWebApp("No hay postulaciones para procesar.");
+      logToWebApp_("No hay postulaciones para procesar.");
       return "No hay postulaciones para procesar.";
     }
 
     const datos = hojaEntrada.getRange(1, 1, ultimaFila, hojaEntrada.getLastColumn()).getValues();
-    const encabezados = datos[0].map((h: any) => String(h || "").trim());
+    const encabezados = datos[0].map((h: unknown) => String(h || "").trim());
     const indiceColumnas: Record<string, number> = {};
     encabezados.forEach((h: string, i: number) => indiceColumnas[h] = i);
 
     const COLUMNA_ESTADO_NOMBRE = CONFIG.COLUMNS.PROCESSING_STATUS;
     const indiceEstado = encabezados.indexOf(COLUMNA_ESTADO_NOMBRE);
-    const actualizacionesEstado: { fila: number; valor: any }[] = [];
+    const actualizacionesEstado: { fila: number; valor: Date | string }[] = [];
 
     const resultados: any[][] = [
-      ["Apellido(s)", "Nombre(s)", "Correo Electrónico", "RUT", "Fecha de Postulación", "Categoría Postulante", "Sede",
+      [HEADERS.LAST_NAME, HEADERS.FIRST_NAME, HEADERS.EMAIL, "RUT", HEADERS.APPLICATION_DATE, HEADERS.CATEGORY, "Sede",
         "Puntaje Disponibilidad", "Puntaje Tipo", "Puntaje Uso Inglés", "Puntaje Intl.", "Puntaje Nivel Inglés",
-        "Puntaje Año Ingreso", "Puntaje Compromiso", "Puntaje Carta", "PUNTAJE TOTAL", "Enlace Certificado", "Nivel Postulado"]
+        "Puntaje Año Ingreso", "Puntaje Compromiso", "Puntaje Carta", HEADERS.TOTAL_SCORE, HEADERS.CERTIFICATE_LINK, HEADERS.LEVEL_APPLIED]
     ];
 
     const correosProcesados = new Set<string>();
@@ -58,7 +58,7 @@ function evaluarPostulacionesPUCV2(): string {
           const email = String(valoresExistentes[i][2] || "").toLowerCase().trim();
           if (email) {
             if (correosProcesados.has(email)) {
-              logToWebApp(`Limpiando duplicado preexistente de la hoja de resultados: ${email}`);
+              logToWebApp_(`Limpiando duplicado preexistente de la hoja de resultados: ${email}`);
               continue;
             }
             correosProcesados.add(email);
@@ -70,27 +70,27 @@ function evaluarPostulacionesPUCV2(): string {
 
     let nuevasProcesadas = 0;
 
-    logToWebApp(`Iniciando procesamiento de ${datos.length - 1} filas...`);
+    logToWebApp_(`Iniciando procesamiento de ${datos.length - 1} filas...`);
 
     for (let r = 1; r < datos.length; r++) {
       try {
         const fila = datos[r];
 
         // Skip already processed rows (marked in sheet)
-        if (indiceEstado !== -1 && obtenerValor(fila, COLUMNA_ESTADO_NOMBRE, indiceColumnas) !== "") {
-          const emailExistente = obtenerValor(fila, CONFIG.COLUMNS.EMAIL, indiceColumnas);
+        if (indiceEstado !== -1 && obtenerValor_(fila, COLUMNA_ESTADO_NOMBRE, indiceColumnas) !== "") {
+          const emailExistente = obtenerValor_(fila, CONFIG.COLUMNS.EMAIL, indiceColumnas);
           if (emailExistente) correosProcesados.add(emailExistente.toLowerCase().trim());
           continue;
         }
 
-        const correo = obtenerValor(fila, CONFIG.COLUMNS.EMAIL, indiceColumnas).toLowerCase().trim();
-        const apellidos = [obtenerValor(fila, CONFIG.COLUMNS.LAST_NAME_P, indiceColumnas), obtenerValor(fila, CONFIG.COLUMNS.LAST_NAME_M, indiceColumnas)].filter(Boolean).join(" ");
-        const nombres = [obtenerValor(fila, CONFIG.COLUMNS.FIRST_NAME, indiceColumnas), obtenerValor(fila, CONFIG.COLUMNS.SECOND_NAME, indiceColumnas)].filter(Boolean).join(" ");
-        const rut = obtenerValor(fila, CONFIG.COLUMNS.RUT, indiceColumnas);
+        const correo = obtenerValor_(fila, CONFIG.COLUMNS.EMAIL, indiceColumnas).toLowerCase().trim();
+        const apellidos = [obtenerValor_(fila, CONFIG.COLUMNS.LAST_NAME_P, indiceColumnas), obtenerValor_(fila, CONFIG.COLUMNS.LAST_NAME_M, indiceColumnas)].filter(Boolean).join(" ");
+        const nombres = [obtenerValor_(fila, CONFIG.COLUMNS.FIRST_NAME, indiceColumnas), obtenerValor_(fila, CONFIG.COLUMNS.SECOND_NAME, indiceColumnas)].filter(Boolean).join(" ");
+        const rut = obtenerValor_(fila, CONFIG.COLUMNS.RUT, indiceColumnas);
 
         // Edge case: Incomplete submission detection
         if (!correo || (!apellidos && !nombres) || !rut) {
-          logToWebApp(`Saltando postulación incompleta en fila ${r + 1}: ${correo || 'sin correo'}`);
+          logToWebApp_(`Saltando postulación incompleta en fila ${r + 1}: ${correo || 'sin correo'}`);
           if (indiceEstado !== -1) {
             actualizacionesEstado.push({ fila: r + 1, valor: "INCOMPLETA (Datos insuficientes)" });
           }
@@ -99,22 +99,22 @@ function evaluarPostulacionesPUCV2(): string {
 
         // Edge Case: Duplicate Applicant Detection
         if (correo && correosProcesados.has(correo)) {
-          logToWebApp(`Saltando duplicado: ${correo}`);
-          if (indiceEstado !== -1 && obtenerValor(fila, COLUMNA_ESTADO_NOMBRE, indiceColumnas) === "") {
+          logToWebApp_(`Saltando duplicado: ${correo}`);
+          if (indiceEstado !== -1 && obtenerValor_(fila, COLUMNA_ESTADO_NOMBRE, indiceColumnas) === "") {
             actualizacionesEstado.push({ fila: r + 1, valor: "DUPLICADO (Ignorado)" });
           }
           continue;
         }
         if (correo) correosProcesados.add(correo);
 
-        const fecha = normalizarFecha(fila[indiceColumnas[CONFIG.COLUMNS.TIMESTAMP]]);
-        const tipo = obtenerValor(fila, CONFIG.COLUMNS.APPLICANT_TYPE, indiceColumnas);
-        const sede = obtenerValor(fila, CONFIG.COLUMNS.CAMPUS, indiceColumnas);
+        const fecha = normalizarFecha_(fila[indiceColumnas[CONFIG.COLUMNS.TIMESTAMP]]);
+        const tipo = obtenerValor_(fila, CONFIG.COLUMNS.APPLICANT_TYPE, indiceColumnas);
+        const sede = obtenerValor_(fila, CONFIG.COLUMNS.CAMPUS, indiceColumnas);
 
         // Elegibilidad (bases n.º 4, 5.1 y 5.2): quien no cumple los requisitos no se evalúa
-        const motivo = motivoNoElegible(fila, tipo, indiceColumnas);
+        const motivo = motivoNoElegible_(fila, tipo, indiceColumnas);
         if (motivo) {
-          logToWebApp(`Fila ${r + 1} (${correo}) no elegible: ${motivo}`);
+          logToWebApp_(`Fila ${r + 1} (${correo}) no elegible: ${motivo}`);
           if (indiceEstado !== -1) {
             actualizacionesEstado.push({ fila: r + 1, valor: `NO ELEGIBLE: ${motivo}` });
           }
@@ -125,23 +125,23 @@ function evaluarPostulacionesPUCV2(): string {
         // Disponibilidad y compromisos son requisitos, no puntaje: sus columnas quedan en 0.
         const pDisp = 0;
         const pComp = 0;
-        const alumni = esAlumni(tipo); // n.º 4: solo acceden a cupo después de toda la comunidad activa
-        const pTipo = alumni ? 0 : calcularPuntajeTipoPostulante(tipo);
-        const pUso = alumni ? 0 : calcularPuntajeUsoIngles(fila, tipo, indiceColumnas);
-        const pIntl = alumni ? 0 : calcularPuntajeInternacionalizacion(fila, tipo, indiceColumnas);
-        const pCert = alumni ? 0 : calcularPuntajeCertificado(fila, indiceColumnas);
-        const pAnio = alumni ? 0 : calcularPuntajeAnioIngreso(fila, tipo, indiceColumnas);
+        const alumni = esAlumni_(tipo); // n.º 4: solo acceden a cupo después de toda la comunidad activa
+        const pTipo = alumni ? 0 : calcularPuntajeTipoPostulante_(tipo);
+        const pUso = alumni ? 0 : calcularPuntajeUsoIngles_(fila, tipo, indiceColumnas);
+        const pIntl = alumni ? 0 : calcularPuntajeInternacionalizacion_(fila, tipo, indiceColumnas);
+        const pCert = alumni ? 0 : calcularPuntajeCertificado_(fila, indiceColumnas);
+        const pAnio = alumni ? 0 : calcularPuntajeAnioIngreso_(fila, tipo, indiceColumnas);
 
         // Respaldo de la jefatura: solo académicos y funcionarios
         let pCarta = 0;
-        if (!alumni && esAcademicoOFuncionario(tipo)) {
-          if (esSi(obtenerValor(fila, CONFIG.COLUMNS.ENDORSEMENT_APPROVAL, indiceColumnas))) pCarta += 1;
-          if (obtenerValor(fila, CONFIG.COLUMNS.ENDORSEMENT_LETTER, indiceColumnas)) pCarta += 1;
+        if (!alumni && esAcademicoOFuncionario_(tipo)) {
+          if (esSi_(obtenerValor_(fila, CONFIG.COLUMNS.ENDORSEMENT_APPROVAL, indiceColumnas))) pCarta += 1;
+          if (obtenerValor_(fila, CONFIG.COLUMNS.ENDORSEMENT_LETTER, indiceColumnas)) pCarta += 1;
         }
         const pesoCarta = SCORING_PARAMS.CartaRespaldo.peso[/acad[eé]mico/i.test(tipo) ? "academico" : "funcionario"] || 1;
         const pTotal = pDisp + pTipo + pUso + pIntl + pCert + pAnio + pComp + (pCarta * pesoCarta);
-        const enlaceCert = obtenerValor(fila, CONFIG.COLUMNS.CERTIFICATE_ATTACHMENT, indiceColumnas);
-        const nivelPostulado = obtenerNivelDesdeFila(fila, indiceColumnas);
+        const enlaceCert = obtenerValor_(fila, CONFIG.COLUMNS.CERTIFICATE_ATTACHMENT, indiceColumnas);
+        const nivelPostulado = obtenerNivelDesdeFila_(fila, indiceColumnas);
 
         const pUsoNum = Math.round(pUso * 100) / 100;
         const pIntlNum = Math.round(pIntl * 100) / 100;
@@ -158,10 +158,10 @@ function evaluarPostulacionesPUCV2(): string {
           actualizacionesEstado.push({ fila: r + 1, valor: new Date() });
         }
 
-      } catch (e: any) {
-        logToWebApp(`ERROR fila ${r + 1}: ${e.message}`);
+      } catch (e) {
+        logToWebApp_(`ERROR fila ${r + 1}: ${mensajeError_(e)}`);
         if (indiceEstado !== -1) {
-          actualizacionesEstado.push({ fila: r + 1, valor: `ERROR: ${e.message}` });
+          actualizacionesEstado.push({ fila: r + 1, valor: `ERROR: ${mensajeError_(e)}` });
         }
       }
     }
@@ -178,7 +178,7 @@ function evaluarPostulacionesPUCV2(): string {
     const expectedCols = resultados[0].length;
     for (let i = 0; i < resultados.length; i++) {
       if (resultados[i].length !== expectedCols) {
-        logToWebApp(`Advertencia: Fila ${i} tiene longitud ${resultados[i].length} en lugar de ${expectedCols}. Ajustando...`);
+        logToWebApp_(`Advertencia: Fila ${i} tiene longitud ${resultados[i].length} en lugar de ${expectedCols}. Ajustando...`);
         while (resultados[i].length < expectedCols) resultados[i].push("");
         if (resultados[i].length > expectedCols) resultados[i] = resultados[i].slice(0, expectedCols);
       }
@@ -196,8 +196,8 @@ function evaluarPostulacionesPUCV2(): string {
     }
 
     hojaResultados.getRange(1, 1, resultados.length, expectedCols).setValues(resultados);
-    formatearColumnaFecha(hojaResultados, resultados[0], resultados.length);
-    applyConditionalFormattingToScores(hojaResultados, resultados.length);
+    formatearColumnaFecha_(hojaResultados, resultados[0], resultados.length);
+    applyConditionalFormattingToScores_(hojaResultados, resultados.length);
 
     // Update processing states
     if (indiceEstado !== -1 && actualizacionesEstado.length > 0) {
@@ -207,13 +207,13 @@ function evaluarPostulacionesPUCV2(): string {
     }
 
     // Update UI components
-    logToWebApp("Generando hoja de seleccionados y dashboard...");
-    generarHojaSeleccionados(resultados, ss); // From Seleccionados.ts
-    generarHojaListaEspera(resultados, ss); // From Seleccionados.ts
-    generarYActualizarDashboard(resultados, ss, datos, indiceColumnas); // From Dashboard.ts
+    logToWebApp_("Generando hoja de seleccionados y dashboard...");
+    generarHojaSeleccionados_(resultados, ss); // From Seleccionados.ts
+    generarHojaListaEspera_(resultados, ss); // From Seleccionados.ts
+    generarYActualizarDashboard_(resultados, ss, datos, indiceColumnas); // From Dashboard.ts
 
     SpreadsheetApp.flush();
-    logToWebApp("Evaluación completada.");
+    logToWebApp_("Evaluación completada.");
     return `¡Evaluación completada! Se procesaron ${nuevasProcesadas} nuevas postulaciones.`;
 
   } finally {
@@ -224,8 +224,8 @@ function evaluarPostulacionesPUCV2(): string {
 /**
  * Loads scoring weights from the configuration sheet into memory.
  */
-function cargarConfiguracionDesdeHoja(): void {
-  const ss = getSpreadsheet();
+function cargarConfiguracionDesdeHoja_(): void {
+  const ss = getSpreadsheet_();
   const hojaConfig = ss.getSheetByName(CONFIG.SHEETS.CONFIG);
   if (!hojaConfig) return;
 
@@ -251,7 +251,7 @@ function cargarConfiguracionDesdeHoja(): void {
     if (!criterio || !perfil || isNaN(peso)) return;
 
     if (SCORING_PARAMS[criterio as keyof IScoringParams]) {
-      const criteriaObj = SCORING_PARAMS[criterio as keyof IScoringParams] as any;
+      const criteriaObj = SCORING_PARAMS[criterio as keyof IScoringParams] as IParamsEditables;
       if (perfil === "MaxPuntaje") {
         criteriaObj.MaxPuntaje = peso;
       } else if (criteriaObj.peso) {
@@ -260,14 +260,14 @@ function cargarConfiguracionDesdeHoja(): void {
     }
   });
 
-  cargarDatosPrograma();
+  cargarDatosPrograma_();
 }
 
 /**
  * Loads program data (dates and schedules) from the configuration sheet.
  */
-function cargarDatosPrograma(): void {
-  const ss = getSpreadsheet();
+function cargarDatosPrograma_(): void {
+  const ss = getSpreadsheet_();
   const hojaConfig = ss.getSheetByName(CONFIG.SHEETS.CONFIG);
   if (!hojaConfig) return;
 
@@ -313,30 +313,42 @@ function cargarDatosPrograma(): void {
  * Returns current configuration (scoring + program data) for the UI.
  */
 function getConfiguracion(): object {
-  cargarConfiguracionDesdeHoja();
+  cargarConfiguracionDesdeHoja_();
   return { scoring: SCORING_PARAMS, program: PROGRAM_DATA };
 }
 
 /**
  * Saves configuration from the UI to the spreadsheet.
  */
-function saveConfiguracion(mergedData: any): string {
-  const ss = getSpreadsheet();
+/** Parte editable de cada criterio de SCORING_PARAMS: el tope y los pesos por perfil. */
+interface IParamsEditables {
+  MaxPuntaje?: number;
+  peso?: Record<string, any>;
+}
+
+/** Lo que envía el sidebar de configuración al guardar. */
+interface IConfiguracionGuardada {
+  scoring: IScoringParams;
+  program: IProgramData;
+}
+
+function saveConfiguracion(mergedData: IConfiguracionGuardada): string {
+  const ss = getSpreadsheet_();
   let sheet = ss.getSheetByName(CONFIG.SHEETS.CONFIG);
   if (!sheet) sheet = ss.insertSheet(CONFIG.SHEETS.CONFIG);
 
   sheet.clear();
-  const rows = [["Criterio", "Perfil", "Peso/Valor"]];
+  const rows: (string | number)[][] = [["Criterio", "Perfil", "Peso/Valor"]];
 
   const data = mergedData.scoring;
   const pData = mergedData.program;
 
   // 1. Scoring Params
   for (const [criterio, obj] of Object.entries(data)) {
-    const c = obj as any;
+    const c: IParamsEditables = obj;
     if (c.peso) {
       for (const [perfil, peso] of Object.entries(c.peso)) {
-        rows.push([criterio, perfil, peso as any]);
+        rows.push([criterio, perfil, peso]);
       }
     }
     if (c.MaxPuntaje !== undefined) {
@@ -353,8 +365,7 @@ function saveConfiguracion(mergedData: any): string {
   rows.push(["PROGRAMA", "TEST_FECHA", pData.TEST_FECHA]);
   rows.push(["PROGRAMA", "TEST_INSTRUCCIONES_FECHA", pData.TEST_INSTRUCCIONES_FECHA]);
 
-  for (const [nivel, horarios] of Object.entries(pData.HORARIOS)) {
-    const h = horarios as any;
+  for (const [nivel, h] of Object.entries(pData.HORARIOS)) {
     rows.push([`HORARIO_${nivel}`, "Catedra", h.catedra]);
     rows.push([`HORARIO_${nivel}`, "Ayudantia", h.ayudantia]);
   }
@@ -373,7 +384,7 @@ function saveConfiguracion(mergedData: any): string {
  * Resets configuration to code defaults.
  */
 function resetConfiguracion(): object {
-  const ss = getSpreadsheet();
+  const ss = getSpreadsheet_();
   const sheet = ss.getSheetByName(CONFIG.SHEETS.CONFIG);
   if (sheet) sheet.clear();
 
@@ -382,44 +393,44 @@ function resetConfiguracion(): object {
   return { scoring: SCORING_PARAMS, program: PROGRAM_DATA };
 }
 
-function calcularPuntajeTipoPostulante(texto: string): number {
+function calcularPuntajeTipoPostulante_(texto: string): number {
   const norm = texto.toLowerCase();
   if (/acad[eé]mico|funcionario/.test(norm)) return 2;
   if (/postgrado|posgrado/.test(norm)) return 1.5;
   return 1;
 }
 
-function calcularPuntajeUsoIngles(fila: any[], tipo: string, idxs: Record<string, number>): number {
+function calcularPuntajeUsoIngles_(fila: any[], tipo: string, idxs: Record<string, number>): number {
   // Bases n.º 7.2: este criterio aplica solo a académicos y funcionarios
-  if (!esAcademicoOFuncionario(tipo)) return 0;
+  if (!esAcademicoOFuncionario_(tipo)) return 0;
   let p = 0;
   let peso: number;
 
   if (/acad[eé]mico/i.test(tipo)) {
-    const contrib = obtenerValor(fila, CONFIG.COLUMNS.ENGLISH_USE_CONTRIBUTION, idxs);
+    const contrib = obtenerValor_(fila, CONFIG.COLUMNS.ENGLISH_USE_CONTRIBUTION, idxs);
     peso = SCORING_PARAMS.UsoIngles.peso.academico;
     const kw = ["investigación", "publicar", "paper", "revista", "indexada", "congreso", "ponente", "expositor", "colaboración internacional", "clases", "docencia"];
-    p += contarPalabrasClave(contrib, kw) * 0.8 + 1.0;
+    p += contarPalabrasClave_(contrib, kw) * 0.8 + 1.0;
   } else {
     peso = SCORING_PARAMS.UsoIngles.peso.funcionario;
-    const freq = obtenerValor(fila, CONFIG.COLUMNS.ENGLISH_USE_FREQUENCY, idxs).toLowerCase();
+    const freq = obtenerValor_(fila, CONFIG.COLUMNS.ENGLISH_USE_FREQUENCY, idxs).toLowerCase();
     for (const [k, v] of Object.entries(SCORING_PARAMS.UsoIngles.Frecuencia)) {
       if (freq.includes(k)) p += v;
     }
-    const acts = obtenerValor(fila, CONFIG.COLUMNS.ENGLISH_USE_ACTIVITIES, idxs).toLowerCase();
+    const acts = obtenerValor_(fila, CONFIG.COLUMNS.ENGLISH_USE_ACTIVITIES, idxs).toLowerCase();
     for (const [a, ps] of Object.entries(SCORING_PARAMS.UsoIngles.Actividades)) {
       if (acts.includes(a)) p += ps;
     }
-    if (esSi(obtenerValor(fila, CONFIG.COLUMNS.ENGLISH_USE_FUTURE_PROJECTS, idxs))) p += 1;
+    if (esSi_(obtenerValor_(fila, CONFIG.COLUMNS.ENGLISH_USE_FUTURE_PROJECTS, idxs))) p += 1;
   }
   return Math.min(SCORING_PARAMS.UsoIngles.MaxPuntaje, p) * peso;
 }
 
-function calcularPuntajeInternacionalizacion(fila: any[], tipo: string, idxs: Record<string, number>): number {
+function calcularPuntajeInternacionalizacion_(fila: any[], tipo: string, idxs: Record<string, number>): number {
   let p = 0;
-  const peso = SCORING_PARAMS.Internacionalizacion.peso[esEstudiante(tipo) ? "estudiante" : "funcionario"] || 1;
-  const docs = !!obtenerValor(fila, CONFIG.COLUMNS.INTL_SUPPORT_DOCS, idxs);
-  const etapa = obtenerValor(fila, CONFIG.COLUMNS.INTL_STAGE, idxs).toLowerCase();
+  const peso = SCORING_PARAMS.Internacionalizacion.peso[esEstudiante_(tipo) ? "estudiante" : "funcionario"] || 1;
+  const docs = !!obtenerValor_(fila, CONFIG.COLUMNS.INTL_SUPPORT_DOCS, idxs);
+  const etapa = obtenerValor_(fila, CONFIG.COLUMNS.INTL_STAGE, idxs).toLowerCase();
 
   if (etapa.includes("carta de aceptación")) {
     p += 3.5 + (docs ? 0.5 : 0);
@@ -434,10 +445,10 @@ function calcularPuntajeInternacionalizacion(fila: any[], tipo: string, idxs: Re
   }
 
   const pEtapa = p; // "Interés general" u otras etapas no reconocidas no suman
-  const plan = obtenerValor(fila, CONFIG.COLUMNS.INTL_PLAN, idxs);
-  p += contarPalabrasClave(plan, SCORING_PARAMS.Internacionalizacion.PalabrasClavePlan) * SCORING_PARAMS.Internacionalizacion.PuntajePorPalabraClave;
+  const plan = obtenerValor_(fila, CONFIG.COLUMNS.INTL_PLAN, idxs);
+  p += contarPalabrasClave_(plan, SCORING_PARAMS.Internacionalizacion.PalabrasClavePlan) * SCORING_PARAMS.Internacionalizacion.PuntajePorPalabraClave;
 
-  if (esEstudiante(tipo) && (pEtapa > 0 || plan.length > 10)) {
+  if (esEstudiante_(tipo) && (pEtapa > 0 || plan.length > 10)) {
     p += 0.5;
   }
 
@@ -450,27 +461,27 @@ function calcularPuntajeInternacionalizacion(fila: any[], tipo: string, idxs: Re
  * shortcut: "cursos completados" y "situación PILE" se reconocen por palabras clave del texto de la opción;
  * revisar si el formulario cambia esas opciones.
  */
-function motivoNoElegible(fila: any[], tipo: string, idxs: Record<string, number>): string | null {
+function motivoNoElegible_(fila: any[], tipo: string, idxs: Record<string, number>): string | null {
   const C = CONFIG.COLUMNS;
-  const v = (col: string) => obtenerValor(fila, col, idxs);
+  const v = (col: string) => obtenerValor_(fila, col, idxs);
 
-  if (!esSi(v(C.AVAILABILITY_SESSIONS)) || esSi(v(C.AVAILABILITY_CONFLICTS))) return "sin disponibilidad para el horario del programa";
-  if (!esSi(v(C.AVAILABILITY_ASSISTANCE))) return "no se compromete al 80 % de asistencia";
-  const sinAceptar = DECLARACIONES_REQUERIDAS.filter(d => !esSi(v(d)));
+  if (!esSi_(v(C.AVAILABILITY_SESSIONS)) || esSi_(v(C.AVAILABILITY_CONFLICTS))) return "sin disponibilidad para el horario del programa";
+  if (!esSi_(v(C.AVAILABILITY_ASSISTANCE))) return "no se compromete al 80 % de asistencia";
+  const sinAceptar = DECLARACIONES_REQUERIDAS.filter(d => !esSi_(v(d)));
   if (sinAceptar.length > 0) return `no aceptó ${sinAceptar.length} declaración(es) del formulario`;
 
-  if (esSi(v(C.PREV_FAILED))) return "reprobó un curso PUCV2English";
-  if (esSi(v(C.PREV_WITHDREW))) return "renunció a la beca después de la primera semana";
-  if (esSi(v(C.PREV_C1))) return "ya cursó el nivel C1";
+  if (esSi_(v(C.PREV_FAILED))) return "reprobó un curso PUCV2English";
+  if (esSi_(v(C.PREV_WITHDREW))) return "renunció a la beca después de la primera semana";
+  if (esSi_(v(C.PREV_C1))) return "ya cursó el nivel C1";
   if (/\b(dos|tres|cuatro|[2-9])\b|m[aá]s de/i.test(v(C.PREV_COURSES))) return "completó dos o más cursos del programa";
 
   if (/estudiante|alumno/i.test(tipo) && /^no$/i.test(v(C.ENROLLED))) return "estudiante sin matrícula vigente";
-  if (esEstudiante(tipo) && !/aprob|exim/i.test(v(C.PILE_STATUS))) return "no aprobó ni se eximió de los cursos obligatorios de inglés del PILE";
+  if (esEstudiante_(tipo) && !/aprob|exim/i.test(v(C.PILE_STATUS))) return "no aprobó ni se eximió de los cursos obligatorios de inglés del PILE";
   return null;
 }
 
-function calcularPuntajeCertificado(fila: any[], idxs: Record<string, number>): number {
-  const txt = obtenerValor(fila, CONFIG.COLUMNS.CERTIFICATE_LEVEL, idxs);
+function calcularPuntajeCertificado_(fila: any[], idxs: Record<string, number>): number {
+  const txt = obtenerValor_(fila, CONFIG.COLUMNS.CERTIFICATE_LEVEL, idxs);
   if (!txt || /no sé|no se|no tengo/i.test(txt)) return 0; // sin respuesta o sin certificado Cambridge
   if (/C1/i.test(txt)) return 5;
   if (/B2\.2/i.test(txt)) return 4;
@@ -483,23 +494,23 @@ function calcularPuntajeCertificado(fila: any[], idxs: Record<string, number>): 
  * Año en que comienza el programa, tomado de FECHA_INICIO (hoja Configuración).
  * shortcut: si FECHA_INICIO no trae año se usa el año actual; actualizar FECHA_INICIO en cada convocatoria.
  */
-function anioDelPrograma(): number {
+function anioDelPrograma_(): number {
   const m = String(PROGRAM_DATA.FECHA_INICIO || "").match(/\d{4}/);
   return m ? parseInt(m[0], 10) : new Date().getFullYear();
 }
 
-function calcularPuntajeAnioIngreso(fila: any[], tipo: string, idxs: Record<string, number>): number {
+function calcularPuntajeAnioIngreso_(fila: any[], tipo: string, idxs: Record<string, number>): number {
   // Bases n.º 7.2 y 7.3: solo pregrado; se prioriza a quienes cursan desde el tercer año de su carrera
-  if (!esEstudiante(tipo)) return 0;
-  const anio = parseInt(obtenerValor(fila, CONFIG.COLUMNS.ENTRY_YEAR, idxs), 10);
+  if (!esEstudiante_(tipo)) return 0;
+  const anio = parseInt(obtenerValor_(fila, CONFIG.COLUMNS.ENTRY_YEAR, idxs), 10);
   if (isNaN(anio)) return 0;
-  const programa = anioDelPrograma();
+  const programa = anioDelPrograma_();
   if (anio <= programa - 2) return 2;    // 3.er año o superior
   if (anio === programa - 1) return 0.5; // 2.º año
   return 0;                              // 1.er año
 }
 
-function applyConditionalFormattingToScores(sheet: GoogleAppsScript.Spreadsheet.Sheet, rowCount: number): void {
+function applyConditionalFormattingToScores_(sheet: GoogleAppsScript.Spreadsheet.Sheet, rowCount: number): void {
   sheet.clearConditionalFormatRules();
   if (rowCount <= 1) return;
 
@@ -516,9 +527,9 @@ function applyConditionalFormattingToScores(sheet: GoogleAppsScript.Spreadsheet.
   sheet.setConditionalFormatRules(rules);
 }
 
-function getAnalysisReport(): string {
+function getAnalysisReport_(): string {
   try {
-    const ss = getSpreadsheet();
+    const ss = getSpreadsheet_();
     const hojaSeleccionados = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
     const hojaEvaluacion = ss.getSheetByName(CONFIG.SHEETS.OUTPUT);
 
@@ -529,8 +540,8 @@ function getAnalysisReport(): string {
     if (!headersS || datosS.length === 0) return "No hay datos en 'Seleccionados'.";
 
     const idxsS = {
-      cat: headersS.indexOf("Categoría Postulante"),
-      total: headersS.indexOf("PUNTAJE TOTAL"),
+      cat: headersS.indexOf(HEADERS.CATEGORY),
+      total: headersS.indexOf(HEADERS.TOTAL_SCORE),
       // ... keep it simple for now or port fully if needed
     };
 
@@ -538,8 +549,8 @@ function getAnalysisReport(): string {
     lineas.push(`Total seleccionados: ${datosS.length}`);
 
     // Portfolio analysis logic from original - simplified for TS/Modular
-    const dist = datosS.reduce((acc: any, f) => {
-      const p = esEstudiante(f[idxsS.cat]) ? "Estudiantes" : "Funcionarios";
+    const dist = datosS.reduce((acc: Record<string, number>, f) => {
+      const p = esEstudiante_(f[idxsS.cat]) ? "Estudiantes" : "Funcionarios";
       acc[p] = (acc[p] || 0) + 1;
       return acc;
     }, {});
@@ -547,8 +558,8 @@ function getAnalysisReport(): string {
     lineas.push(`Estudiantes: ${dist.Estudiantes || 0}`);
     lineas.push(`Funcionarios: ${dist.Funcionarios || 0}`);
 
-    const idxNivelPostulado = headersS.indexOf("Nivel Postulado");
-    const distNivel = datosS.reduce((acc: any, f) => {
+    const idxNivelPostulado = headersS.indexOf(HEADERS.LEVEL_APPLIED);
+    const distNivel = datosS.reduce((acc: Record<string, number>, f) => {
       const n = idxNivelPostulado !== -1 ? String(f[idxNivelPostulado]).trim() : "No asignado";
       acc[n] = (acc[n] || 0) + 1;
       return acc;
@@ -560,25 +571,25 @@ function getAnalysisReport(): string {
     });
 
     return lineas.join("\n");
-  } catch (e: any) {
-    return `Error en el análisis: ${e.message}`;
+  } catch (e) {
+    return `Error en el análisis: ${mensajeError_(e)}`;
   }
 }
 
 /**
  * Extracts the postulado level from a row based on LEVEL_APPLIED, or falls back to CERTIFICATE_LEVEL.
  */
-function obtenerNivelDesdeFila(fila: any[], idxs: Record<string, number>): string {
+function obtenerNivelDesdeFila_(fila: any[], idxs: Record<string, number>): string {
   const colLevelApplied = CONFIG.COLUMNS.LEVEL_APPLIED;
   const colCertLevel = CONFIG.COLUMNS.CERTIFICATE_LEVEL;
 
   let txt = "";
   if (colLevelApplied && idxs[colLevelApplied] !== undefined) {
-    txt = String(obtenerValor(fila, colLevelApplied, idxs) || "").trim();
+    txt = String(obtenerValor_(fila, colLevelApplied, idxs) || "").trim();
   }
   
   if (!txt && colCertLevel && idxs[colCertLevel] !== undefined) {
-    txt = String(obtenerValor(fila, colCertLevel, idxs) || "").trim();
+    txt = String(obtenerValor_(fila, colCertLevel, idxs) || "").trim();
   }
 
   // Normalize mapping
@@ -614,7 +625,7 @@ function ejecutarReevaluacionCompleta(): void {
   }
 
   try {
-    const ss = getSpreadsheet();
+    const ss = getSpreadsheet_();
     
     // 1. Limpiar estado en la hoja de respuestas de formulario
     const hojaEntrada = ss.getSheetByName(CONFIG.SHEETS.INPUT);
@@ -622,7 +633,7 @@ function ejecutarReevaluacionCompleta(): void {
       const ultimaFila = hojaEntrada.getLastRow();
       if (ultimaFila >= 2) {
         const datos = hojaEntrada.getRange(1, 1, ultimaFila, hojaEntrada.getLastColumn()).getValues();
-        const encabezados = datos[0].map((h: any) => String(h || "").trim());
+        const encabezados = datos[0].map((h: unknown) => String(h || "").trim());
         const COLUMNA_ESTADO_NOMBRE = CONFIG.COLUMNS.PROCESSING_STATUS;
         const indiceEstado = encabezados.indexOf(COLUMNA_ESTADO_NOMBRE);
         if (indiceEstado !== -1) {
@@ -675,10 +686,10 @@ function ejecutarReevaluacionCompleta(): void {
     const resultado = evaluarPostulacionesPUCV2();
     ui.alert('Reevaluación Finalizada', 'Las hojas han sido limpiadas y recalculadas.\n\nResultado: ' + resultado, ui.ButtonSet.OK);
 
-  } catch (e: any) {
+  } catch (e) {
     if (lock.hasLock()) {
       lock.releaseLock();
     }
-    ui.alert('Error durante la reevaluación', e.message, ui.ButtonSet.OK);
+    ui.alert('Error durante la reevaluación', mensajeError_(e), ui.ButtonSet.OK);
   }
 }

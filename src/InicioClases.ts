@@ -41,7 +41,7 @@ interface ICorreoInicioClasesVars {
  * @returns {string[]} Sorted list of active level names.
  */
 function getNivelesActivos(): string[] {
-  const ss = getSpreadsheet();
+  const ss = getSpreadsheet_();
   const hoja = ss.getSheetByName(CONFIG.SHEETS.FINAL_LIST);
   if (!hoja) throw new Error(`Hoja ${CONFIG.SHEETS.FINAL_LIST} no encontrada.`);
 
@@ -65,8 +65,8 @@ function getNivelesActivos(): string[] {
 }
 
 /**
- * Validates the sala mapping, stores sala values in-memory via PROGRAM_DATA.HORARIOS,
- * and returns a human-readable confirmation string for the dialog's preview step.
+ * Validates the sala mapping and returns a human-readable confirmation string for the dialog's preview step.
+ * No guarda nada: las salas viajan en el parámetro de enviarCorreosInicioClases() (cada llamada del diálogo es otra ejecución).
  * Throws if any active level is missing a sala value.
  * @param salas - Object mapping nivel → sala string entered by admin in the dialog.
  * @returns {string} Preview text describing what will be sent.
@@ -80,15 +80,9 @@ function guardarSalasYObtenerPreview(salas: Record<string, string>): string {
     throw new Error(`Sala vacía para: ${missing.join(", ")}. Ingresa sala para todos los niveles activos.`);
   }
 
-  // Store in-memory (transient — valid only for this GAS execution)
-  nivelesActivos.forEach(nivel => {
-    if (PROGRAM_DATA.HORARIOS[nivel]) {
-      (PROGRAM_DATA.HORARIOS[nivel] as any).sala = salas[nivel].trim();
-    }
-  });
 
   // Build preview string
-  const destinatarios = getRecipientsInicioClases();
+  const destinatarios = getRecipientsInicioClases_();
   const resumen = nivelesActivos
     .map(n => {
       const horario = PROGRAM_DATA.HORARIOS[n];
@@ -105,8 +99,8 @@ function guardarSalasYObtenerPreview(salas: Record<string, string>): string {
  * Used internally by guardarSalasYObtenerPreview and enviarCorreosInicioClases.
  * @returns {IInicioClasesRecipient[]}
  */
-function getRecipientsInicioClases(): IInicioClasesRecipient[] {
-  const ss = getSpreadsheet();
+function getRecipientsInicioClases_(): IInicioClasesRecipient[] {
+  const ss = getSpreadsheet_();
   const hoja = ss.getSheetByName(CONFIG.SHEETS.FINAL_LIST);
   if (!hoja) throw new Error(`Hoja ${CONFIG.SHEETS.FINAL_LIST} no encontrada.`);
 
@@ -114,8 +108,8 @@ function getRecipientsInicioClases(): IInicioClasesRecipient[] {
   const headers = datos[0] as string[];
   const rows = datos.slice(1);
 
-  const idxApellido = headers.indexOf("Apellido(s)");
-  const idxNombre   = headers.indexOf("Nombre(s)");
+  const idxApellido = headers.indexOf(HEADERS.LAST_NAME);
+  const idxNombre   = headers.indexOf(HEADERS.FIRST_NAME);
   const idxCorreo   = headers.indexOf("Correo");
   const idxNivel    = headers.indexOf("Nivel");
   const idxNotif    = headers.indexOf(CONFIG.COLUMNS.INICIO_NOTIFICATION_DATE);
@@ -145,16 +139,8 @@ function getRecipientsInicioClases(): IInicioClasesRecipient[] {
  * @param vars - Typed variable set for the template.
  * @returns {string} Evaluated HTML string ready for GmailApp.sendEmail.
  */
-function renderCorreoInicioClases(vars: ICorreoInicioClasesVars): string {
-  const tpl = HtmlService.createTemplateFromFile('CorreoInicioClases');
-  (tpl as any).nombre      = vars.nombre;
-  (tpl as any).nivel       = vars.nivel;
-  (tpl as any).catedra     = vars.catedra;
-  (tpl as any).ayudantia   = vars.ayudantia;
-  (tpl as any).sala        = vars.sala;
-  (tpl as any).fechaInicio = vars.fechaInicio;
-  (tpl as any).fechaTermino = vars.fechaTermino;
-  return tpl.evaluate().getContent();
+function renderCorreoInicioClases_(vars: ICorreoInicioClasesVars): string {
+  return renderPlantilla_('CorreoInicioClases', { ...vars });
 }
 
 /**
@@ -162,90 +148,54 @@ function renderCorreoInicioClases(vars: ICorreoInicioClasesVars): string {
  * to all unnotified confirmed students.
  * On successful send: writes sala to CONFIG.COLUMNS.SALA column and
  * writes current date to CONFIG.COLUMNS.INICIO_NOTIFICATION_DATE column.
- * Requires guardarSalasYObtenerPreview() to have been called in the same
- * GAS execution (sala values live in PROGRAM_DATA.HORARIOS[nivel].sala).
+ * @param salas - Mapa nivel → sala ingresado en el diálogo; es obligatorio para todos los niveles con destinatarios.
  * @param asDraft - If true, creates Gmail drafts instead of sending emails.
  * @param limit - If > 0, limits the number of recipients processed (for sample/muestra mode).
  * @returns {string} Status message for the dialog UI.
  */
 function enviarCorreosInicioClases(salas: Record<string, string>, asDraft: boolean = false, limit: number = 0): string {
-  cargarConfiguracionDesdeHoja();
-  let recipients = getRecipientsInicioClases();
+  cargarConfiguracionDesdeHoja_();
+  const recipients = getRecipientsInicioClases_();
   if (recipients.length === 0) return "No hay estudiantes pendientes de notificación de inicio de clases.";
 
-  if (limit > 0) {
-    recipients = recipients.slice(0, limit);
-  }
-
-  // Quota check — same pattern as sendEmailBatch in Correos.ts
-  const quota = MailApp.getRemainingDailyQuota();
-  if (quota < recipients.length) {
-    return `ERROR: Cuota de Gmail insuficiente. Te quedan ${quota} envíos y quieres enviar ${recipients.length}.`;
-  }
-
-  const ss = getSpreadsheet();
-  const hoja = ss.getSheetByName(CONFIG.SHEETS.FINAL_LIST);
+  const hoja = getSpreadsheet_().getSheetByName(CONFIG.SHEETS.FINAL_LIST);
   if (!hoja) return `ERROR: Hoja ${CONFIG.SHEETS.FINAL_LIST} no encontrada.`;
 
-  const headers = hoja.getDataRange().getValues()[0] as string[];
-  const idxNotif = headers.indexOf(CONFIG.COLUMNS.INICIO_NOTIFICATION_DATE);
-  const idxSala  = headers.indexOf(CONFIG.COLUMNS.SALA);
+  const colNotif = asegurarColumna_(hoja, CONFIG.COLUMNS.INICIO_NOTIFICATION_DATE);
+  const colSala = asegurarColumna_(hoja, CONFIG.COLUMNS.SALA);
 
-  const subject = "Inicio de Clases — Programa PUCV2English";
-  let count = 0;
-  const errores: string[] = [];
-
-  recipients.forEach(r => {
-    try {
-      const horario = PROGRAM_DATA.HORARIOS[r.nivel] || PROGRAM_DATA.HORARIOS["Default"];
-      let sala = salas && salas[r.nivel] ? salas[r.nivel].trim() : undefined;
-      if (!sala) {
-        sala = (horario as any).sala as string | undefined;
-      }
-
-      if (!sala || sala.trim() === "") {
-        throw new Error(`Sala no ingresada para nivel ${r.nivel}. Ejecuta el diálogo de inicio de clases antes de llamar enviarCorreosInicioClases().`);
-      }
-
-      const htmlBody = renderCorreoInicioClases({
-        nombre:      `${r.nombre} ${r.apellido}`,
-        nivel:       r.nivel,
-        catedra:     horario ? horario.catedra : "[Horario por confirmar]",
-        ayudantia:   horario ? horario.ayudantia : "[Horario por confirmar]",
-        sala:        sala,
-        fechaInicio: PROGRAM_DATA.FECHA_INICIO,
-        fechaTermino: PROGRAM_DATA.FECHA_TERMINO,
-      });
-
-      if (asDraft) {
-        GmailApp.createDraft(r.email, subject, "", { htmlBody });
-      } else {
-        GmailApp.sendEmail(r.email, subject, "", { htmlBody });
-
-        // Write sala and notification timestamp only after successful send
-        if (idxSala !== -1) {
-          hoja.getRange(r.rowNum, idxSala + 1).setValue(sala);
-        }
-        if (idxNotif !== -1) {
-          hoja.getRange(r.rowNum, idxNotif + 1).setValue(new Date());
-        }
-      }
-
-      count++;
-    } catch (e: any) {
-      logToWebApp(`Error enviando inicio de clases a ${r.email}: ${e.message}`);
-      errores.push(`[${r.email}]: ${e.message}`);
+  const horarioDe = (nivel: string) => PROGRAM_DATA.HORARIOS[nivel] || PROGRAM_DATA.HORARIOS["Default"];
+  const salaDe = (r: IInicioClasesRecipient): string => {
+    const sala = salas && salas[r.nivel] ? salas[r.nivel].trim() : "";
+    if (!sala) {
+      throw new Error(`Sala no ingresada para nivel ${r.nivel}. Ejecuta el diálogo de inicio de clases antes de llamar enviarCorreosInicioClases().`);
     }
+    return sala;
+  };
+
+  return enviarLote_({
+    etiqueta: "inicio de clases",
+    destinatarios: recipients,
+    asunto: "Inicio de Clases — Programa PUCV2English",
+    html: r => {
+      const horario = horarioDe(r.nivel);
+      return renderCorreoInicioClases_({
+        nombre: `${r.nombre} ${r.apellido}`,
+        nivel: r.nivel,
+        catedra: horario ? horario.catedra : "[Horario por confirmar]",
+        ayudantia: horario ? horario.ayudantia : "[Horario por confirmar]",
+        sala: salaDe(r),
+        fechaInicio: PROGRAM_DATA.FECHA_INICIO,
+        fechaTermino: PROGRAM_DATA.FECHA_TERMINO
+      });
+    },
+    hojaSello: hoja,
+    columnaSello: colNotif,
+    // La sala se guarda solo tras un envío exitoso, junto con el sello de fecha
+    alEnviar: r => hoja.getRange(r.rowNum, colSala).setValue(salaDe(r)),
+    asBorrador: asDraft,
+    limite: limit
   });
-
-  const verb = asDraft ? "crearon" : "enviaron";
-  const noun = asDraft ? "borradores" : "correos";
-  const sampleNote = limit > 0 ? ` (muestra limitada a ${limit})` : "";
-  if (errores.length > 0) {
-    return `Se ${verb} ${count} ${noun} de inicio de clases${sampleNote}.\n\nHubo ${errores.length} error(es):\n${errores.slice(0, 3).join("\n")}`;
-  }
-
-  return `Se ${verb} ${count} ${noun} de inicio de clases exitosamente${sampleNote}.`;
 }
 
 /**
@@ -254,12 +204,12 @@ function enviarCorreosInicioClases(salas: Record<string, string>, asDraft: boole
  * @returns {string} Status message for the dialog UI.
  */
 function sendTestInicioClases(): string {
-  cargarConfiguracionDesdeHoja();
+  cargarConfiguracionDesdeHoja_();
   const adminEmail = Session.getActiveUser().getEmail();
   if (!adminEmail) throw new Error("No se pudo detectar el correo del administrador. Verifica tu cuenta de Google.");
 
   const horario = PROGRAM_DATA.HORARIOS["B2.1"] || PROGRAM_DATA.HORARIOS["Default"];
-  const htmlBody = renderCorreoInicioClases({
+  const htmlBody = renderCorreoInicioClases_({
     nombre: "Administrador de Prueba",
     nivel: "B2.1",
     catedra: horario ? horario.catedra : "Lunes y Miércoles 14:30 - 16:00",

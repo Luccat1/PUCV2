@@ -6,17 +6,17 @@
 /**
  * Helper to apply dropdown data validation rules to the Seleccionados sheet (Fix #9).
  */
-function aplicarValidacionesSeleccionados(
+function aplicarValidacionesSeleccionados_(
   sheet: GoogleAppsScript.Spreadsheet.Sheet,
   startRow: number,
   numRows: number,
   headers: any[]
 ): void {
   if (numRows <= 0) return;
-  const idxAceptacion = headers.indexOf("Aceptación") + 1;
-  const idxVerificacion = headers.indexOf("Verificación Certificado") + 1;
-  const idxNivel = headers.indexOf("Nivel Asignado") + 1;
-  const idxPago = headers.indexOf("Pago Matrícula") + 1;
+  const idxAceptacion = headers.indexOf(HEADERS.ACCEPTANCE) + 1;
+  const idxVerificacion = headers.indexOf(HEADERS.CERT_VERIFICATION) + 1;
+  const idxNivel = headers.indexOf(HEADERS.LEVEL_ASSIGNED) + 1;
+  const idxPago = headers.indexOf(HEADERS.PAYMENT) + 1;
 
   if (idxAceptacion > 0) {
     const rule = SpreadsheetApp.newDataValidation().requireValueInList(['Acepta', 'Rechaza', 'Pendiente'], true).build();
@@ -41,15 +41,15 @@ function aplicarValidacionesSeleccionados(
  * @param resultados The processed evaluation results array.
  * @param ss The target Spreadsheet.
  */
-function generarHojaSeleccionados(resultados: any[][], ss: GoogleAppsScript.Spreadsheet.Spreadsheet): void {
+function generarHojaSeleccionados_(resultados: any[][], ss: GoogleAppsScript.Spreadsheet.Spreadsheet): void {
   const datosPostulantes = resultados.slice(1);
-  const idxTotal = resultados[0].indexOf("PUNTAJE TOTAL");
-  const idxFecha = resultados[0].indexOf("Fecha de Postulación");
-  const idxNivelPostulado = resultados[0].indexOf("Nivel Postulado");
-  const idxEmail = resultados[0].indexOf("Correo Electrónico");
-  const idxCat = resultados[0].indexOf("Categoría Postulante");
+  const idxTotal = resultados[0].indexOf(HEADERS.TOTAL_SCORE);
+  const idxFecha = resultados[0].indexOf(HEADERS.APPLICATION_DATE);
+  const idxNivelPostulado = resultados[0].indexOf(HEADERS.LEVEL_APPLIED);
+  const idxEmail = resultados[0].indexOf(HEADERS.EMAIL);
+  const idxCat = resultados[0].indexOf(HEADERS.CATEGORY);
 
-  logToWebApp("Generando lista de seleccionados por nivel (cupos abiertos: B1+ 25, resto 15)...");
+  logToWebApp_("Generando lista de seleccionados por nivel (cupos abiertos: B1+ 25, resto 15)...");
 
   // Read existing candidates from Seleccionados to preserve their states
   const emailMap: Record<string, { verificacion: string, nivel: string, aceptacion: string, pagoMatricula: string, comentarios: string, fechaNotif: string }> = {};
@@ -60,13 +60,13 @@ function generarHojaSeleccionados(resultados: any[][], ss: GoogleAppsScript.Spre
     const existingValues = sheet.getDataRange().getValues();
     if (existingValues.length > 1) {
       const headersS = existingValues[0];
-      const idxEmailS = headersS.indexOf("Correo Electrónico");
-      const idxVerifS = headersS.indexOf("Verificación Certificado");
-      const idxNivelS = headersS.indexOf("Nivel Asignado");
-      const idxAceptacionS = headersS.indexOf("Aceptación");
-      const idxPagoS = headersS.indexOf("Pago Matrícula");
-      const idxCommentsS = headersS.indexOf("Comentarios");
-      const idxNotifS = headersS.indexOf("Fecha Notificación");
+      const idxEmailS = headersS.indexOf(HEADERS.EMAIL);
+      const idxVerifS = headersS.indexOf(HEADERS.CERT_VERIFICATION);
+      const idxNivelS = headersS.indexOf(HEADERS.LEVEL_ASSIGNED);
+      const idxAceptacionS = headersS.indexOf(HEADERS.ACCEPTANCE);
+      const idxPagoS = headersS.indexOf(HEADERS.PAYMENT);
+      const idxCommentsS = headersS.indexOf(HEADERS.COMMENTS);
+      const idxNotifS = headersS.indexOf(HEADERS.NOTIFICATION_DATE);
 
       if (idxEmailS !== -1) {
         existingValues.slice(1).forEach(row => {
@@ -131,7 +131,7 @@ function generarHojaSeleccionados(resultados: any[][], ss: GoogleAppsScript.Spre
     });
 
     // Sort new candidates by score desc, date asc (tie breaker)
-    nuevosCandidatos.sort((a, b) => compararPostulantes(a, b, idxTotal, idxCat, idxFecha));
+    nuevosCandidatos.sort((a, b) => compararPostulantes_(a, b, idxTotal, idxCat, idxFecha));
 
     // Cupos de convocatoria abierta del nivel (bases n.º 3) menos los ya seleccionados
     const cuposDisponibles = Math.max(0, (CUPOS_CONVOCATORIA_ABIERTA[nivel] || 15) - yaSeleccionados.length);
@@ -166,18 +166,18 @@ function generarHojaSeleccionados(resultados: any[][], ss: GoogleAppsScript.Spre
     const nivelB = existB ? (existB.nivel || (idxNivelPostulado !== -1 ? String(b[idxNivelPostulado]).trim() : "")) : (idxNivelPostulado !== -1 ? String(b[idxNivelPostulado]).trim() : "");
     if (nivelA !== nivelB) return nivelA.localeCompare(nivelB);
 
-    return compararPostulantes(a, b, idxTotal, idxCat, idxFecha);
+    return compararPostulantes_(a, b, idxTotal, idxCat, idxFecha);
   });
 
   const rankedData = seleccionadosPorNivel.map((f, i) => [i + 1, ...f]);
 
   const headersS = [
-    "Ranking", ...resultados[0],
-    "Verificación Certificado", "Nivel Asignado", "Aceptación", "Pago Matrícula", "Comentarios", "Fecha Notificación"
+    HEADERS.RANKING, ...resultados[0],
+    HEADERS.CERT_VERIFICATION, HEADERS.LEVEL_ASSIGNED, HEADERS.ACCEPTANCE, HEADERS.PAYMENT, HEADERS.COMMENTS, HEADERS.NOTIFICATION_DATE
   ];
 
-  const idxEmailInS = headersS.indexOf("Correo Electrónico");
-  const idxNivelPostuladoInS = headersS.indexOf("Nivel Postulado");
+  const idxEmailInS = headersS.indexOf(HEADERS.EMAIL);
+  const idxNivelPostuladoInS = headersS.indexOf(HEADERS.LEVEL_APPLIED);
 
   const sheetData = [headersS, ...rankedData.map(f => {
     const email = idxEmailInS !== -1 ? String(f[idxEmailInS]).trim().toLowerCase() : "";
@@ -207,17 +207,17 @@ function generarHojaSeleccionados(resultados: any[][], ss: GoogleAppsScript.Spre
   if (sheetData.length > 0) {
     const range = sheet.getRange(1, 1, sheetData.length, sheetData[0].length);
     range.setValues(sheetData);
-    formatearColumnaFecha(sheet, headersS, sheetData.length);
+    formatearColumnaFecha_(sheet, headersS, sheetData.length);
 
     if (sheetData.length > 1) {
-      const idxAceptacion = headersS.indexOf("Aceptación") + 1;
+      const idxAceptacion = headersS.indexOf(HEADERS.ACCEPTANCE) + 1;
 
       // Data validations via shared helper (Fix #9)
-      aplicarValidacionesSeleccionados(sheet, 2, sheetData.length - 1, headersS);
+      aplicarValidacionesSeleccionados_(sheet, 2, sheetData.length - 1, headersS);
 
       // Conditional formatting
       const fullRange = sheet.getRange(2, 1, sheetData.length - 1, sheetData[0].length);
-      const letterA = columnaALetra(idxAceptacion);
+      const letterA = columnaALetra_(idxAceptacion);
 
       const ruleGreen = SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied(`=$${letterA}2="Acepta"`).setBackground("#D9EAD3").setRanges([fullRange]).build();
       const ruleRed = SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied(`=$${letterA}2="Rechaza"`).setBackground("#F4CCCC").setRanges([fullRange]).build();
@@ -233,11 +233,11 @@ function generarHojaSeleccionados(resultados: any[][], ss: GoogleAppsScript.Spre
  * Orchestrates waitlist promotion when a spot becomes available.
  * Finds the next eligible candidate in "Evaluación automatizada" for the specific level and moves them to "Seleccionados".
  */
-function gestionarListaDeEspera(nivelTarget?: string): void {
+function gestionarListaDeEspera_(nivelTarget?: string): void {
   const lock = LockService.getScriptLock();
   try {
     lock.waitLock(30000);
-    const ss = getSpreadsheet();
+    const ss = getSpreadsheet_();
     const hojaOutput = ss.getSheetByName(CONFIG.SHEETS.OUTPUT);
     const hojaSelected = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
     if (!hojaOutput || !hojaSelected) return;
@@ -245,34 +245,34 @@ function gestionarListaDeEspera(nivelTarget?: string): void {
     const valuesOutput = hojaOutput.getDataRange().getValues();
     const headersOutput = valuesOutput.shift()!;
     const idxScore = headersOutput.indexOf(CONFIG.COLUMNS.SCORE);
-    const idxNivelPostulado = headersOutput.indexOf("Nivel Postulado");
+    const idxNivelPostulado = headersOutput.indexOf(HEADERS.LEVEL_APPLIED);
     const idxEmail = headersOutput.indexOf(CONFIG.COLUMNS.EMAIL);
 
     const valuesS = hojaSelected.getDataRange().getValues();
     const headersS = valuesS.shift() || [];
-    const idxCorreoS = headersS.indexOf("Correo Electrónico");
+    const idxCorreoS = headersS.indexOf(HEADERS.EMAIL);
 
     // Build set of all current emails in Seleccionados
     const emailsSelected = new Set(valuesS.map(row => String(row[idxCorreoS]).trim().toLowerCase()));
 
     // Sort by score descending, then date ascending
-    const idxFecha = headersOutput.indexOf("Fecha de Postulación");
+    const idxFecha = headersOutput.indexOf(HEADERS.APPLICATION_DATE);
     let candidates = valuesOutput
       .filter(row => row[idxEmail] && !emailsSelected.has(String(row[idxEmail]).trim().toLowerCase()))
-      .sort((a, b) => compararPostulantes(a, b, idxScore, headersOutput.indexOf("Categoría Postulante"), idxFecha));
+      .sort((a, b) => compararPostulantes_(a, b, idxScore, headersOutput.indexOf(HEADERS.CATEGORY), idxFecha));
 
     if (nivelTarget && idxNivelPostulado !== -1) {
       candidates = candidates.filter(row => String(row[idxNivelPostulado]).trim() === nivelTarget);
     }
 
     if (candidates.length === 0) {
-      logToWebApp(`No hay candidatos disponibles en lista de espera${nivelTarget ? ' para el nivel ' + nivelTarget : ''}.`);
+      logToWebApp_(`No hay candidatos disponibles en lista de espera${nivelTarget ? ' para el nivel ' + nivelTarget : ''}.`);
       return;
     }
 
     const nextCandidate = candidates[0];
     const candidateEmail = String(nextCandidate[idxEmail] || "").trim();
-    const idxNombre = headersOutput.indexOf("Nombre(s)");
+    const idxNombre = headersOutput.indexOf(HEADERS.FIRST_NAME);
     const candidateNombre = idxNombre !== -1 ? String(nextCandidate[idxNombre] || "").trim() : "Postulante";
     const candidateNivel = idxNivelPostulado !== -1 ? String(nextCandidate[idxNivelPostulado] || "").trim() : "";
 
@@ -292,7 +292,7 @@ function gestionarListaDeEspera(nivelTarget?: string): void {
     const newRowNum = hojaSelected.getLastRow();
 
     // Apply validations for new row (Fix #9)
-    aplicarValidacionesSeleccionados(hojaSelected, newRowNum, 1, headersS);
+    aplicarValidacionesSeleccionados_(hojaSelected, newRowNum, 1, headersS);
 
     // Remove candidate from Waitlist sheet to prevent duplicate/contradictory emails (Fix #10)
     const hojaWaitlist = ss.getSheetByName(CONFIG.SHEETS.WAITLIST);
@@ -300,7 +300,7 @@ function gestionarListaDeEspera(nivelTarget?: string): void {
       const waitlistValues = hojaWaitlist.getDataRange().getValues();
       if (waitlistValues.length > 1) {
         const hW = waitlistValues[0];
-        const idxEmailW = hW.indexOf("Correo Electrónico");
+        const idxEmailW = hW.indexOf(HEADERS.EMAIL);
         if (idxEmailW !== -1) {
           for (let w = 1; w < waitlistValues.length; w++) {
             if (String(waitlistValues[w][idxEmailW]).trim().toLowerCase() === candidateEmail.toLowerCase()) {
@@ -320,12 +320,12 @@ function gestionarListaDeEspera(nivelTarget?: string): void {
       }
     }
 
-    logToWebApp(`Candidato ${candidateEmail} (${candidateNivel}) promovido de lista de espera.`);
+    logToWebApp_(`Candidato ${candidateEmail} (${candidateNivel}) promovido de lista de espera.`);
 
     // Send targeted notification email ONLY to the newly promoted candidate
-    enviarCorreoIndividualSeleccionado(candidateEmail, candidateNombre, candidateNivel, newRowNum);
-  } catch (e: any) {
-    logToWebApp("Error en gestionarListaDeEspera: " + e.message);
+    enviarCorreoIndividualSeleccionado_(candidateEmail, candidateNombre, candidateNivel, newRowNum);
+  } catch (e) {
+    logToWebApp_("Error en gestionarListaDeEspera_: " + mensajeError_(e));
   } finally {
     lock.releaseLock();
   }
@@ -336,8 +336,8 @@ function gestionarListaDeEspera(nivelTarget?: string): void {
  * Updates state to "Rechaza". Waitlist promotion is triggered manually by admin, NOT automatically.
  * @param correo The email address of the rejecting applicant.
  */
-function procesarRechazoDesdeWebApp(correo: string): void {
-  logToWebApp(`Procesando rechazo de ${correo}. La lista de espera debe ser activada manualmente.`);
+function procesarRechazoDesdeWebApp_(correo: string): void {
+  logToWebApp_(`Procesando rechazo de ${correo}. La lista de espera debe ser activada manualmente.`);
   // Rejection email is sent in WebApp.ts through the confirmation flow.
 }
 
@@ -345,7 +345,7 @@ function procesarRechazoDesdeWebApp(correo: string): void {
  * Promotes the currently selected applicant in the active sheet to the Selected sheet.
  */
 function promoverCandidatoActivo(): void {
-  const ss = getSpreadsheet();
+  const ss = getSpreadsheet_();
   const activeSheet = ss.getActiveSheet();
   
   if (activeSheet.getName() !== CONFIG.SHEETS.OUTPUT) {
@@ -365,10 +365,10 @@ function promoverCandidatoActivo(): void {
   const rowData = activeSheet.getRange(rowNum, 1, 1, lastCol).getValues()[0];
   const headers = activeSheet.getRange(1, 1, 1, lastCol).getDisplayValues()[0];
 
-  const idxEmail = headers.indexOf("Correo Electrónico");
-  const idxNombre = headers.indexOf("Nombre(s)");
-  const idxApellido = headers.indexOf("Apellido(s)");
-  const idxNivelPostulado = headers.indexOf("Nivel Postulado");
+  const idxEmail = headers.indexOf(HEADERS.EMAIL);
+  const idxNombre = headers.indexOf(HEADERS.FIRST_NAME);
+  const idxApellido = headers.indexOf(HEADERS.LAST_NAME);
+  const idxNivelPostulado = headers.indexOf(HEADERS.LEVEL_APPLIED);
 
   if (idxEmail === -1 || idxNombre === -1 || idxApellido === -1 || idxNivelPostulado === -1) {
     SpreadsheetApp.getUi().alert("Error", "No se encontraron las columnas necesarias en la hoja de evaluación.", SpreadsheetApp.getUi().ButtonSet.OK);
@@ -393,7 +393,7 @@ function promoverCandidatoActivo(): void {
 
   const valuesS = hojaSelected.getDataRange().getValues();
   const headersS = valuesS.shift() || [];
-  const idxCorreoS = headersS.indexOf("Correo Electrónico");
+  const idxCorreoS = headersS.indexOf(HEADERS.EMAIL);
 
   if (idxCorreoS !== -1) {
     const emailsSelected = new Set(valuesS.map(row => String(row[idxCorreoS]).trim().toLowerCase()));
@@ -427,7 +427,7 @@ function promoverCandidatoActivo(): void {
   hojaSelected.appendRow(newRow);
 
   // Apply validations for drop-downs (Fix #9)
-  aplicarValidacionesSeleccionados(hojaSelected, hojaSelected.getLastRow(), 1, headersS);
+  aplicarValidacionesSeleccionados_(hojaSelected, hojaSelected.getLastRow(), 1, headersS);
 
   ui.alert("Promoción Exitosa", `Se ha promovido a ${nombres} ${apellidos} al nivel ${nivelPostulado} de seleccionados.`, ui.ButtonSet.OK);
 }
@@ -437,15 +437,15 @@ function promoverCandidatoActivo(): void {
  * @param resultados The processed evaluation results array.
  * @param ss The target Spreadsheet.
  */
-function generarHojaListaEspera(resultados: any[][], ss: GoogleAppsScript.Spreadsheet.Spreadsheet): void {
+function generarHojaListaEspera_(resultados: any[][], ss: GoogleAppsScript.Spreadsheet.Spreadsheet): void {
   const datosPostulantes = resultados.slice(1);
-  const idxTotal = resultados[0].indexOf("PUNTAJE TOTAL");
-  const idxFecha = resultados[0].indexOf("Fecha de Postulación");
-  const idxNivelPostulado = resultados[0].indexOf("Nivel Postulado");
-  const idxEmail = resultados[0].indexOf("Correo Electrónico");
-  const idxCat = resultados[0].indexOf("Categoría Postulante");
+  const idxTotal = resultados[0].indexOf(HEADERS.TOTAL_SCORE);
+  const idxFecha = resultados[0].indexOf(HEADERS.APPLICATION_DATE);
+  const idxNivelPostulado = resultados[0].indexOf(HEADERS.LEVEL_APPLIED);
+  const idxEmail = resultados[0].indexOf(HEADERS.EMAIL);
+  const idxCat = resultados[0].indexOf(HEADERS.CATEGORY);
 
-  logToWebApp("Generando lista de espera por nivel (Siguientes 30 por nivel)...");
+  logToWebApp_("Generando lista de espera por nivel (Siguientes 30 por nivel)...");
 
   // Read existing waitlist to preserve notified dates
   const emailMap: Record<string, { fechaNotif: string, fechaCierre: string }> = {};
@@ -456,9 +456,9 @@ function generarHojaListaEspera(resultados: any[][], ss: GoogleAppsScript.Spread
     const existingValues = sheet.getDataRange().getValues();
     if (existingValues.length > 1) {
       const headersW = existingValues[0];
-      const idxEmailW = headersW.indexOf("Correo Electrónico");
-      const idxNotifW = headersW.indexOf("Fecha Notificación");
-      const idxCierreW = headersW.indexOf("Fecha Notificación Cierre");
+      const idxEmailW = headersW.indexOf(HEADERS.EMAIL);
+      const idxNotifW = headersW.indexOf(HEADERS.NOTIFICATION_DATE);
+      const idxCierreW = headersW.indexOf(HEADERS.CLOSURE_NOTIFICATION_DATE);
 
       if (idxEmailW !== -1) {
         existingValues.slice(1).forEach(row => {
@@ -484,7 +484,7 @@ function generarHojaListaEspera(resultados: any[][], ss: GoogleAppsScript.Spread
     const valuesS = hojaSelected.getDataRange().getValues();
     if (valuesS.length > 1) {
       const headS = valuesS[0];
-      const idxCorreoS = headS.indexOf("Correo Electrónico");
+      const idxCorreoS = headS.indexOf(HEADERS.EMAIL);
       if (idxCorreoS !== -1) {
         valuesS.slice(1).forEach(row => {
           const email = String(row[idxCorreoS]).trim().toLowerCase();
@@ -533,7 +533,7 @@ function generarHojaListaEspera(resultados: any[][], ss: GoogleAppsScript.Spread
     });
 
     // Sort new candidates by score desc, date asc
-    nuevosCandidatos.sort((a, b) => compararPostulantes(a, b, idxTotal, idxCat, idxFecha));
+    nuevosCandidatos.sort((a, b) => compararPostulantes_(a, b, idxTotal, idxCat, idxFecha));
 
     // 30 spots for waitlist per level
     const spotsDisponibles = Math.max(0, 30 - yaEnEspera.length);
@@ -548,13 +548,13 @@ function generarHojaListaEspera(resultados: any[][], ss: GoogleAppsScript.Spread
     const nivelB = idxNivelPostulado !== -1 ? String(b[idxNivelPostulado]).trim() : "";
     if (nivelA !== nivelB) return nivelA.localeCompare(nivelB);
 
-    return compararPostulantes(a, b, idxTotal, idxCat, idxFecha);
+    return compararPostulantes_(a, b, idxTotal, idxCat, idxFecha);
   });
 
   const rankedData = waitlistPorNivel.map((f, i) => [i + 1, ...f]);
-  const headersW = ["Ranking", ...resultados[0], "Fecha Notificación", "Fecha Notificación Cierre"];
+  const headersW = [HEADERS.RANKING, ...resultados[0], HEADERS.NOTIFICATION_DATE, HEADERS.CLOSURE_NOTIFICATION_DATE];
 
-  const idxEmailInW = headersW.indexOf("Correo Electrónico");
+  const idxEmailInW = headersW.indexOf(HEADERS.EMAIL);
 
   const sheetData = [headersW, ...rankedData.map(f => {
     const email = idxEmailInW !== -1 ? String(f[idxEmailInW]).trim().toLowerCase() : "";
@@ -578,7 +578,7 @@ function generarHojaListaEspera(resultados: any[][], ss: GoogleAppsScript.Spread
   if (sheetData.length > 0) {
     const range = sheet.getRange(1, 1, sheetData.length, sheetData[0].length);
     range.setValues(sheetData);
-    formatearColumnaFecha(sheet, headersW, sheetData.length);
+    formatearColumnaFecha_(sheet, headersW, sheetData.length);
     
     // Formatting
     sheet.setTabColor("#ff9900"); // Orange for Waitlist
@@ -605,8 +605,8 @@ function ejecutarRegeneracionDeListas(): void {
   if (confirm !== ui.Button.YES) return;
 
   try {
-    const ss = getSpreadsheet();
-    cargarConfiguracionDesdeHoja();
+    const ss = getSpreadsheet_();
+    cargarConfiguracionDesdeHoja_();
 
     const hojaO = ss.getSheetByName(CONFIG.SHEETS.OUTPUT);
     if (!hojaO) {
@@ -621,12 +621,12 @@ function ejecutarRegeneracionDeListas(): void {
     }
 
     // Only generate the Waitlist sheet, keeping the Selected sheet 100% intact!
-    generarHojaListaEspera(resultados, ss);
+    generarHojaListaEspera_(resultados, ss);
 
     SpreadsheetApp.flush();
     ui.alert("Operación Exitosa", "Se ha regenerado la hoja 'Lista de Espera' de forma correcta, excluyendo a los seleccionados actuales.", ui.ButtonSet.OK);
-  } catch (e: any) {
-    ui.alert("Error", "Ocurrió un error: " + e.message, ui.ButtonSet.OK);
+  } catch (e) {
+    ui.alert("Error", "Ocurrió un error: " + mensajeError_(e), ui.ButtonSet.OK);
   }
 }
 
@@ -654,7 +654,7 @@ function restaurarHojaSeleccionadosPerdida(): void {
     const file = DriveApp.getFileById(fileId);
     const tsvData = file.getBlob().getDataAsString("utf-8");
 
-    const ss = getSpreadsheet();
+    const ss = getSpreadsheet_();
     let sheet = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
     if (!sheet) {
       sheet = ss.insertSheet(CONFIG.SHEETS.SELECTED);
@@ -676,11 +676,11 @@ function restaurarHojaSeleccionadosPerdida(): void {
     });
 
     const headers = [
-      "Ranking", "Apellido(s)", "Nombre(s)", "Correo Electrónico", "RUT", "Fecha de Postulación",
-      "Categoría Postulante", "Sede", "Puntaje Disponibilidad", "Puntaje Tipo", "Puntaje Uso Inglés",
+      HEADERS.RANKING, HEADERS.LAST_NAME, HEADERS.FIRST_NAME, HEADERS.EMAIL, "RUT", HEADERS.APPLICATION_DATE,
+      HEADERS.CATEGORY, "Sede", "Puntaje Disponibilidad", "Puntaje Tipo", "Puntaje Uso Inglés",
       "Puntaje Intl.", "Puntaje Nivel Inglés", "Puntaje Año Ingreso", "Puntaje Compromiso", "Puntaje Carta",
-      "PUNTAJE TOTAL", "Enlace Certificado", "Nivel Postulado", "Verificación Certificado", "Nivel Asignado",
-      "Aceptación", "Pago Matrícula", "Comentarios", "Fecha Notificación"
+      HEADERS.TOTAL_SCORE, HEADERS.CERTIFICATE_LINK, HEADERS.LEVEL_APPLIED, HEADERS.CERT_VERIFICATION, HEADERS.LEVEL_ASSIGNED,
+      HEADERS.ACCEPTANCE, HEADERS.PAYMENT, HEADERS.COMMENTS, HEADERS.NOTIFICATION_DATE
     ];
 
     const sheetData = [headers, ...rows];
@@ -698,12 +698,12 @@ function restaurarHojaSeleccionadosPerdida(): void {
     sheet.autoResizeColumns(1, sheetData[0].length);
 
     // Apply validations for drop-downs (Fix #9)
-    aplicarValidacionesSeleccionados(sheet, 2, sheetData.length - 1, headers);
+    aplicarValidacionesSeleccionados_(sheet, 2, sheetData.length - 1, headers);
 
     SpreadsheetApp.flush();
     ui.alert("Restauración Exitosa", "Se ha restaurado la hoja 'Seleccionados' con el listado de respaldo.", ui.ButtonSet.OK);
-  } catch (e: any) {
-    ui.alert("Error", "Ocurrió un error al restaurar: " + e.message, ui.ButtonSet.OK);
+  } catch (e) {
+    ui.alert("Error", "Ocurrió un error al restaurar: " + mensajeError_(e), ui.ButtonSet.OK);
   }
 }
 
@@ -712,7 +712,7 @@ function restaurarHojaSeleccionadosPerdida(): void {
  * Deletes them from "Lista de Espera" and re-orders the remaining rankings.
  */
 function promoverDesdeListaEspera(): void {
-  const ss = getSpreadsheet();
+  const ss = getSpreadsheet_();
   const activeSheet = ss.getActiveSheet();
   
   if (activeSheet.getName() !== CONFIG.SHEETS.WAITLIST) {
@@ -732,10 +732,10 @@ function promoverDesdeListaEspera(): void {
   const rowData = activeSheet.getRange(rowNum, 1, 1, lastCol).getValues()[0];
   const headers = activeSheet.getRange(1, 1, 1, lastCol).getDisplayValues()[0];
 
-  const idxEmail = headers.indexOf("Correo Electrónico");
-  const idxNombre = headers.indexOf("Nombre(s)");
-  const idxApellido = headers.indexOf("Apellido(s)");
-  const idxNivelPostulado = headers.indexOf("Nivel Postulado");
+  const idxEmail = headers.indexOf(HEADERS.EMAIL);
+  const idxNombre = headers.indexOf(HEADERS.FIRST_NAME);
+  const idxApellido = headers.indexOf(HEADERS.LAST_NAME);
+  const idxNivelPostulado = headers.indexOf(HEADERS.LEVEL_APPLIED);
 
   if (idxEmail === -1 || idxNombre === -1 || idxApellido === -1 || idxNivelPostulado === -1) {
     SpreadsheetApp.getUi().alert("Error", "No se encontraron las columnas necesarias en la hoja de Lista de Espera.", SpreadsheetApp.getUi().ButtonSet.OK);
@@ -760,7 +760,7 @@ function promoverDesdeListaEspera(): void {
 
   const valuesS = hojaSelected.getDataRange().getValues();
   const headersS = valuesS.shift() || [];
-  const idxCorreoS = headersS.indexOf("Correo Electrónico");
+  const idxCorreoS = headersS.indexOf(HEADERS.EMAIL);
 
   if (idxCorreoS !== -1) {
     const emailsSelected = new Set(valuesS.map(row => String(row[idxCorreoS]).trim().toLowerCase()));
@@ -785,7 +785,7 @@ function promoverDesdeListaEspera(): void {
   // We want to extract findings from ...resultados[0] and build:
   // [Ranking, ...resultados[0], Verificación Certificado, Nivel Asignado, Aceptación, Pago Matrícula, Comentarios, Fecha Notificación]
   // Use header-based slicing to be robust against column count variations.
-  const idxFechaNotifW = headers.indexOf("Fecha Notificación");
+  const idxFechaNotifW = headers.indexOf(HEADERS.NOTIFICATION_DATE);
   const sliceEnd = idxFechaNotifW !== -1 ? idxFechaNotifW : lastCol - 2;
   const evalRowPart = rowData.slice(1, sliceEnd);
 
@@ -803,7 +803,7 @@ function promoverDesdeListaEspera(): void {
   hojaSelected.appendRow(newRow);
 
   // Apply validations for drop-downs (Fix #9)
-  aplicarValidacionesSeleccionados(hojaSelected, hojaSelected.getLastRow(), 1, headersS);
+  aplicarValidacionesSeleccionados_(hojaSelected, hojaSelected.getLastRow(), 1, headersS);
 
   // Delete from waitlist
   activeSheet.deleteRow(rowNum);

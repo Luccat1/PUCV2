@@ -44,7 +44,7 @@ interface IProgramData {
   DEADLINE_DAYS: number;
   TEST_FECHA: string;
   TEST_INSTRUCCIONES_FECHA: string;
-  HORARIOS: Record<string, { catedra: string; ayudantia: string; sala?: string }>;
+  HORARIOS: Record<string, { catedra: string; ayudantia: string }>;
 }
 
 /**
@@ -113,6 +113,31 @@ interface IStatistics {
 
 // --- CONSTANTS ---
 
+/**
+ * Encabezados de las hojas que genera el sistema (Evaluación automatizada, Seleccionados, Lista de Espera).
+ * Única fuente de los nombres: nunca escribirlos como texto suelto, porque una errata no falla,
+ * solo deja la columna sin encontrar. Se usan solo dentro de funciones (no al cargar el archivo).
+ */
+const HEADERS = {
+  RANKING: "Ranking",
+  LAST_NAME: "Apellido(s)",
+  FIRST_NAME: "Nombre(s)",
+  EMAIL: "Correo Electrónico",
+  APPLICATION_DATE: "Fecha de Postulación",
+  CATEGORY: "Categoría Postulante",
+  TOTAL_SCORE: "PUNTAJE TOTAL",
+  CERTIFICATE_LINK: "Enlace Certificado",
+  LEVEL_APPLIED: "Nivel Postulado",
+  CERT_VERIFICATION: "Verificación Certificado",
+  LEVEL_ASSIGNED: "Nivel Asignado",
+  ACCEPTANCE: "Aceptación",
+  PAYMENT: "Pago Matrícula",
+  COMMENTS: "Comentarios",
+  NOTIFICATION_DATE: "Fecha Notificación",
+  REJECTION_NOTIFICATION_DATE: "Fecha Notificación Rechazo",
+  CLOSURE_NOTIFICATION_DATE: "Fecha Notificación Cierre"
+};
+
 const CONFIG: IConfig = {
   // Pega aquí la URL publicada de tu Web App (terminada en /exec) si los links de correo fallan con "No se puede abrir el archivo"
   WEB_APP_URL: "",
@@ -156,12 +181,13 @@ const CONFIG: IConfig = {
     ENTRY_YEAR: "¿En qué año ingresaste a tu carrera actual?",
     ENDORSEMENT_APPROVAL: "¿Tu jefatura directa está en conocimiento de tu postulación y respalda tu participación en el horario establecido?",
     ENDORSEMENT_LETTER: "Adjunta la carta de respaldo de tu jefatura (opcional)",
-    NOTIFICATION_DATE: "Fecha Notificación",
-    REJECTION_NOTIFICATION_DATE: "Fecha Notificación Rechazo",
+    NOTIFICATION_DATE: HEADERS.NOTIFICATION_DATE,
+    REJECTION_NOTIFICATION_DATE: HEADERS.REJECTION_NOTIFICATION_DATE,
+    CLOSURE_NOTIFICATION_DATE: HEADERS.CLOSURE_NOTIFICATION_DATE,
     INICIO_NOTIFICATION_DATE: "Notificado Inicio",
     SALA: "Sala",
     LEVEL_APPLIED: "Nivel al que solicitas ingresar",
-    SCORE: "PUNTAJE TOTAL",
+    SCORE: HEADERS.TOTAL_SCORE,
     PHONE: "Número de teléfono de contacto",
     CARGO_ACTUAL: "¿Cuál es tu cargo actual en la PUCV?",
     ANTIGUEDAD_CARGO: "¿Cuánto tiempo llevas en tu cargo actual?",
@@ -199,7 +225,7 @@ const DECLARACIONES_REQUERIDAS: string[] = [
 ];
 
 /**
- * These parameters can be modified by the 'cargarConfiguracionDesdeHoja' function.
+ * These parameters can be modified by the 'cargarConfiguracionDesdeHoja_' function.
  */
 const DEFAULT_SCORING_PARAMS: IScoringParams = {
   UsoIngles: {
@@ -238,7 +264,7 @@ const DEFAULT_SCORING_PARAMS: IScoringParams = {
 };
 
 /**
- * These parameters can be modified by the 'cargarConfiguracionDesdeHoja' function.
+ * These parameters can be modified by the 'cargarConfiguracionDesdeHoja_' function.
  */
 let SCORING_PARAMS: IScoringParams = JSON.parse(JSON.stringify(DEFAULT_SCORING_PARAMS));
 
@@ -264,7 +290,7 @@ const DEFAULT_PROGRAM_DATA: IProgramData = {
 };
 
 /**
- * These parameters can be modified by the 'cargarDatosPrograma' function.
+ * These parameters can be modified by the 'cargarDatosPrograma_' function.
  */
 let PROGRAM_DATA: IProgramData = JSON.parse(JSON.stringify(DEFAULT_PROGRAM_DATA));
 

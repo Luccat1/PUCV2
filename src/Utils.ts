@@ -7,7 +7,7 @@
  * Returns the active spreadsheet (container-bound).
  * Falls back to CONFIG.SHEET_ID if not container-bound (optional, for standalone use).
  */
-function getSpreadsheet(): GoogleAppsScript.Spreadsheet.Spreadsheet {
+function getSpreadsheet_(): GoogleAppsScript.Spreadsheet.Spreadsheet {
   try {
     return SpreadsheetApp.getActiveSpreadsheet();
   } catch (e) {
@@ -20,15 +20,76 @@ function getSpreadsheet(): GoogleAppsScript.Spreadsheet.Spreadsheet {
  * Normalizes a type string and checks if it belongs to a student profile.
  * @param tipoPostulante The raw string from the form.
  */
-function esEstudiante(tipoPostulante: string): boolean {
+function esEstudiante_(tipoPostulante: string): boolean {
   const tipoNormalizado = String(tipoPostulante || "").toLowerCase();
   return /estudiante|alumno/.test(tipoNormalizado) && !/postgrado|posgrado/.test(tipoNormalizado);
 }
 
 /**
+ * Mensaje legible de un error capturado (en TypeScript el `catch` entrega `unknown`).
+ */
+function mensajeError_(e: unknown): string {
+  if (typeof e === "object" && e !== null && "message" in e) return String((e as { message: unknown }).message);
+  return String(e);
+}
+
+/** Hoja leída completa: encabezados, filas (sin cabecera) y búsqueda de columnas por nombre. */
+interface IHojaLeida {
+  hoja: GoogleAppsScript.Spreadsheet.Sheet;
+  nombre: string;
+  headers: string[];
+  /** Filas de datos; la fila i está en la hoja en la posición i + 2. */
+  filas: any[][];
+  /** Índice 0-based de la columna. Lanza un error claro si no existe, en vez de devolver -1 y fallar en silencio. */
+  col(encabezado: string): number;
+  /** Índice 0-based o -1, para columnas que pueden faltar. */
+  colOpc(encabezado: string): number;
+}
+
+/**
+ * Lee una hoja completa. Lanza si la hoja no existe.
+ * Usar `h.col(HEADERS.X)` para las columnas obligatorias y `h.colOpc(...)` solo para las opcionales.
+ */
+function leerHoja_(nombre: string): IHojaLeida {
+  const hoja = getSpreadsheet_().getSheetByName(nombre);
+  if (!hoja) throw new Error(`Hoja ${nombre} no encontrada.`);
+  const datos = hoja.getDataRange().getValues();
+  const headers = (datos.shift() || []).map(h => String(h).trim());
+  return {
+    hoja, nombre, headers, filas: datos,
+    col(encabezado: string): number {
+      const i = headers.indexOf(encabezado);
+      if (i === -1) throw new Error(`Falta la columna "${encabezado}" en la hoja "${nombre}".`);
+      return i;
+    },
+    colOpc: (encabezado: string) => headers.indexOf(encabezado)
+  };
+}
+
+/**
+ * Evalúa un fragmento HTML compartido (estilos, cabecera, pie de los correos).
+ * Uso dentro de una plantilla: <?!= incluir_('CorreoBase_Pie') ?>
+ * `nota` (HTML opcional) es la única variable que reciben los fragmentos.
+ */
+function incluir_(nombre: string, vars: Record<string, unknown> = {}): string {
+  const tpl = HtmlService.createTemplateFromFile(nombre);
+  Object.assign(tpl, { nota: "" }, vars);
+  return tpl.evaluate().getContent();
+}
+
+/**
+ * Evalúa una plantilla de correo con las variables dadas y devuelve el HTML final.
+ */
+function renderPlantilla_(nombre: string, vars: Record<string, unknown>): string {
+  const tpl = HtmlService.createTemplateFromFile(nombre);
+  Object.assign(tpl, vars);
+  return tpl.evaluate().getContent();
+}
+
+/**
  * Alumni (egresados) reciben puntaje 0: menor prioridad entre los postulantes.
  */
-function esAlumni(tipoPostulante: string): boolean {
+function esAlumni_(tipoPostulante: string): boolean {
   return /alumni/i.test(String(tipoPostulante || ""));
 }
 
@@ -36,7 +97,7 @@ function esAlumni(tipoPostulante: string): boolean {
  * Académicos y funcionarios: los únicos a quienes aplican "Uso del inglés" y el respaldo de jefatura
  * (bases n.º 7.2). Los estudiantes de postgrado cuentan como estudiantes.
  */
-function esAcademicoOFuncionario(tipoPostulante: string): boolean {
+function esAcademicoOFuncionario_(tipoPostulante: string): boolean {
   return /acad[eé]mico|funcionario/i.test(String(tipoPostulante || "")) && !/postgrado|posgrado/i.test(String(tipoPostulante || ""));
 }
 
@@ -44,9 +105,9 @@ function esAcademicoOFuncionario(tipoPostulante: string): boolean {
  * Orden de preferencia en caso de empate total (bases n.º 7.5):
  * académicos y postgrado, luego funcionarios, luego pregrado, luego alumni.
  */
-function rangoDesempate(tipoPostulante: string): number {
+function rangoDesempate_(tipoPostulante: string): number {
   const t = String(tipoPostulante || "");
-  if (esAlumni(t)) return 3;
+  if (esAlumni_(t)) return 3;
   if (/postgrado|posgrado|acad[eé]mico/i.test(t)) return 0;
   if (/funcionario/i.test(t)) return 1;
   return 2;
@@ -55,10 +116,10 @@ function rangoDesempate(tipoPostulante: string): number {
 /**
  * Comparador de postulantes: puntaje (desc), categoría de desempate (n.º 7.5) y fecha de postulación (asc).
  */
-function compararPostulantes(a: any[], b: any[], idxTotal: number, idxCat: number, idxFecha: number): number {
+function compararPostulantes_(a: any[], b: any[], idxTotal: number, idxCat: number, idxFecha: number): number {
   const dif = parseFloat(b[idxTotal] || 0) - parseFloat(a[idxTotal] || 0);
   if (dif) return dif;
-  const rango = rangoDesempate(a[idxCat]) - rangoDesempate(b[idxCat]);
+  const rango = rangoDesempate_(a[idxCat]) - rangoDesempate_(b[idxCat]);
   if (rango) return rango;
   return (new Date(a[idxFecha]).getTime() - new Date(b[idxFecha]).getTime()) || 0;
 }
@@ -67,7 +128,7 @@ function compararPostulantes(a: any[], b: any[], idxTotal: number, idxCat: numbe
  * Normaliza la marca temporal del formulario a Date para que la hoja la formatee y ordene bien.
  * Acepta Date o texto "dd/mm/aaaa hh:mm:ss"; si no se reconoce, devuelve el texto original.
  */
-function normalizarFecha(valor: any): Date | string {
+function normalizarFecha_(valor: unknown): Date | string {
   if (valor instanceof Date) return valor;
   const txt = String(valor || "").trim();
   const m = txt.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
@@ -78,8 +139,8 @@ function normalizarFecha(valor: any): Date | string {
 /**
  * Aplica formato dd/MM/yyyy HH:mm a la columna "Fecha de Postulación" de una hoja.
  */
-function formatearColumnaFecha(sheet: GoogleAppsScript.Spreadsheet.Sheet, headers: any[], filas: number): void {
-  const col = headers.indexOf("Fecha de Postulación") + 1;
+function formatearColumnaFecha_(sheet: GoogleAppsScript.Spreadsheet.Sheet, headers: any[], filas: number): void {
+  const col = headers.indexOf(HEADERS.APPLICATION_DATE) + 1;
   if (col > 0 && filas > 1) sheet.getRange(2, col, filas - 1, 1).setNumberFormat("dd/MM/yyyy HH:mm");
 }
 
@@ -87,7 +148,7 @@ function formatearColumnaFecha(sheet: GoogleAppsScript.Spreadsheet.Sheet, header
  * Checks if a value string is an affirmative response ("Sí", "Si", etc.).
  * @param valor The raw string.
  */
-function esSi(valor: any): boolean {
+function esSi_(valor: unknown): boolean {
   return /^s[íi]$/i.test(String(valor || "").trim());
 }
 
@@ -97,7 +158,7 @@ function esSi(valor: any): boolean {
  * @param titulo The column header name.
  * @param indiceColumnas Mapping of header names to indices.
  */
-function obtenerValor(fila: any[], titulo: string, indiceColumnas: Record<string, number>): string {
+function obtenerValor_(fila: any[], titulo: string, indiceColumnas: Record<string, number>): string {
   const i = indiceColumnas[String(titulo || "").trim()];
   if (i === undefined) {
     return "";
@@ -110,7 +171,7 @@ function obtenerValor(fila: any[], titulo: string, indiceColumnas: Record<string
  * @param texto The text to search in.
  * @param palabrasClave List of keywords to look for.
  */
-function contarPalabrasClave(texto: string, palabrasClave: string[]): number {
+function contarPalabrasClave_(texto: string, palabrasClave: string[]): number {
   const textoNormalizado = String(texto || "").toLowerCase();
   return palabrasClave.reduce((contador, clave) => contador + (textoNormalizado.includes(clave) ? 1 : 0), 0);
 }
@@ -119,7 +180,7 @@ function contarPalabrasClave(texto: string, palabrasClave: string[]): number {
  * Stores a log message in user properties for the Web App to retrieve.
  * @param message The message to log.
  */
-function logToWebApp(message: string): void {
+function logToWebApp_(message: string): void {
   const lock = LockService.getUserLock();
   try {
     lock.waitLock(2000);
@@ -130,8 +191,8 @@ function logToWebApp(message: string): void {
       logs = logs.slice(-50);
     }
     userProperties.setProperty('webAppLogs', JSON.stringify(logs));
-  } catch (e: any) {
-    Logger.log("logToWebApp warning: " + e.message);
+  } catch (e) {
+    Logger.log("logToWebApp_ warning: " + mensajeError_(e));
   } finally {
     try { lock.releaseLock(); } catch (_) {}
   }
@@ -151,7 +212,7 @@ function getWebAppLogs(): string[] {
  * Converts a column index (1-based) to its letter representation (e.g., 1 -> A, 27 -> AA).
  * @param columna The 1-based column index.
  */
-function columnaALetra(columna: number): string {
+function columnaALetra_(columna: number): string {
   let temp: number, letra = '';
   let col = columna;
   while (col > 0) {

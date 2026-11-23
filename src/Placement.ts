@@ -3,7 +3,7 @@
  * Manages the Cambridge English Placement Test (CEPT) workflow.
  *
  * Flow:
- *  1. sincronizarPlacement()      → syncs paid+accepted+test-level candidates from "Seleccionados" to "Prueba de Nivel"
+ *  1. sincronizarPlacement_()      → syncs paid+accepted+test-level candidates from "Seleccionados" to "Prueba de Nivel"
  *  2. abrirDialogoPlacementXxx()  → opens a modal dialog to configure dates, URL, and delivery method
  *  3. saveConfigAndProcessPlacement(payload) → saves config + runs processPlacementEmails()
  *  4. processPlacementEmails(mode, deliveryMethod) → sends emails / creates drafts, logs status
@@ -65,7 +65,7 @@ const PLACEMENT_COL = {
  * Candidates already present (matched by email) are not duplicated.
  * New candidates are added with "Enviar Inicial" checkbox pre-ticked.
  */
-function sincronizarPlacement(): void {
+function sincronizarPlacement_(): void {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const selSheet = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
   if (!selSheet) {
@@ -77,7 +77,7 @@ function sincronizarPlacement(): void {
   let placSheet = ss.getSheetByName(CONFIG.SHEETS.PLACEMENT);
   if (!placSheet) {
     placSheet = ss.insertSheet(CONFIG.SHEETS.PLACEMENT);
-    _initPlacementSheet(placSheet);
+    initPlacementSheet_(placSheet);
   }
 
   // Read existing emails in placement sheet (to avoid duplicates)
@@ -98,14 +98,14 @@ function sincronizarPlacement(): void {
     SpreadsheetApp.getUi().alert("ℹ️ La hoja \"Seleccionados\" está vacía.");
     return;
   }
-  const selHeaders = selData[0].map((h: any) => (h || "").toString().trim());
+  const selHeaders = selData[0].map(h => String(h || "").trim());
 
-  const iEmail    = selHeaders.indexOf("Correo Electrónico");
-  const iNombre   = selHeaders.indexOf("Nombre(s)");
-  const iApellido = selHeaders.indexOf("Apellido(s)");
-  const iVerif    = selHeaders.indexOf("Verificación Certificado");
-  const iAcep     = selHeaders.indexOf("Aceptación");
-  const iPago     = selHeaders.indexOf("Pago Matrícula");
+  const iEmail    = selHeaders.indexOf(HEADERS.EMAIL);
+  const iNombre   = selHeaders.indexOf(HEADERS.FIRST_NAME);
+  const iApellido = selHeaders.indexOf(HEADERS.LAST_NAME);
+  const iVerif    = selHeaders.indexOf(HEADERS.CERT_VERIFICATION);
+  const iAcep     = selHeaders.indexOf(HEADERS.ACCEPTANCE);
+  const iPago     = selHeaders.indexOf(HEADERS.PAYMENT);
 
   if ([iEmail, iNombre, iApellido, iVerif, iAcep, iPago].some(i => i === -1)) {
     SpreadsheetApp.getUi().alert(
@@ -170,22 +170,22 @@ function sincronizarPlacement(): void {
 /**
  * Opens the configuration dialog for the INICIAL send mode.
  */
-function abrirDialogoPlacementInicial(): void {
-  _abrirDialogoPlacement("INICIAL");
+function abrirDialogoPlacementInicial_(): void {
+  abrirDialogoPlacement_("INICIAL");
 }
 
 /**
  * Opens the configuration dialog for the RECORDATORIO send mode.
  */
-function abrirDialogoPlacementRecordatorio(): void {
-  _abrirDialogoPlacement("RECORDATORIO");
+function abrirDialogoPlacementRecordatorio_(): void {
+  abrirDialogoPlacement_("RECORDATORIO");
 }
 
 /**
  * Opens the configuration dialog for the NUEVO_CODIGO send mode.
  */
-function abrirDialogoPlacementNuevoCodigo(): void {
-  _abrirDialogoPlacement("NUEVO_CODIGO");
+function abrirDialogoPlacementNuevoCodigo_(): void {
+  abrirDialogoPlacement_("NUEVO_CODIGO");
 }
 
 /**
@@ -206,14 +206,14 @@ function saveConfigAndProcessPlacement(payload: {
   props.setProperty("PLACEMENT_FECHA_INICIAL",      payload.fechaInicial.trim());
   props.setProperty("PLACEMENT_FECHA_RECORDATORIO", payload.fechaRecordatorio.trim());
   props.setProperty("PLACEMENT_URL",                payload.url.trim());
-  return _processPlacementEmails(payload.mode, payload.deliveryMethod);
+  return processPlacementEmails_(payload.mode, payload.deliveryMethod);
 }
 
 // ---------------------------------------------------------------------------
 // Core processing
 // ---------------------------------------------------------------------------
 
-function _processPlacementEmails(mode: string, deliveryMethod: string): string {
+function processPlacementEmails_(mode: string, deliveryMethod: string): string {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const placSheet = ss.getSheetByName(CONFIG.SHEETS.PLACEMENT);
   if (!placSheet) {
@@ -227,7 +227,7 @@ function _processPlacementEmails(mode: string, deliveryMethod: string): string {
 
   // Handle TEST_AUTOSEND separately
   if (deliveryMethod === "TEST_AUTOSEND") {
-    return _sendTestAutoSend(placementUrl, fechaInicial);
+    return sendTestAutoSend_(placementUrl, fechaInicial);
   }
 
   const fechaLimite = (mode === "INICIAL") ? fechaInicial : fechaRecordatorio;
@@ -240,7 +240,7 @@ function _processPlacementEmails(mode: string, deliveryMethod: string): string {
   const sampleLimit = 5;
 
   // Checkbox column index (1-based) for the current mode
-  const checkColIdx = _getCheckboxColForMode(mode);
+  const checkColIdx = getCheckboxColForMode_(mode);
 
   const allData  = placSheet.getDataRange().getValues();
   if (allData.length < 2) throw new Error("La hoja \"Prueba de Nivel\" no tiene datos.");
@@ -260,8 +260,8 @@ function _processPlacementEmails(mode: string, deliveryMethod: string): string {
     } else {
       Logger.log(`AVISO: No se encontró el PDF "${CONFIG.PLACEMENT_PDF_NAME}" en Google Drive. El correo se enviará sin adjunto.`);
     }
-  } catch (e: any) {
-    Logger.log(`Error al buscar PDF: ${e.message}`);
+  } catch (e) {
+    Logger.log(`Error al buscar PDF: ${mensajeError_(e)}`);
   }
 
   // Accumulate status updates and process
@@ -270,6 +270,8 @@ function _processPlacementEmails(mode: string, deliveryMethod: string): string {
 
   let processed  = 0;
   let skipped    = 0;
+  let cortado    = false; // se detuvo por tiempo (tope de 6 min de Apps Script)
+  const inicio   = Date.now();
   const timeStr  = new Date().toLocaleString("es-CL");
 
   const emailTemplate = HtmlService.createTemplateFromFile("CorreoPlacementTest");
@@ -279,6 +281,8 @@ function _processPlacementEmails(mode: string, deliveryMethod: string): string {
     if (isSample && processed >= sampleLimit) break;
     // Real send quota
     if (!isDraft && processed >= quota) break;
+    // Corta antes del tope para alcanzar a guardar el estado de lo ya enviado (se escribe al final)
+    if (Date.now() - inicio > MAX_MS_ENVIO) { cortado = true; break; }
 
     const row = allData[r];
     const isChecked = (row[checkColIdx - 1] === true);
@@ -307,8 +311,8 @@ function _processPlacementEmails(mode: string, deliveryMethod: string): string {
       emailTemplate.placementUrl  = placementUrl;
 
       const htmlBody   = emailTemplate.evaluate().getContent();
-      const plainBody  = _buildPlainBody({ nombre: nombreCompleto, username, password, institutionId, fechaLimite, placementUrl });
-      const subject    = _buildSubject(mode);
+      const plainBody  = buildPlainBody_({ nombre: nombreCompleto, username, password, institutionId, fechaLimite, placementUrl });
+      const subject    = buildSubject_(mode);
 
       const options: { htmlBody: string; name: string; attachments?: GoogleAppsScript.Base.Blob[] } = {
         htmlBody,
@@ -330,8 +334,8 @@ function _processPlacementEmails(mode: string, deliveryMethod: string): string {
       checkUpdates[r][0] = false;
       processed++;
 
-    } catch (e: any) {
-      const msg = e.message || String(e);
+    } catch (e) {
+      const msg = mensajeError_(e) || String(e);
       statusUpdates[r][0] = `Error: ${msg}`;
       if (msg.includes("limit") || msg.includes("cuota")) break;
     }
@@ -345,14 +349,15 @@ function _processPlacementEmails(mode: string, deliveryMethod: string): string {
 
   const action = isDraft ? "borradores creados" : "correos enviados";
   const sampleNote = isSample ? ` (muestra limitada a ${sampleLimit})` : "";
-  return `✅ ${processed} ${action}${sampleNote}. ${skipped} omitidos (sin marca).${pdfBlob ? "" : "\n⚠️ PDF de instrucciones no encontrado en Drive — correo enviado sin adjunto."}`;
+  const avisoTiempo = cortado ? "\n⏱ Se detuvo por tiempo: vuelve a ejecutar para continuar con las filas que siguen marcadas." : "";
+  return `✅ ${processed} ${action}${sampleNote}. ${skipped} omitidos (sin marca).${avisoTiempo}${pdfBlob ? "" : "\n⚠️ PDF de instrucciones no encontrado en Drive — correo enviado sin adjunto."}`;
 }
 
 // ---------------------------------------------------------------------------
 // TEST_AUTOSEND
 // ---------------------------------------------------------------------------
 
-function _sendTestAutoSend(placementUrl: string, fechaLimite: string): string {
+function sendTestAutoSend_(placementUrl: string, fechaLimite: string): string {
   const adminEmail = Session.getActiveUser().getEmail();
   if (!adminEmail) throw new Error("No se pudo detectar el correo del administrador. Verifica tu cuenta de Google.");
 
@@ -369,7 +374,7 @@ function _sendTestAutoSend(placementUrl: string, fechaLimite: string): string {
   const emailTemplate = HtmlService.createTemplateFromFile("CorreoPlacementTest");
   Object.assign(emailTemplate, fakeData);
   const htmlBody  = emailTemplate.evaluate().getContent();
-  const plainBody = _buildPlainBody(fakeData);
+  const plainBody = buildPlainBody_(fakeData);
   const subject   = `[PRUEBA SANDBOX] Test de Diagnóstico — PUCV2English`;
 
   let pdfBlob: GoogleAppsScript.Base.Blob | undefined;
@@ -392,7 +397,7 @@ function _sendTestAutoSend(placementUrl: string, fechaLimite: string): string {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function _abrirDialogoPlacement(mode: string): void {
+function abrirDialogoPlacement_(mode: string): void {
   const html = HtmlService.createTemplateFromFile("DialogPlacementConfig");
   html.mode = mode;
 
@@ -405,7 +410,7 @@ function _abrirDialogoPlacement(mode: string): void {
   SpreadsheetApp.getUi().showModalDialog(output, `🧪 Prueba de Nivel — Envío ${mode}`);
 }
 
-function _initPlacementSheet(sh: GoogleAppsScript.Spreadsheet.Sheet): void {
+function initPlacementSheet_(sh: GoogleAppsScript.Spreadsheet.Sheet): void {
   const headerRange = sh.getRange(1, 1, 1, PLACEMENT_HEADERS.length);
   headerRange.setValues([PLACEMENT_HEADERS]);
   headerRange.setFontWeight("bold");
@@ -423,7 +428,7 @@ function _initPlacementSheet(sh: GoogleAppsScript.Spreadsheet.Sheet): void {
   sh.autoResizeColumns(1, PLACEMENT_HEADERS.length);
 }
 
-function _getCheckboxColForMode(mode: string): number {
+function getCheckboxColForMode_(mode: string): number {
   // Returns 1-based column index
   switch (mode) {
     case "RECORDATORIO": return PLACEMENT_COL.enviarRecordatorio + 1;
@@ -432,7 +437,7 @@ function _getCheckboxColForMode(mode: string): number {
   }
 }
 
-function _buildSubject(mode: string): string {
+function buildSubject_(mode: string): string {
   switch (mode) {
     case "RECORDATORIO": return "Recordatorio: Placement Test — PUCV2English";
     case "NUEVO_CODIGO":  return "Nuevas Credenciales — Placement Test, PUCV2English";
@@ -440,7 +445,7 @@ function _buildSubject(mode: string): string {
   }
 }
 
-function _buildPlainBody(d: {
+function buildPlainBody_(d: {
   nombre: string; username: string; password: string;
   institutionId: string; fechaLimite: string; placementUrl: string;
 }): string {

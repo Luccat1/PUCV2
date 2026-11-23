@@ -8,7 +8,7 @@
  * @returns {GoogleAppsScript.HTML.HtmlOutput} The rendered HTML content.
  */
 function doGet(e: GoogleAppsScript.Events.DoGet): GoogleAppsScript.HTML.HtmlOutput {
-  cargarConfiguracionDesdeHoja();
+  cargarConfiguracionDesdeHoja_();
   const action = e.parameter.action;
   const token = e.parameter.token;
   const confirmed = e.parameter.confirmed;
@@ -19,14 +19,14 @@ function doGet(e: GoogleAppsScript.Events.DoGet): GoogleAppsScript.HTML.HtmlOutp
       const scriptProperties = PropertiesService.getScriptProperties();
       const correo = scriptProperties.getProperty('token_' + token);
       if (!correo) {
-        return crearPaginaConfirmacion(action, "Postulante", false, "Este enlace ya fue utilizado o no es válido.");
+        return crearPaginaConfirmacion_(action, "Postulante", false, "Este enlace ya fue utilizado o no es válido.");
       }
-      return crearPaginaConfirmacionPrevia(action, token);
+      return crearPaginaConfirmacionPrevia_(action, token);
     }
 
-    const result = procesarAccionPostulante(token, action);
+    const result = procesarAccionPostulante_(token, action);
     const paymentUrl = (action === 'accept' && result.exito) ? result.paymentUrl : undefined;
-    return crearPaginaConfirmacion(action, result.nombre || "Postulante", result.exito, result.mensaje, paymentUrl);
+    return crearPaginaConfirmacion_(action, result.nombre || "Postulante", result.exito, result.mensaje, paymentUrl);
   }
 
   // Deny public access to admin dashboard via WebApp URL (Fix #1)
@@ -45,7 +45,7 @@ function doGet(e: GoogleAppsScript.Events.DoGet): GoogleAppsScript.HTML.HtmlOutp
  * Creates an intermediate confirmation page so email anti-virus scanners
  * do not trigger acceptance/rejection on GET pre-fetch (Fix #5).
  */
-function crearPaginaConfirmacionPrevia(action: string, token: string): GoogleAppsScript.HTML.HtmlOutput {
+function crearPaginaConfirmacionPrevia_(action: string, token: string): GoogleAppsScript.HTML.HtmlOutput {
   const isAccept = action === 'accept';
   const accionTexto = isAccept ? 'Aceptar Cupo' : 'Rechazar Cupo';
   const accionDesc = isAccept ? 'aceptar tu vacante seleccionada en el Programa de Inglés PUCV' : 'rechazar tu vacante y liberarla para la lista de espera';
@@ -98,7 +98,7 @@ function crearPaginaConfirmacionPrevia(action: string, token: string): GoogleApp
  * @param paymentUrl The payment URL if accepted.
  * @returns {GoogleAppsScript.HTML.HtmlOutput} The confirmation page.
  */
-function crearPaginaConfirmacion(accion: string, nombre: string, exito: boolean, mensaje: string, paymentUrl?: string): GoogleAppsScript.HTML.HtmlOutput {
+function crearPaginaConfirmacion_(accion: string, nombre: string, exito: boolean, mensaje: string, paymentUrl?: string): GoogleAppsScript.HTML.HtmlOutput {
   const esc = (s: string) => String(s || "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -161,24 +161,24 @@ function crearPaginaConfirmacion(accion: string, nombre: string, exito: boolean,
  * Retrieves data for the Web App tables (Selected and Waitlist).
  */
 function getSelectionData(): object {
-  const ss = getSpreadsheet();
+  const ss = getSpreadsheet_();
 
   // 1. Selected Data
   const hojaS = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
   const dataS = hojaS ? hojaS.getDataRange().getValues() : [];
   const headersS = dataS.shift() || [];
 
-  const idxCorreoS = headersS.indexOf("Correo Electrónico");
-  const idxNombreS = headersS.indexOf("Nombre(s)");
-  const idxApellidosS = headersS.indexOf("Apellido(s)");
-  const idxRankingS = headersS.indexOf("Ranking");
-  const idxPuntajeS = headersS.indexOf("PUNTAJE TOTAL");
-  const idxEnlaceS = headersS.indexOf("Enlace Certificado");
-  const idxVerifS = headersS.indexOf("Verificación Certificado");
-  const idxNivelS = headersS.indexOf("Nivel Asignado");
-  const idxAceptacionS = headersS.indexOf("Aceptación");
-  const idxPagoS = headersS.indexOf("Pago Matrícula");
-  const idxNotificadoS = headersS.indexOf("Fecha Notificación");
+  const idxCorreoS = headersS.indexOf(HEADERS.EMAIL);
+  const idxNombreS = headersS.indexOf(HEADERS.FIRST_NAME);
+  const idxApellidosS = headersS.indexOf(HEADERS.LAST_NAME);
+  const idxRankingS = headersS.indexOf(HEADERS.RANKING);
+  const idxPuntajeS = headersS.indexOf(HEADERS.TOTAL_SCORE);
+  const idxEnlaceS = headersS.indexOf(HEADERS.CERTIFICATE_LINK);
+  const idxVerifS = headersS.indexOf(HEADERS.CERT_VERIFICATION);
+  const idxNivelS = headersS.indexOf(HEADERS.LEVEL_ASSIGNED);
+  const idxAceptacionS = headersS.indexOf(HEADERS.ACCEPTANCE);
+  const idxPagoS = headersS.indexOf(HEADERS.PAYMENT);
+  const idxNotificadoS = headersS.indexOf(HEADERS.NOTIFICATION_DATE);
 
   const seleccionados = dataS.map(f => ({
     ranking: f[idxRankingS],
@@ -199,13 +199,13 @@ function getSelectionData(): object {
   const dataW = hojaW ? hojaW.getDataRange().getValues() : [];
   const headersW = dataW.shift() || [];
 
-  const idxRankingW = headersW.indexOf("Ranking");
-  const idxCorreoW = headersW.indexOf("Correo Electrónico");
-  const idxNombreW = headersW.indexOf("Nombre(s)");
-  const idxApellidosW = headersW.indexOf("Apellido(s)");
-  const idxPuntajeW = headersW.indexOf("PUNTAJE TOTAL");
-  const idxNivelW = headersW.indexOf("Nivel Postulado");
-  const idxNotificadoW = headersW.indexOf("Fecha Notificación");
+  const idxRankingW = headersW.indexOf(HEADERS.RANKING);
+  const idxCorreoW = headersW.indexOf(HEADERS.EMAIL);
+  const idxNombreW = headersW.indexOf(HEADERS.FIRST_NAME);
+  const idxApellidosW = headersW.indexOf(HEADERS.LAST_NAME);
+  const idxPuntajeW = headersW.indexOf(HEADERS.TOTAL_SCORE);
+  const idxNivelW = headersW.indexOf(HEADERS.LEVEL_APPLIED);
+  const idxNotificadoW = headersW.indexOf(HEADERS.NOTIFICATION_DATE);
 
   const listaDeEspera = dataW.map(f => ({
     ranking: idxRankingW !== -1 ? f[idxRankingW] : "",
@@ -218,7 +218,7 @@ function getSelectionData(): object {
   }));
 
   // 3. Statistics
-  const stats = getDashboardStats();
+  const stats = getDashboardStats_();
 
   return {
     seleccionados,
@@ -232,8 +232,8 @@ function getSelectionData(): object {
  * Retrieves statistics specifically for the dashboard charts.
  * Independent API for faster refreshes.
  */
-function getDashboardStats(): any {
-  const ss = getSpreadsheet();
+function getDashboardStats_() {
+  const ss = getSpreadsheet_();
   const hojaE = ss.getSheetByName(CONFIG.SHEETS.OUTPUT);
   const dataE = hojaE ? hojaE.getDataRange().getValues() : [];
   if (dataE.length <= 1) return { error: "No hay datos de evaluación para generar estadísticas." };
@@ -250,15 +250,15 @@ function getDashboardStats(): any {
   }
 
   const inputData = hojaI ? hojaI.getDataRange().getValues() : [];
-  const baseStats = calcularEstadisticas(dataE, inputData, indicesOriginales);
+  const baseStats = calcularEstadisticas_(dataE, inputData, indicesOriginales);
 
   // Seat state from Seleccionados
   const hojaS = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
   const dataS = hojaS ? hojaS.getDataRange().getValues() : [];
   const headersS = dataS.shift() || [];
-  const idxAceptacion = headersS.indexOf("Aceptación");
-  const idxNivel = headersS.indexOf("Nivel Asignado");
-  const idxPuntaje = headersS.indexOf("PUNTAJE TOTAL");
+  const idxAceptacion = headersS.indexOf(HEADERS.ACCEPTANCE);
+  const idxNivel = headersS.indexOf(HEADERS.LEVEL_ASSIGNED);
+  const idxPuntaje = headersS.indexOf(HEADERS.TOTAL_SCORE);
 
   const countBy = (arr: any[][], idx: number) => {
     const res: Record<string, number> = {};
@@ -290,19 +290,19 @@ function getDashboardStats(): any {
     distribucionSede: Object.fromEntries(Object.entries(baseStats.statsPorSede).map(([k, v]) => [k, v.contador])),
     promediosPorTipo: Object.fromEntries(Object.entries(baseStats.statsPorCategoria).map(([k, v]) => [k, v.suma / v.contador])),
     // Analysis detailed breakdown
-    analisisDetallado: getDetailedScoreBreakdown(dataE, headersE)
+    analisisDetallado: getDetailedScoreBreakdown_(dataE, headersE)
   };
 }
 
 /**
  * Helper to get detailed score breakdown by category.
  */
-function getDetailedScoreBreakdown(data: any[][], headers: any[]): Record<string, any> {
+function getDetailedScoreBreakdown_(data: any[][], headers: any[]): Record<string, any> {
   const result: Record<string, any> = {};
   const rows = data.slice(1);
 
   const getIdx = (name: string) => headers.indexOf(name);
-  const idxCat = getIdx("Categoría Postulante");
+  const idxCat = getIdx(HEADERS.CATEGORY);
   const scores = {
     "Uso Inglés": getIdx("Puntaje Uso Inglés"),
     "Internacionalización": getIdx("Puntaje Intl."),
@@ -336,36 +336,35 @@ function getDetailedScoreBreakdown(data: any[][], headers: any[]): Record<string
  * Updates an applicant's verification status or assigned level from the Web App.
  */
 function updateApplicantStatus(correo: string, verificacion: string, nivel: string, pago?: string): string {
-  const ss = getSpreadsheet();
-  const hojaS = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
-  if (!hojaS) return "Error: Hoja de seleccionados no encontrada.";
+  try {
+    const h = leerHoja_(CONFIG.SHEETS.SELECTED);
+    const cCorreo = h.col(HEADERS.EMAIL);
+    const i = h.filas.findIndex(f => f[cCorreo] === correo);
+    if (i === -1) return "No se encontró al postulante con correo " + correo;
 
-  const datos = hojaS.getDataRange().getValues();
-  const headers = datos[0];
-  const idxCorreo = headers.indexOf("Correo Electrónico");
-  const idxVerificacion = headers.indexOf("Verificación Certificado") + 1;
-  const idxNivel = headers.indexOf("Nivel Asignado") + 1;
-  const idxPago = headers.indexOf("Pago Matrícula") + 1;
+    // Se resuelven todas las columnas antes de escribir: si falta una, no queda nada escrito a medias
+    const cVerif = h.col(HEADERS.CERT_VERIFICATION);
+    const cNivel = h.col(HEADERS.LEVEL_ASSIGNED);
+    const cPago = h.colOpc(HEADERS.PAYMENT); // hojas antiguas pueden no tener "Pago Matrícula"
 
-  if (idxCorreo === -1) return "Error: Columna de correo no encontrada en Seleccionados.";
-
-  for (let i = 1; i < datos.length; i++) {
-    if (datos[i][idxCorreo] === correo) {
-      if (verificacion !== undefined && idxVerificacion > 0) hojaS.getRange(i + 1, idxVerificacion).setValue(verificacion);
-      if (nivel !== undefined && idxNivel > 0) hojaS.getRange(i + 1, idxNivel).setValue(nivel);
-      if (pago !== undefined && idxPago > 0) hojaS.getRange(i + 1, idxPago).setValue(pago);
-      return "Estado de " + correo + " actualizado.";
-    }
+    const fila = i + 2; // fila en la hoja (cabecera = 1)
+    const escribir = (col: number, valor: string | undefined) => {
+      if (valor !== undefined && col !== -1) h.hoja.getRange(fila, col + 1).setValue(valor);
+    };
+    escribir(cVerif, verificacion);
+    escribir(cNivel, nivel);
+    escribir(cPago, pago);
+    return "Estado de " + correo + " actualizado.";
+  } catch (e) {
+    return "Error: " + mensajeError_(e);
   }
-
-  return "No se encontró al postulante con correo " + correo;
 }
 
 /**
  * Retrieves all selected applicants for the sidebar review interface.
  */
 function getPostulantesParaRevision(): object[] {
-  const ss = getSpreadsheet();
+  const ss = getSpreadsheet_();
   const sheet = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
   if (!sheet) return [];
 
@@ -373,7 +372,7 @@ function getPostulantesParaRevision(): object[] {
   const headers = data.shift() || [];
 
   return data.map(row => {
-    const obj: any = { puntajes: {} };
+    const obj: { puntajes: Record<string, unknown>; [campo: string]: unknown } = { puntajes: {} };
     headers.forEach((h, i) => {
       const val = row[i];
       // Group scores into a sub-object for the UI
@@ -381,19 +380,19 @@ function getPostulantesParaRevision(): object[] {
         obj.puntajes[h.toLowerCase()] = val;
       } else {
         // Map common fields to camelCase for the UI
-        if (h === "Correo Electrónico") obj.correo = val;
-        else if (h === "Nombre(s)") obj.nombre = val;
-        else if (h === "Apellido(s)") obj.apellidos = val;
+        if (h === HEADERS.EMAIL) obj.correo = val;
+        else if (h === HEADERS.FIRST_NAME) obj.nombre = val;
+        else if (h === HEADERS.LAST_NAME) obj.apellidos = val;
         else if (h === "RUT") obj.rut = val;
-        else if (h === "Fecha de Postulación") obj.fecha = val;
-        else if (h === "Categoría Postulante") obj.categoria = val;
+        else if (h === HEADERS.APPLICATION_DATE) obj.fecha = val;
+        else if (h === HEADERS.CATEGORY) obj.categoria = val;
         else if (h === "Sede") obj.sede = val;
-        else if (h === "Verificación Certificado") obj.verificacion = val;
-        else if (h === "Nivel Asignado") obj.nivel = val;
-        else if (h === "Aceptación") obj.aceptacion = val;
-        else if (h === "Pago Matrícula") obj.pagoMatricula = val;
-        else if (h === "Comentarios") obj.comentarios = val;
-        else if (h === "Enlace Certificado") obj.enlaceCertificado = val;
+        else if (h === HEADERS.CERT_VERIFICATION) obj.verificacion = val;
+        else if (h === HEADERS.LEVEL_ASSIGNED) obj.nivel = val;
+        else if (h === HEADERS.ACCEPTANCE) obj.aceptacion = val;
+        else if (h === HEADERS.PAYMENT) obj.pagoMatricula = val;
+        else if (h === HEADERS.COMMENTS) obj.comentarios = val;
+        else if (h === HEADERS.CERTIFICATE_LINK) obj.enlaceCertificado = val;
         else obj[h] = val;
       }
     });
@@ -405,26 +404,20 @@ function getPostulantesParaRevision(): object[] {
  * Saves review data for a single applicant.
  */
 function guardarRevisionPostulante(data: { correo: string, verificacion: string, nivel: string, comentarios: string }): string {
-  const ss = getSpreadsheet();
-  const sheet = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
-  if (!sheet) throw new Error("Hoja 'Seleccionados' no encontrada.");
+  const h = leerHoja_(CONFIG.SHEETS.SELECTED);
+  const cCorreo = h.col(HEADERS.EMAIL);
+  const cVerif = h.col(HEADERS.CERT_VERIFICATION);
+  const cNivel = h.col(HEADERS.LEVEL_ASSIGNED);
+  const cComentarios = h.col(HEADERS.COMMENTS);
 
-  const values = sheet.getDataRange().getValues();
-  const headers = values[0];
-  const idxCorreo = headers.indexOf("Correo Electrónico");
-  const idxVerif = headers.indexOf("Verificación Certificado") + 1;
-  const idxNivel = headers.indexOf("Nivel Asignado") + 1;
-  const idxComents = headers.indexOf("Comentarios") + 1;
+  const i = h.filas.findIndex(f => f[cCorreo] === data.correo);
+  if (i === -1) throw new Error("No se encontró el postulante.");
 
-  for (let i = 1; i < values.length; i++) {
-    if (values[i][idxCorreo] === data.correo) {
-      sheet.getRange(i + 1, idxVerif).setValue(data.verificacion);
-      sheet.getRange(i + 1, idxNivel).setValue(data.nivel);
-      sheet.getRange(i + 1, idxComents).setValue(data.comentarios);
-      return "Cambios guardados para " + data.correo;
-    }
-  }
-  throw new Error("No se encontró el postulante.");
+  const fila = i + 2; // fila en la hoja (cabecera = 1)
+  h.hoja.getRange(fila, cVerif + 1).setValue(data.verificacion);
+  h.hoja.getRange(fila, cNivel + 1).setValue(data.nivel);
+  h.hoja.getRange(fila, cComentarios + 1).setValue(data.comentarios);
+  return "Cambios guardados para " + data.correo;
 }
 
 /**
@@ -432,13 +425,13 @@ function guardarRevisionPostulante(data: { correo: string, verificacion: string,
  * Uses Utilities.getUuid() to produce unique collision-free keys, avoiding
  * lock contention and timeouts during batch operations.
  */
-function generarToken(correo: string): string {
+function generarToken_(correo: string): string {
   try {
     const token = Utilities.getUuid();
     PropertiesService.getScriptProperties().setProperty('token_' + token, correo);
     return token;
-  } catch (e: any) {
-    logToWebApp("Error generando token: " + e.message);
+  } catch (e) {
+    logToWebApp_("Error generando token: " + mensajeError_(e));
     throw e;
   }
 }
@@ -447,7 +440,7 @@ function generarToken(correo: string): string {
  * Generates and persists multiple tokens in a single batch operation.
  * Eliminates repetitive property store calls during mass email dispatch.
  */
-function generarTokensBatch(correos: string[]): Record<string, string> {
+function generarTokensBatch_(correos: string[]): Record<string, string> {
   const props: Record<string, string> = {};
   const tokenMap: Record<string, string> = {};
   correos.forEach(correo => {
@@ -464,19 +457,31 @@ function generarTokensBatch(correos: string[]): Record<string, string> {
 /**
  * Returns the full confirmation URL for an applicant's action.
  */
-function obtenerUrlConfirmacion(correo: string, action: string): string {
-  const token = generarToken(correo);
-  return obtenerUrlConfirmacionConToken(token, action);
+function obtenerUrlConfirmacion_(correo: string, action: string): string {
+  const token = generarToken_(correo);
+  return obtenerUrlConfirmacionConToken_(token, action);
 }
 
-function obtenerUrlConfirmacionConToken(token: string, action: string): string {
-  let webAppUrl = CONFIG.WEB_APP_URL || ScriptApp.getService().getUrl();
+/**
+ * URL base de la Web App para los enlaces de aceptar/rechazar. Falla con instrucciones si no hay ninguna:
+ * ScriptApp.getService().getUrl() devuelve null cuando el proyecto no tiene una implementación de Web App.
+ */
+function urlBaseWebApp_(): string {
+  const url = CONFIG.WEB_APP_URL || ScriptApp.getService().getUrl();
+  if (!url) {
+    throw new Error("No hay URL de la Web App para los enlaces de aceptar/rechazar. En Apps Script: Implementar > Nueva implementación > Aplicación web, y pega la URL (termina en /exec) en CONFIG.WEB_APP_URL de Config.");
+  }
+  return url;
+}
+
+function obtenerUrlConfirmacionConToken_(token: string, action: string): string {
+  let webAppUrl = urlBaseWebApp_();
   
   // Strip multi-login segment (e.g. /u/2/) to avoid account conflict errors for recipients
   webAppUrl = webAppUrl.replace(/\/u\/\d+/, '');
 
   if (!CONFIG.WEB_APP_URL && webAppUrl.endsWith('/dev')) {
-    logToWebApp(`⚠️ ADVERTENCIA: Enlace /dev generado. Publica la Web App y configura WEB_APP_URL en Config.ts para evitar errores de Google Drive.`);
+    logToWebApp_(`⚠️ ADVERTENCIA: Enlace /dev generado. Publica la Web App y configura WEB_APP_URL en Config.ts para evitar errores de Google Drive.`);
   }
 
   return `${webAppUrl.replace(/\/$/, '')}?action=${action}&token=${token}`;
@@ -486,7 +491,7 @@ function obtenerUrlConfirmacionConToken(token: string, action: string): string {
  * Processes an applicant's accept/reject action via token.
  * Updates the spreadsheet and sends confirmation emails.
  */
-function procesarAccionPostulante(token: string, action: string): { exito: boolean; mensaje: string; nombre?: string; paymentUrl?: string } {
+function procesarAccionPostulante_(token: string, action: string): { exito: boolean; mensaje: string; nombre?: string; paymentUrl?: string } {
   const lock = LockService.getScriptLock();
   try {
     lock.waitLock(10000);
@@ -497,7 +502,7 @@ function procesarAccionPostulante(token: string, action: string): { exito: boole
       return { exito: false, mensaje: "Este enlace ya fue utilizado o no es válido." };
     }
 
-    const ss = getSpreadsheet();
+    const ss = getSpreadsheet_();
     const hojaS = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
     if (!hojaS) {
       return { exito: false, mensaje: "Error base de datos: Hoja 'Seleccionados' no encontrada." };
@@ -505,9 +510,9 @@ function procesarAccionPostulante(token: string, action: string): { exito: boole
 
     let targetValues = hojaS.getDataRange().getValues();
     const headers = targetValues[0];
-    const idxCorreo = headers.indexOf("Correo Electrónico");
-    const idxNombre = headers.indexOf("Nombre(s)");
-    const idxAceptacion = headers.indexOf("Aceptación") + 1;
+    const idxCorreo = headers.indexOf(HEADERS.EMAIL);
+    const idxNombre = headers.indexOf(HEADERS.FIRST_NAME);
+    const idxAceptacion = headers.indexOf(HEADERS.ACCEPTANCE) + 1;
 
     let isRealCandidate = false;
     let isContinuationStudent = false;
@@ -533,14 +538,14 @@ function procesarAccionPostulante(token: string, action: string): { exito: boole
         if (valuesC.length > 0) {
           const headersC = valuesC[0];
           let idxEmailC = headersC.indexOf("Email");
-          if (idxEmailC === -1) idxEmailC = headersC.indexOf("Correo Electrónico");
+          if (idxEmailC === -1) idxEmailC = headersC.indexOf(HEADERS.EMAIL);
           const idxNameC = headersC.indexOf("Name");
           const idxSurnameC = headersC.indexOf("Surname");
-          let idxAceptacionC = headersC.indexOf("Aceptación");
+          let idxAceptacionC = headersC.indexOf(HEADERS.ACCEPTANCE);
 
           if (idxAceptacionC === -1) {
             idxAceptacionC = headersC.length;
-            hojaC.getRange(1, idxAceptacionC + 1).setValue("Aceptación");
+            hojaC.getRange(1, idxAceptacionC + 1).setValue(HEADERS.ACCEPTANCE);
           }
 
           if (idxEmailC !== -1) {
@@ -590,7 +595,7 @@ function procesarAccionPostulante(token: string, action: string): { exito: boole
     scriptProperties.deleteProperty('token_' + token);
 
     if (isContinuationStudent) {
-      logToWebApp(`${action === 'accept' ? 'Aceptación' : 'Rechazo'} de continuación recibida de ${correo}.`);
+      logToWebApp_(`${action === 'accept' ? 'Aceptación' : 'Rechazo'} de continuación recibida de ${correo}.`);
       return {
         exito: true,
         mensaje: action === 'accept' ?
@@ -602,14 +607,14 @@ function procesarAccionPostulante(token: string, action: string): { exito: boole
     }
 
     if (action === 'reject') {
-      procesarRechazoDesdeWebApp(correo);
-      logToWebApp(`Rechazo recibido y procesado para ${correo}.`);
+      procesarRechazoDesdeWebApp_(correo);
+      logToWebApp_(`Rechazo recibido y procesado para ${correo}.`);
       // Send confirmation email of rejection
-      enviarCorreoConfirmacion(correo, 'reject');
+      enviarCorreoConfirmacion_(correo, 'reject');
     } else {
-      logToWebApp(`Aceptación recibida de ${correo}.`);
+      logToWebApp_(`Aceptación recibida de ${correo}.`);
       // Send confirmation email of acceptance (with payment link)
-      enviarCorreoConfirmacion(correo, 'accept');
+      enviarCorreoConfirmacion_(correo, 'accept');
     }
 
     return { 
@@ -630,9 +635,9 @@ function procesarAccionPostulante(token: string, action: string): { exito: boole
  */
 function promoverSiguienteEsperaAPI(nivel: string): string {
   try {
-    gestionarListaDeEspera(nivel);
+    gestionarListaDeEspera_(nivel);
     return `Se promovió al siguiente candidato en lista de espera para el nivel ${nivel} con éxito.`;
-  } catch (e: any) {
-    return `Error al promover candidato: ${e.message}`;
+  } catch (e) {
+    return `Error al promover candidato: ${mensajeError_(e)}`;
   }
 }

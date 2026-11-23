@@ -2,58 +2,18 @@
 <html>
 
 <head>
-  <base target="_top">
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f4f4;
-      margin: 0;
-      padding: 0;
-    }
-
-    .container {
-      width: 100%;
-      max-width: 600px;
-      margin: 0 auto;
-      background-color: #ffffff;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-
-    .header {
-      text-align: center;
-      padding-bottom: 20px;
-      border-bottom: 1px solid #eeeeee;
-    }
-
-    .header img {
-      max-width: 150px;
-    }
-
-    .content {
-      padding: 20px 0;
-      line-height: 1.6;
-      color: #333333;
-    }
-
-    .footer {
-      text-align: center;
-      padding-top: 20px;
-      border-top: 1px solid #eeeeee;
-      font-size: 12px;
-      color: #888888;
-    }
-  </style>
+    <?!= incluir_('CorreoBase_Estilos') ?>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; }
+        .container { width: 100%; max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); }
+        .header { text-align: center; padding-bottom: 20px; border-bottom: 1px solid #eeeeee; }
+        .content { padding: 20px 0; line-height: 1.6; color: #333333; }
+        .footer { text-align: center; padding-top: 20px; border-top: 1px solid #eeeeee; font-size: 12px; color: #888888; }
+    </style>
 </head>
 
 <body>
-  <div class="container">
-    <div class="header">
-      <!-- Reemplaza esta URL con el logo de tu institución -->
-      <img src="https://www.pucv.cl/pucv/site/artic/20220615/imag/foto_0000000120220615160256/logo_header.png" alt="Logo PUCV">
-    </div>
-    <div class="content">
+    <?!= incluir_('CorreoBase_Cabecera') ?>
       <h3>Resultados Postulación PUCV2English - Lista de Espera</h3>
       <p>Estimado/a
         <?= nombre ?>,
@@ -66,12 +26,7 @@
       <p>¡Agradecemos tu comprensión y paciencia!</p>
       <br>
       <p>Saludos cordiales,<br>El equipo del Programa de Inglés PUCV</p>
-    </div>
-    <div class="footer">
-      <p>Pontificia Universidad Católica de Valparaíso</p>
-      <p>Este es un correo generado automáticamente, pero tu respuesta será leída por nuestro equipo.</p>
-    </div>
-  </div>
+    <?!= incluir_('CorreoBase_Pie', { nota: "<p>Este es un correo generado automáticamente, pero tu respuesta será leída por nuestro equipo.</p>" }) ?>
 </body>
 
 </html>

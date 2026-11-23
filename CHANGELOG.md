@@ -7,6 +7,31 @@ El versionado sigue [Semantic Versioning](https://semver.org/lang/es/).
 
 ---
 
+## [Sin publicar]
+
+### Cambiado
+- **Envío por lote unificado** (`EnvioLote.ts`, `enviarLote()`): `Correos`, `InicioClases` y `RechazoPorNivel` comparten cuota, borrador, límite de muestra, manejo de errores por destinatario y sello de fecha. Antes eran tres copias que ya habían divergido.
+- **Tabla de tipos de correo** (`CORREOS`, `TipoCorreo` en `Correos.ts`): reemplaza las cadenas `if/else` de plantilla y asunto de `sendEmailBatch` y `sendTestEmail`. `sendEmailBatch`, `previewEmailBatch` y `getRecipients` reciben `TipoCorreo` (tipo cerrado). Los destinatarios usan `rowNum` en vez de `index`.
+- **Plantillas de correo**: estilos, logo y pie salen de tres fragmentos compartidos (`CorreoBase_Estilos`, `CorreoBase_Cabecera`, `CorreoBase_Pie`). 11 plantillas pasan de 1.151 a 508 líneas (+54 de fragmentos). Verificado: el contenido de cada correo queda idéntico y el estilo efectivo no cambia, salvo `CorreoListaEspera` (el color de texto del cuerpo y de los títulos `h3` pasan a ser los de los demás correos). `CorreoPlacementTest` conserva su diseño propio.
+- **Cuota**: los borradores ya no se bloquean por falta de cuota de envío (no la consumen).
+- Los textos de resultado cambian a "Se enviaron N correos de <tipo>".
+- **Funciones privadas** (convención `_` final de Apps Script): 75 funciones internas pasan a terminar en `_` y ya no se pueden llamar con `google.script.run`. Siguen públicas las 49 que usan el menú, los disparadores (`onOpen`, `doGet`, `evaluarPostulacionesPUCV2`) y el HTML de paneles, diálogos y sidebars. Las plantillas llaman `incluir_`. Quien tenga un disparador instalado a mano sobre una función interna deberá apuntarlo a una pública.
+- **Encabezados de hojas** en `HEADERS` (`Config.ts`): 154 textos sueltos (`"Correo Electrónico"`, `"Nivel Asignado"`…) pasan a `HEADERS.*`; `CONFIG.COLUMNS` los reutiliza.
+- **`leerHoja_()`** en `getRecipients_`, `enviarCorreoConfirmacion_`, `updateApplicantStatus` y `guardarRevisionPostulante`: una columna mal escrita lanza "Falta la columna X en la hoja Y" en vez de producir un resultado vacío. `updateApplicantStatus` ya no escribe a medias si falta una columna. El resto de las lecturas de hojas (unas 30) sigue con `indexOf`, ahora con `HEADERS.*`.
+- **Tipado**: los `as any` pasan de 6 a 0; los `catch (e: any)` (21) pasan a `unknown` con `mensajeError_()`; `saveConfiguracion`, `esSi_`, `normalizarFecha_`, `renderPlantilla_` y `getDashboardStats` tienen tipos propios. Los `any` que quedan son sobre todo valores de celdas (`any[][]` de la API de Google).
+- `getRecipients_` ya no crea la columna de sello al consultar (la vista previa no modifica hojas); la crea `sendEmailBatch` antes de enviar.
+
+### Corregido
+- **Envíos largos**: `enviarLote_` y el envío de Prueba de Nivel se detienen a los 5 minutos y avisan "quedan N pendientes". Antes un lote grande podía cortarse a los 6 minutos sin informar cuántos salieron (y en Prueba de Nivel perder el estado de lo enviado, que se guarda al final).
+- **Salas de inicio de clases**: se eliminó el guardado en memoria de `guardarSalasYObtenerPreview` (cada llamada del diálogo es otra ejecución, así que nunca llegaba al envío). `HORARIOS[nivel].sala` ya no existe.
+
+### Añadido
+- `renderPlantilla()` e `incluir()` en `Utils.ts`: reemplazan 52 asignaciones `(htmlBody as any).campo = ...`.
+- `sendTestEmail('CADENA_COMPLETA')` ahora prueba las 11 plantillas, incluyendo `CorreoEsperaSinCupo` y `CorreoRechazoPorNivel`, que antes no se probaban. Nueva columna `CONFIG.COLUMNS.CLOSURE_NOTIFICATION_DATE`.
+- Si falta la columna de sello (`Fecha Notificación`, `Notificado Inicio`, `Sala`), se crea al enviar; antes el envío salía sin sello y un reenvío duplicaba los correos.
+
+---
+
 ## [2.6.0] — 2026-11-16
 
 Sexta convocatoria (1.er semestre 2027): la evaluación sigue las bases de postulación.

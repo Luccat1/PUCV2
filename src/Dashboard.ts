@@ -6,7 +6,7 @@
 /**
  * Calculates various statistics from the evaluation results.
  */
-function calcularEstadisticas(
+function calcularEstadisticas_(
   resultadosCompletos: any[][], 
   datosOriginales: any[][], 
   indicesOriginales: Record<string, number>
@@ -15,12 +15,12 @@ function calcularEstadisticas(
   const postulantes = resultadosCompletos.slice(1);
 
   const getIdx = (name: string) => encabezadosR.indexOf(name);
-  const idxCat = getIdx("Categoría Postulante");
-  const idxTotal = getIdx("PUNTAJE TOTAL");
+  const idxCat = getIdx(HEADERS.CATEGORY);
+  const idxTotal = getIdx(HEADERS.TOTAL_SCORE);
   const idxSede = getIdx("Sede");
-  const idxEmail = getIdx("Correo Electrónico");
-  const idxNivel = getIdx("Nivel Postulado");
-  const idxCert = getIdx("Enlace Certificado");
+  const idxEmail = getIdx(HEADERS.EMAIL);
+  const idxNivel = getIdx(HEADERS.LEVEL_APPLIED);
+  const idxCert = getIdx(HEADERS.CERTIFICATE_LINK);
 
   const puntajes = postulantes.map(f => parseFloat(f[idxTotal] || 0));
   const totalPostulantes = postulantes.length;
@@ -109,7 +109,7 @@ function calcularEstadisticas(
 /**
  * Formats statistics for writing into the Spreadsheet dashboard.
  */
-function formatearDatosDashboard(stats: IStatistics): any[][] {
+function formatearDatosDashboard_(stats: IStatistics): any[][] {
   const { totalPostulantes, totalCertificados, puntajePromedio, puntajeMaximo, puntajeMinimo, statsPorCategoria, statsPorSede, statsPorNivel, statsPorAnio, statsCruzados } = stats;
   
   let rows: any[][] = [
@@ -149,7 +149,7 @@ function formatearDatosDashboard(stats: IStatistics): any[][] {
 /**
  * Inserts or updates a pie chart in the dashboard sheet.
  */
-function crearGraficoSede(sheet: GoogleAppsScript.Spreadsheet.Sheet, statsSede: Record<string, { contador: number }>): void {
+function crearGraficoSede_(sheet: GoogleAppsScript.Spreadsheet.Sheet, statsSede: Record<string, { contador: number }>): void {
   const chartData: any[][] = [["Sede", "Nº Postulantes"]];
   for (const s in statsSede) chartData.push([s, statsSede[s].contador]);
 
@@ -171,14 +171,14 @@ function crearGraficoSede(sheet: GoogleAppsScript.Spreadsheet.Sheet, statsSede: 
 /**
  * Orchestrates the dashboard generation process.
  */
-function generarYActualizarDashboard(
+function generarYActualizarDashboard_(
   resultadosCompletos: any[][], 
   ss: GoogleAppsScript.Spreadsheet.Spreadsheet, 
   datosOriginales: any[][], 
   indicesOriginales: Record<string, number>
 ): void {
-  const stats = calcularEstadisticas(resultadosCompletos, datosOriginales, indicesOriginales);
-  const rows = formatearDatosDashboard(stats);
+  const stats = calcularEstadisticas_(resultadosCompletos, datosOriginales, indicesOriginales);
+  const rows = formatearDatosDashboard_(stats);
 
   let sheet = ss.getSheetByName(CONFIG.SHEETS.DASHBOARD);
   if (!sheet) sheet = ss.insertSheet(CONFIG.SHEETS.DASHBOARD);
@@ -204,12 +204,12 @@ function generarYActualizarDashboard(
     sheet.getRange("A1:C1").setFontSize(12);
   }
 
-  crearGraficoSede(sheet!, stats.statsPorSede);
+  crearGraficoSede_(sheet!, stats.statsPorSede);
 }
 
 /**
  * Helper called from the Web App to run analysis.
  */
 function ejecutarAnalisisDesdeWebApp(): string {
-  return getAnalysisReport(); // Calls function from Evaluacion.ts
+  return getAnalysisReport_(); // Calls function from Evaluacion.ts
 }

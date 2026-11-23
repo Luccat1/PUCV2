@@ -17,8 +17,8 @@ function testGetNivelesActivos(): void {
     if (niveles.length === 0) {
       Logger.log("  WARN: Lista Final vacía o todos ya notificados. Verificar datos.");
     }
-  } catch (e: any) {
-    Logger.log("testGetNivelesActivos: FAIL — " + e.message);
+  } catch (e) {
+    Logger.log("testGetNivelesActivos: FAIL — " + mensajeError_(e));
   }
 }
 
@@ -42,13 +42,6 @@ function testGuardarSalasYObtenerPreview(): void {
     const preview = guardarSalasYObtenerPreview(salasValidas);
     Logger.log("testGuardarSalasYObtenerPreview: OK — Preview:\n" + preview);
 
-    // Verify in-memory storage
-    niveles.forEach(n => {
-      const stored = (PROGRAM_DATA.HORARIOS[n] as any).sala;
-      if (stored !== "Sala 101 (TEST)") {
-        Logger.log(`  FAIL: PROGRAM_DATA.HORARIOS["${n}"].sala = "${stored}", expected "Sala 101 (TEST)"`);
-      }
-    });
 
     // Validation test: empty sala should throw
     try {
@@ -59,19 +52,19 @@ function testGuardarSalasYObtenerPreview(): void {
     } catch (validationErr: any) {
       Logger.log("  Validation OK: empty sala correctly rejected — " + validationErr.message);
     }
-  } catch (e: any) {
-    Logger.log("testGuardarSalasYObtenerPreview: FAIL — " + e.message);
+  } catch (e) {
+    Logger.log("testGuardarSalasYObtenerPreview: FAIL — " + mensajeError_(e));
   }
 }
 
 /**
- * Tests getRecipientsInicioClases() — verifies row filtering logic.
+ * Tests getRecipientsInicioClases_() — verifies row filtering logic.
  * Expected: returns only student rows, no CATEGORÍA or PRUEBA DE NIVEL rows,
  * no already-notified rows.
  */
 function testGetRecipientsInicioClases(): void {
   try {
-    const recipients = getRecipientsInicioClases();
+    const recipients = getRecipientsInicioClases_();
     Logger.log("testGetRecipientsInicioClases: OK — Recipients count: " + recipients.length);
     recipients.slice(0, 3).forEach(r => {
       Logger.log(`  rowNum=${r.rowNum} | ${r.apellido}, ${r.nombre} | ${r.email} | ${r.nivel}`);
@@ -82,19 +75,19 @@ function testGetRecipientsInicioClases(): void {
     if (badRows.length > 0) {
       Logger.log("  FAIL: " + badRows.length + " rows with invalid nivel or missing email leaked through filter.");
     }
-  } catch (e: any) {
-    Logger.log("testGetRecipientsInicioClases: FAIL — " + e.message);
+  } catch (e) {
+    Logger.log("testGetRecipientsInicioClases: FAIL — " + mensajeError_(e));
   }
 }
 
 /**
- * Tests renderCorreoInicioClases() — renders the template and checks output.
+ * Tests renderCorreoInicioClases_() — renders the template and checks output.
  * Expected: HTML string containing nombre, nivel, sala, fechaInicio values.
  * Requires CorreoInicioClases.html to be deployed in the GAS project.
  */
 function testRenderCorreoInicioClases(): void {
   try {
-    const html = renderCorreoInicioClases({
+    const html = renderCorreoInicioClases_({
       nombre:      "Estudiante Prueba",
       nivel:       "B2.1",
       catedra:     "Lunes y Miércoles 17:45-18:55",
@@ -122,8 +115,8 @@ function testRenderCorreoInicioClases(): void {
     if (allPassed) {
       Logger.log("testRenderCorreoInicioClases: OK — All expected values present in rendered HTML. Length: " + html.length);
     }
-  } catch (e: any) {
-    Logger.log("testRenderCorreoInicioClases: FAIL — " + e.message +
+  } catch (e) {
+    Logger.log("testRenderCorreoInicioClases: FAIL — " + mensajeError_(e) +
       "\n  (If 'Unable to find item: CorreoInicioClases', deploy CorreoInicioClases.html to GAS editor first)");
   }
 }
