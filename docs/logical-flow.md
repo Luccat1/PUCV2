@@ -90,7 +90,7 @@ A continuación, se detalla qué requiere y qué produce cada script de la carpe
     * `evaluarPostulacionesPUCV2()`: Lee filas no procesadas, realiza la validación de duplicados por correo, calcula los puntajes detallados, escribe los resultados e invoca a las hojas derivadas.
     * `calcularPuntajeUsoIngles_()`, `calcularPuntajeInternacionalizacion_()`, `calcularPuntajeCertificado_()`, `calcularPuntajeAnioIngreso_()`: Funciones modulares que calculan los puntajes de acuerdo al perfil del postulante.
     * `motivoNoElegible_()`: Aplica los requisitos e impedimentos de las bases (n.º 4, 5.1 y 5.2). Si devuelve un motivo, la fila se marca `NO ELEGIBLE: <motivo>` en `Estado de Procesamiento` y no se evalúa.
-    * **Pauta**: Uso del inglés y respaldo de jefatura solo aplican a académicos y funcionarios; el año de ingreso solo a pregrado (desde 3.er año, 2 pts); Alumni queda en 0. Disponibilidad y compromisos no puntúan. El desempate usa `compararPostulantes_()` (n.º 7.5).
+    * **Pauta**: Uso del inglés y respaldo de jefatura solo aplican a académicos y funcionarios; el año de ingreso solo a pregrado (desde 3.er año, 2 pts); Alumni queda en 0. Disponibilidad y compromiso suman 1 punto base × peso del perfil. El desempate usa `compararPostulantes_()` (n.º 7.5).
     * `normalizarFecha_()` / `formatearColumnaFecha_()` (`Utils.ts`): guardan la marca temporal como fecha real y la muestran como `dd/MM/yyyy HH:mm`.
 
 ### 3. Seleccionados.ts

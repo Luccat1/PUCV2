@@ -14,7 +14,7 @@ All files have been compiled and copied to `PUCV2English/` folder.
 Upload each file as a separate **Script** file in Google Apps Script editor:
 
 | File | Purpose | Status |
-|------|---------|--------|
+| ------ | --------- | -------- |
 | `Config.js` | Configuración global y tipos | ✓ Updated |
 | `Utils.js` | Funciones de soporte | ✓ Ready |
 | `Correos.js` | Motor de correos (6 lotes + borradores) | ✓ Ready |
@@ -33,7 +33,7 @@ Upload each file as a separate **Script** file in Google Apps Script editor:
 Upload each file as a separate **HTML** file in Google Apps Script editor:
 
 | File | Purpose | Status |
-|------|---------|--------|
+| ------ | --------- | -------- |
 | `index.html` | Panel de control web (dashboard administrativo) | ✓ Updated |
 | `DialogSalas.html` | Modal de entrada de salas por nivel | ✓ Ready |
 | `DialogConfirmEval.html` | Diálogo de confirmación de evaluación | ✓ Ready |
@@ -80,6 +80,7 @@ For each `.js` file in the table above:
 8. Repeat for all 11 files
 
 **Order recommendation:**
+
 - `Config` (constants first)
 - `Utils` (utility functions)
 - `Correos` (email module)
@@ -112,6 +113,7 @@ After uploading all files:
 4. Check **Executions** panel (View > Executions)
 
 Expected output:
+
 ```
 testGetNivelesActivos: OK — Niveles activos: ["B1+","B2.1","B2.2","C1"]
 ```
@@ -121,6 +123,7 @@ testGetNivelesActivos: OK — Niveles activos: ["B1+","B2.1","B2.2","C1"]
 ## 📋 Manual Testing (In Google Sheets)
 
 ### Test 1: Menu Visible
+
 ```
 ✓ Refresh the Google Sheet (Ctrl+Shift+F5)
 ✓ Click menu: "PUCV2English"
@@ -129,6 +132,7 @@ testGetNivelesActivos: OK — Niveles activos: ["B1+","B2.1","B2.2","C1"]
 ```
 
 ### Test 2: Draft Mode
+
 ```
 ✓ Click: PUCV2English > 📧 Enviar Correos > ✅ Seleccionados
 ✓ At the confirmation dialog, click "NO" to create drafts
@@ -137,6 +141,7 @@ testGetNivelesActivos: OK — Niveles activos: ["B1+","B2.1","B2.2","C1"]
 ```
 
 ### Test 3: Waitlist Promotion
+
 ```
 ✓ Open "Lista de Espera" sheet
 ✓ Select a row with a candidate
@@ -145,6 +150,7 @@ testGetNivelesActivos: OK — Niveles activos: ["B1+","B2.1","B2.2","C1"]
 ```
 
 ### Test 4: Payment Tracking
+
 ```
 ✓ Open "Seleccionados" sheet
 ✓ Verify "Pago Matrícula" column with Pagado/Pendiente dropdown
@@ -152,12 +158,14 @@ testGetNivelesActivos: OK — Niveles activos: ["B1+","B2.1","B2.2","C1"]
 ```
 
 ### Test 5: Final List Generation
+
 ```
 ✓ Click: PUCV2English > 📋 Generar Lista Final
 ✓ Verify only candidates with Acepta + Pagado appear in "Lista Final Curso"
 ```
 
 ### Test 6: Waitlist Closure Emails
+
 ```
 ✓ Click: PUCV2English > 📧 Enviar Correos > ⏳ Cierre Lista de Espera (Sin Cupo)
 ✓ Choose draft mode to preview
@@ -165,6 +173,7 @@ testGetNivelesActivos: OK — Niveles activos: ["B1+","B2.1","B2.2","C1"]
 ```
 
 ### Test 7: Continuation Emails
+
 ```
 ✓ Create "Continuación" sheet with columns: Name, Surname, ID, Curso, Profesor, Asistencia, Promedio Final, Email, Fecha Notificación
 ✓ Add test data with eligible (B1+, asistencia ≥ 80, nota ≥ 40) and ineligible (C1 or low attendance) students
@@ -180,7 +189,7 @@ testGetNivelesActivos: OK — Niveles activos: ["B1+","B2.1","B2.2","C1"]
 ## ❓ Troubleshooting
 
 | Problem | Solution |
-|---------|----------|
+| --------- | ---------- |
 | **"Function not found" error** | Verify all 11 `.js` files uploaded correctly (Config first) |
 | **Dialog doesn't open** | Refresh sheet (Ctrl+Shift+F5), check browser console |
 | **"No hay destinatarios"** | Check idempotency columns — candidates may already have notification dates |

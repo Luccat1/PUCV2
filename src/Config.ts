@@ -51,17 +51,26 @@ interface IProgramData {
  * Parameters for the automated scoring engine.
  */
 interface IScoringParams {
+  // Requisitos que también puntúan: 1 punto base por cumplir × peso del perfil (sección Disponibilidad del formulario)
+  Disponibilidad: { peso: Record<string, number> };
+  Compromiso: { peso: Record<string, number> };
   UsoIngles: {
     Frecuencia: Record<string, number>;
     Actividades: Record<string, number>;
-    PalabrasClaveContribucion: string[];
-    PuntajePorPalabraClave: number;
+    MaxActividades: number;
+    PuntajeProyectosFuturos: number;
+    PuntajeTextoPorFamilia: number;
+    MaxTexto: number;
     MaxPuntaje: number;
     peso: Record<string, number>;
   };
   Internacionalizacion: {
-    PalabrasClavePlan: string[];
-    PuntajePorPalabraClave: number;
+    PuntajePlan: Record<string, number>; // clave = texto de la opción del formulario (minúsculas, sin tildes)
+    PuntajeEtapa: Record<string, number>;
+    MaxPlanes: number;
+    PuntajeDocumentos: Record<string, number>; // evidencia declarada: cuenta la más fuerte
+    PuntajeAdjunto: number;
+    MaxDocumentos: number;
     MaxPuntaje: number;
     peso: Record<string, number>;
   };
@@ -228,25 +237,39 @@ const DECLARACIONES_REQUERIDAS: string[] = [
  * These parameters can be modified by the 'cargarConfiguracionDesdeHoja_' function.
  */
 const DEFAULT_SCORING_PARAMS: IScoringParams = {
+  // Comprometerse pesa más fuera del pregrado (más carga laboral/académica que conciliar con el horario)
+  Disponibilidad: { peso: { estudiante: 1, postgrado: 1.5, funcionario: 2, academico: 2 } },
+  Compromiso: { peso: { estudiante: 1, postgrado: 1.5, funcionario: 2, academico: 2 } },
   UsoIngles: {
     Frecuencia: { "diariamente": 1.5, "semanalmente": 1, "mensualmente": 0.5 },
-    Actividades: { "visitas internacionales": 1, "presentaciones": 1, "reuniones": 0.75, "clases": 0.5, "papers": 0.5, "correos": 0.25, "leer documentación": 0.25 },
-    PalabrasClaveContribucion: ["proyección", "internacional", "colaborar", "crecimiento", "oportunidades", "movilidad", "publicar", "desarrollo"],
-    PuntajePorPalabraClave: 0.25,
+    // Claves = texto de las opciones del formulario (sección Labor profesional), en minúsculas
+    Actividades: { "visitantes internacionales": 1, "instituciones extranjeras": 1, "eventos internacionales": 0.75, "documentos internacionales": 0.5, "traduccion": 0.5, "investigacion y docencia": 0.5, "correos": 0.25, "telefonica": 0.25, "otro": 0.25 },
+    // Reparto del máximo (4): frecuencia 1.5 + actividades 1 + proyectos futuros 0.5 + descripciones abiertas 1
+    MaxActividades: 1,
+    PuntajeProyectosFuturos: 0.5,
+    PuntajeTextoPorFamilia: 0.2,
+    MaxTexto: 1,
     MaxPuntaje: 4,
     peso: {
       estudiante: 0.75,
-      funcionario: 1,
+      funcionario: 0.75, // su máximo (Tipo 2 + Uso 3 + Carta 3 + certificado 3) iguala al resto (11); academico = punto base fijo
       academico: 1
     }
   },
   Internacionalizacion: {
-    PalabrasClavePlan: ["postgrado", "doble titulación", "pasantía", "intercambio", "práctica profesional", "curso especializado", "congreso"],
-    PuntajePorPalabraClave: 0.5,
+    // Cada opción del formulario suma lo suyo (jerarquía: postgrado > doble titulación/intercambio > pasantía > práctica/proyecto > curso > congreso)
+    PuntajePlan: { "postgrado": 1, "doble titulacion": 0.8, "intercambio": 0.8, "pasantia": 0.6, "practica profesional": 0.5, "proyecto de investigacion": 0.5, "especializado": 0.4, "congreso": 0.3, "otro": 0.2 },
+    // Etapas correlativas, de mayor a menor
+    PuntajeEtapa: { "ya aceptado": 3.5, "en proceso de postulacion": 2.5, "con plan concreto": 1.75, "etapa de planificacion": 1, "interes general": 0 },
+    MaxPlanes: 1.5,
+    PuntajeDocumentos: { "aceptacion": 1, "postulacion": 0.75, "invitacion": 0.75, "contactos": 0.5, "programa": 0.25 },
+    PuntajeAdjunto: 0.25,
+    MaxDocumentos: 1,
     MaxPuntaje: 5,
     peso: {
       estudiante: 1,
-      funcionario: 0.75,
+      postgrado: 1.3, // sin año de ingreso: Tipo 1.5 + Intl 6.5 + certificado 3 = 11 (igual al resto)
+      funcionario: 1,
       academico: 1
     }
   },

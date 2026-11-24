@@ -33,7 +33,8 @@ El ecosistema de Google Sheets contiene las siguientes pestañas, cada una con u
     *   **Reglas a considerar al leer los puntajes** (siguen las bases de la convocatoria):
         *   Solo aparecen las postulaciones **elegibles**. Las que no cumplen requisitos o tienen un impedimento (reprobó, renunció a la beca, ya cursó C1, completó dos cursos, estudiante sin matrícula vigente, sin PILE aprobado, declaraciones sin aceptar) quedan marcadas `NO ELEGIBLE: <motivo>` en `Estado de Procesamiento` de la hoja de respuestas.
         *   Si una postulación se corrigió (enmienda por correo), borra el `Estado de Procesamiento` de esa fila y vuelve a evaluar.
-        *   `Puntaje Disponibilidad` y `Puntaje Compromiso` están siempre en 0: son requisitos, no puntaje.
+        *   `Puntaje Disponibilidad` y `Puntaje Compromiso` dan 1 punto base por cumplir, multiplicado por el peso del perfil (pregrado 1, postgrado 1,5, funcionario y académico 2). Un 0 significa que no cumple esa condición.
+        *   La columna `Observaciones` indica `NO ELEGIBLE: <motivos>` si la persona incumple algún requisito (horario, compromisos, 80 % de asistencia, declaraciones, impedimentos previos, PILE pendiente). Esa persona igual se evalúa y puntúa, pero no entra a los cupos ni a la lista de espera.
         *   `Puntaje Uso Inglés` y el respaldo de jefatura solo puntúan a académicos y funcionarios; el año de ingreso solo a pregrado (desde 3.er año, 2 pts).
         *   Los **Alumni** tienen puntaje 0: solo acceden a un cupo si no quedan elegibles de la comunidad activa.
         *   En Internacionalización, "En proceso de postulación" suma 2 puntos y "Interés general" no suma.

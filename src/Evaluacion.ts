@@ -45,7 +45,7 @@ function evaluarPostulacionesPUCV2(): string {
     const resultados: any[][] = [
       [HEADERS.LAST_NAME, HEADERS.FIRST_NAME, HEADERS.EMAIL, "RUT", HEADERS.APPLICATION_DATE, HEADERS.CATEGORY, "Sede",
         "Puntaje Disponibilidad", "Puntaje Tipo", "Puntaje Uso Inglés", "Puntaje Intl.", "Puntaje Nivel Inglés",
-        "Puntaje Año Ingreso", "Puntaje Compromiso", "Puntaje Carta", HEADERS.TOTAL_SCORE, HEADERS.CERTIFICATE_LINK, HEADERS.LEVEL_APPLIED]
+        "Puntaje Año Ingreso", "Puntaje Compromiso", "Puntaje Carta", HEADERS.TOTAL_SCORE, HEADERS.CERTIFICATE_LINK, HEADERS.LEVEL_APPLIED, "Observaciones"]
     ];
 
     const correosProcesados = new Set<string>();
@@ -112,36 +112,39 @@ function evaluarPostulacionesPUCV2(): string {
         const sede = obtenerValor_(fila, CONFIG.COLUMNS.CAMPUS, indiceColumnas);
 
         // Elegibilidad (bases n.º 4, 5.1 y 5.2): quien no cumple los requisitos no se evalúa
-        const motivo = motivoNoElegible_(fila, tipo, indiceColumnas);
-        if (motivo) {
-          logToWebApp_(`Fila ${r + 1} (${correo}) no elegible: ${motivo}`);
-          if (indiceEstado !== -1) {
-            actualizacionesEstado.push({ fila: r + 1, valor: `NO ELEGIBLE: ${motivo}` });
-          }
-          continue;
-        }
+        // Nadie se excluye de la evaluación: los motivos quedan en "Observaciones" y en el estado de la fila de registro.
+        const motivos = motivosNoElegible_(fila, tipo, indiceColumnas);
+        const observaciones = motivos.length ? `NO ELEGIBLE: ${motivos.join("; ")}` : "";
+        if (observaciones) logToWebApp_(`Fila ${r + 1} (${correo}) ${observaciones}`);
 
         // Pauta (bases n.º 7.2): proyección internacional, vínculo y etapa, nivel de inglés y uso del inglés.
-        // Disponibilidad y compromisos son requisitos, no puntaje: sus columnas quedan en 0.
-        const pDisp = 0;
-        const pComp = 0;
         const alumni = esAlumni_(tipo); // n.º 4: solo acceden a cupo después de toda la comunidad activa
+        // Disponibilidad y compromiso: 1 punto base por cumplir × peso del perfil (comprometerse cuesta más fuera del pregrado).
+        const perfil = perfilPeso_(tipo);
+        const v = (col: string) => obtenerValor_(fila, col, indiceColumnas);
+        const declCompromiso = DECLARACIONES_REQUERIDAS.find(d => /^2./.test(d));
+        const cumpleDisp = esSi_(v(CONFIG.COLUMNS.AVAILABILITY_SESSIONS)) && !esSi_(v(CONFIG.COLUMNS.AVAILABILITY_CONFLICTS));
+        const cumpleComp = esSi_(v(CONFIG.COLUMNS.AVAILABILITY_ASSISTANCE)) && esSi_(v(CONFIG.COLUMNS.AVAILABILITY_STUDY)) &&
+          (!declCompromiso || esSi_(v(declCompromiso)));
+        const pDisp = !alumni && cumpleDisp ? (SCORING_PARAMS.Disponibilidad.peso[perfil] ?? 1) : 0;
+        const pComp = !alumni && cumpleComp ? (SCORING_PARAMS.Compromiso.peso[perfil] ?? 1) : 0;
         const pTipo = alumni ? 0 : calcularPuntajeTipoPostulante_(tipo);
         const pUso = alumni ? 0 : calcularPuntajeUsoIngles_(fila, tipo, indiceColumnas);
         const pIntl = alumni ? 0 : calcularPuntajeInternacionalizacion_(fila, tipo, indiceColumnas);
         const pCert = alumni ? 0 : calcularPuntajeCertificado_(fila, indiceColumnas);
         const pAnio = alumni ? 0 : calcularPuntajeAnioIngreso_(fila, tipo, indiceColumnas);
 
-        // Respaldo de la jefatura: solo académicos y funcionarios
+        // Respaldo de la jefatura: solo funcionarios (única rama del formulario que responde "Labor profesional")
         let pCarta = 0;
-        if (!alumni && esAcademicoOFuncionario_(tipo)) {
+        if (!alumni && /funcionario/i.test(tipo)) {
           if (esSi_(obtenerValor_(fila, CONFIG.COLUMNS.ENDORSEMENT_APPROVAL, indiceColumnas))) pCarta += 1;
           if (obtenerValor_(fila, CONFIG.COLUMNS.ENDORSEMENT_LETTER, indiceColumnas)) pCarta += 1;
         }
         const pesoCarta = SCORING_PARAMS.CartaRespaldo.peso[/acad[eé]mico/i.test(tipo) ? "academico" : "funcionario"] || 1;
-        const pTotal = pDisp + pTipo + pUso + pIntl + pCert + pAnio + pComp + (pCarta * pesoCarta);
+        const pCartaPond = pCarta * pesoCarta;
+        const pTotal = pDisp + pTipo + pUso + pIntl + pCert + pAnio + pComp + pCartaPond;
         const enlaceCert = obtenerValor_(fila, CONFIG.COLUMNS.CERTIFICATE_ATTACHMENT, indiceColumnas);
-        const nivelPostulado = obtenerNivelDesdeFila_(fila, indiceColumnas);
+        const nivelPostulado = alumni ? "" : obtenerNivelDesdeFila_(fila, indiceColumnas); // alumni no responden la sección de nivel
 
         const pUsoNum = Math.round(pUso * 100) / 100;
         const pIntlNum = Math.round(pIntl * 100) / 100;
@@ -150,12 +153,12 @@ function evaluarPostulacionesPUCV2(): string {
         resultados.push([
           apellidos, nombres, correo, rut, fecha, tipo, sede,
           pDisp, pTipo, pUsoNum, pIntlNum, pCert, pAnio,
-          pComp, pCarta, pTotalNum, enlaceCert, nivelPostulado
+          pComp, pCartaPond, pTotalNum, enlaceCert, nivelPostulado, observaciones
         ]);
         nuevasProcesadas++;
 
         if (indiceEstado !== -1) {
-          actualizacionesEstado.push({ fila: r + 1, valor: new Date() });
+          actualizacionesEstado.push({ fila: r + 1, valor: observaciones || new Date() });
         }
 
       } catch (e) {
@@ -208,9 +211,13 @@ function evaluarPostulacionesPUCV2(): string {
 
     // Update UI components
     logToWebApp_("Generando hoja de seleccionados y dashboard...");
-    generarHojaSeleccionados_(resultados, ss); // From Seleccionados.ts
-    generarHojaListaEspera_(resultados, ss); // From Seleccionados.ts
-    generarYActualizarDashboard_(resultados, ss, datos, indiceColumnas); // From Dashboard.ts
+    // Selección y lista de espera solo con elegibles; ambas (y el dashboard) trabajan sin la columna "Observaciones".
+    const colObs = expectedCols - 1;
+    const sinObs = (filas: any[][]) => filas.map(f => f.slice(0, colObs));
+    const elegibles = [resultados[0], ...resultados.slice(1).filter(f => !f[colObs])];
+    generarHojaSeleccionados_(sinObs(elegibles), ss); // From Seleccionados.ts
+    generarHojaListaEspera_(sinObs(elegibles), ss); // From Seleccionados.ts
+    generarYActualizarDashboard_(sinObs(resultados), ss, datos, indiceColumnas); // From Dashboard.ts
 
     SpreadsheetApp.flush();
     logToWebApp_("Evaluación completada.");
@@ -313,6 +320,10 @@ function cargarDatosPrograma_(): void {
  * Returns current configuration (scoring + program data) for the UI.
  */
 function getConfiguracion(): object {
+  // Primera vez: crea la hoja "Configuración" con los valores por defecto para que exista y se pueda revisar.
+  if (!getSpreadsheet_().getSheetByName(CONFIG.SHEETS.CONFIG)) {
+    saveConfiguracion({ scoring: {} as IScoringParams, program: {} as IProgramData });
+  }
   cargarConfiguracionDesdeHoja_();
   return { scoring: SCORING_PARAMS, program: PROGRAM_DATA };
 }
@@ -334,48 +345,50 @@ interface IConfiguracionGuardada {
 
 function saveConfiguracion(mergedData: IConfiguracionGuardada): string {
   const ss = getSpreadsheet_();
+
+  // El sidebar envía solo los campos que edita: se mezclan sobre el estado actual (defaults + hoja)
+  // para no perder el resto (p. ej. peso de postgrado, PAYMENT_URL) ni escribir celdas undefined.
+  cargarConfiguracionDesdeHoja_();
+  for (const [criterio, obj] of Object.entries(mergedData.scoring || {})) {
+    const dst = (SCORING_PARAMS as any)[criterio] as IParamsEditables | undefined;
+    const src: IParamsEditables = obj;
+    if (!dst) continue;
+    if (Number.isFinite(src.MaxPuntaje)) dst.MaxPuntaje = src.MaxPuntaje;
+    for (const [perfil, v] of Object.entries(src.peso || {})) {
+      if (typeof v === "number" && Number.isFinite(v)) (dst.peso = dst.peso || {})[perfil] = v;
+    }
+  }
+  const { HORARIOS, ...resto } = (mergedData.program || {}) as any;
+  for (const [k, v] of Object.entries(resto)) {
+    if (v !== undefined && v !== null && v !== "") (PROGRAM_DATA as any)[k] = v;
+  }
+  for (const [nivel, h] of Object.entries((HORARIOS || {}) as Record<string, { catedra: string; ayudantia: string }>)) {
+    PROGRAM_DATA.HORARIOS[nivel] = { ...PROGRAM_DATA.HORARIOS[nivel], ...h };
+  }
+
+  const rows: (string | number)[][] = [["Criterio", "Perfil", "Peso/Valor"]];
+  for (const [criterio, obj] of Object.entries(SCORING_PARAMS)) {
+    const c: IParamsEditables = obj;
+    for (const [perfil, peso] of Object.entries(c.peso || {})) {
+      if (typeof peso === "number") rows.push([criterio, perfil, peso]);
+    }
+    if (c.MaxPuntaje !== undefined) rows.push([criterio, "MaxPuntaje", c.MaxPuntaje]);
+  }
+  const p = PROGRAM_DATA as any;
+  for (const k of ["TIMEZONE", "FECHA_LIMITE", "FECHA_INICIO", "FECHA_TERMINO", "PAYMENT_URL", "DEADLINE_DAYS", "TEST_FECHA", "TEST_INSTRUCCIONES_FECHA"]) {
+    rows.push(["PROGRAMA", k, p[k] === undefined || p[k] === null ? "" : p[k]]);
+  }
+  for (const [nivel, h] of Object.entries(PROGRAM_DATA.HORARIOS)) {
+    rows.push([`HORARIO_${nivel}`, "Catedra", h.catedra ?? ""]);
+    rows.push([`HORARIO_${nivel}`, "Ayudantia", h.ayudantia ?? ""]);
+  }
+
+  // Recién con las filas ya armadas se borra la hoja: un error antes de este punto no pierde la configuración guardada.
   let sheet = ss.getSheetByName(CONFIG.SHEETS.CONFIG);
   if (!sheet) sheet = ss.insertSheet(CONFIG.SHEETS.CONFIG);
-
   sheet.clear();
-  const rows: (string | number)[][] = [["Criterio", "Perfil", "Peso/Valor"]];
-
-  const data = mergedData.scoring;
-  const pData = mergedData.program;
-
-  // 1. Scoring Params
-  for (const [criterio, obj] of Object.entries(data)) {
-    const c: IParamsEditables = obj;
-    if (c.peso) {
-      for (const [perfil, peso] of Object.entries(c.peso)) {
-        rows.push([criterio, perfil, peso]);
-      }
-    }
-    if (c.MaxPuntaje !== undefined) {
-      rows.push([criterio, "MaxPuntaje", c.MaxPuntaje]);
-    }
-  }
-
-  // 2. Program Data
-  rows.push(["PROGRAMA", "FECHA_LIMITE", pData.FECHA_LIMITE]);
-  rows.push(["PROGRAMA", "FECHA_INICIO", pData.FECHA_INICIO]);
-  rows.push(["PROGRAMA", "FECHA_TERMINO", pData.FECHA_TERMINO]);
-  rows.push(["PROGRAMA", "PAYMENT_URL", pData.PAYMENT_URL]);
-  rows.push(["PROGRAMA", "DEADLINE_DAYS", pData.DEADLINE_DAYS]);
-  rows.push(["PROGRAMA", "TEST_FECHA", pData.TEST_FECHA]);
-  rows.push(["PROGRAMA", "TEST_INSTRUCCIONES_FECHA", pData.TEST_INSTRUCCIONES_FECHA]);
-
-  for (const [nivel, h] of Object.entries(pData.HORARIOS)) {
-    rows.push([`HORARIO_${nivel}`, "Catedra", h.catedra]);
-    rows.push([`HORARIO_${nivel}`, "Ayudantia", h.ayudantia]);
-  }
-
   sheet.getRange(1, 1, rows.length, 3).setValues(rows);
   sheet.getRange(1, 1, 1, 3).setFontWeight("bold").setBackground("#e9f2fa");
-
-  // Update in-memory
-  SCORING_PARAMS = data;
-  PROGRAM_DATA = pData;
 
   return "Configuración guardada correctamente.";
 }
@@ -386,11 +399,19 @@ function saveConfiguracion(mergedData: IConfiguracionGuardada): string {
 function resetConfiguracion(): object {
   const ss = getSpreadsheet_();
   const sheet = ss.getSheetByName(CONFIG.SHEETS.CONFIG);
-  if (sheet) sheet.clear();
+  if (sheet) ss.deleteSheet(sheet); // getConfiguracion la recrea con los valores por defecto
 
   SCORING_PARAMS = JSON.parse(JSON.stringify(DEFAULT_SCORING_PARAMS));
   PROGRAM_DATA = JSON.parse(JSON.stringify(DEFAULT_PROGRAM_DATA));
-  return { scoring: SCORING_PARAMS, program: PROGRAM_DATA };
+  return getConfiguracion(); // vuelve a escribir la hoja con los valores por defecto
+}
+
+/** Clave de perfil para los pesos por vínculo (pregrado se llama "estudiante" en la configuración). */
+function perfilPeso_(tipo: string): string {
+  if (esEstudiante_(tipo)) return "estudiante";
+  if (/postgrado|posgrado/i.test(tipo)) return "postgrado";
+  if (/acad[eé]mico/i.test(tipo)) return "academico";
+  return "funcionario";
 }
 
 function calcularPuntajeTipoPostulante_(texto: string): number {
@@ -400,59 +421,135 @@ function calcularPuntajeTipoPostulante_(texto: string): number {
   return 1;
 }
 
-function calcularPuntajeUsoIngles_(fila: any[], tipo: string, idxs: Record<string, number>): number {
-  // Bases n.º 7.2: este criterio aplica solo a académicos y funcionarios
-  if (!esAcademicoOFuncionario_(tipo)) return 0;
-  let p = 0;
-  let peso: number;
-
-  if (/acad[eé]mico/i.test(tipo)) {
-    const contrib = obtenerValor_(fila, CONFIG.COLUMNS.ENGLISH_USE_CONTRIBUTION, idxs);
-    peso = SCORING_PARAMS.UsoIngles.peso.academico;
-    const kw = ["investigación", "publicar", "paper", "revista", "indexada", "congreso", "ponente", "expositor", "colaboración internacional", "clases", "docencia"];
-    p += contarPalabrasClave_(contrib, kw) * 0.8 + 1.0;
-  } else {
-    peso = SCORING_PARAMS.UsoIngles.peso.funcionario;
-    const freq = obtenerValor_(fila, CONFIG.COLUMNS.ENGLISH_USE_FREQUENCY, idxs).toLowerCase();
-    for (const [k, v] of Object.entries(SCORING_PARAMS.UsoIngles.Frecuencia)) {
-      if (freq.includes(k)) p += v;
-    }
-    const acts = obtenerValor_(fila, CONFIG.COLUMNS.ENGLISH_USE_ACTIVITIES, idxs).toLowerCase();
-    for (const [a, ps] of Object.entries(SCORING_PARAMS.UsoIngles.Actividades)) {
-      if (acts.includes(a)) p += ps;
-    }
-    if (esSi_(obtenerValor_(fila, CONFIG.COLUMNS.ENGLISH_USE_FUTURE_PROJECTS, idxs))) p += 1;
+/**
+ * Texto libre en preguntas de opciones ("Otro:"). Google Forms entrega las opciones marcadas y, al final, lo que la persona escribió.
+ * Análisis léxico: (1) se normaliza (minúsculas, sin tildes); (2) se separan las etiquetas oficiales del formulario del resto (texto libre);
+ * (3) un texto libre que empieza con negación ("no", "ninguno", "sin…", "aún no…") se descarta, para no puntuar "no he pensado en postgrado";
+ * (4) cada categoría se reconoce por una familia léxica (raíz + variantes: doctorado/magíster/máster → postgrado), no por una palabra exacta;
+ * (5) un texto libre que no encaja en ninguna familia suma "otro" solo si cumple el indicio pedido (`cueOtro`), para no premiar texto vacío;
+ * cada categoría suma una sola vez.
+ * shortcut: familias escritas a mano a partir de respuestas reales; ampliar con las que aparezcan en "Otro:" (y agregar la prueba en tests/).
+ */
+function categoriasDeTexto_(
+  valor: string, etiquetas: string[], familias: Array<[string, RegExp]>, cueOtro?: RegExp
+): { cats: Set<string>; otro: boolean } {
+  let resto = normalizarTexto_(valor).replace(/[\s,;.:()\/"]+/g, " ");
+  const presentes: string[] = [];
+  for (const e of etiquetas) {
+    if (resto.includes(e)) { presentes.push(e); resto = resto.split(e).join(" "); }
   }
-  return Math.min(SCORING_PARAMS.UsoIngles.MaxPuntaje, p) * peso;
+  resto = resto.trim();
+  if (/^(no\b|ning|nada|aun no|todavia no|n ?a\b|sin\b|desconozco)/.test(resto)) resto = "";
+  const cats = new Set<string>();
+  const evaluar = presentes.join(" ") + " " + resto;
+  for (const [k, re] of familias) if (re.test(evaluar)) cats.add(k);
+  const otro = resto.length >= 4 && !familias.some(([, re]) => re.test(resto)) && (!cueOtro || cueOtro.test(resto));
+  return { cats, otro };
+}
+
+// --- Planes de internacionalización ("¿Cómo has planeado internacionalizar tu carrera?") ---
+const ETIQUETAS_PLAN = ["postgrado completo", "pasantia de investigacion", "intercambio estudiantil", "curso corto especializado",
+  "practica profesional internacional", "participacion en congreso seminario", "proyecto de investigacion internacional", "programa de doble titulacion"];
+const FAMILIAS_PLAN: Array<[string, RegExp]> = [
+  ["postgrado", /\b(post|pos)\s?grado|doctorad|magister|master\b|maestria|\bmba\b|\bphd\b|(post|pos)\s?doc|postitulo/],
+  ["doble titulacion", /doble\s+(titulaci|grado|diploma|titulo)|cotutela|dual\s+degree/],
+  ["intercambio", /intercambi|exchange|movilidad|semestre\s+(en|fuera)|estudiar\s+(en|fuera)\s+(del?\s+)?(el\s+)?(extranjero|exterior|pais)/],
+  ["pasantia", /pasant|estancia|estadia|rotacion|research\s+stay|visiting/],
+  ["practica profesional", /practic|internship|trabaj|empleo|voluntari/],
+  ["proyecto de investigacion", /proyecto.{0,30}(investigaci|cientific)|fondecyt|colaboraci.{0,30}(internacional|investigaci)|publica|\bpaper|articulo|\baic\b/],
+  ["especializado", /especializ|\bcurso|diplomado|taller|capacitaci|certificaci|workshop|summer|verano|invierno/],
+  ["congreso", /congres|seminari|conferenci|simposi|coloquio|ponencia|jornada/]
+];
+// "Otro" cuenta solo si habla de algo internacional/formativo; "En mi trayectoria profesional" no puntúa.
+const CUE_PLAN_OTRO = /extranjer|internacional|exterior|fuera de chile|\bpais\b|europa|estados unidos|eeuu|canada|espana|alemania|francia|reino unido|australia|nueva zelanda|japon|china|brasil|argentina|mexico|beca|universidad|programa|idioma|titulo|grado/;
+
+// --- Documentos que respaldan el proceso (casillas; el "Otro:" suele ser un contacto o gestión) ---
+const ETIQUETAS_DOC = ["carta de aceptacion", "postulacion enviada", "carta de invitacion", "contactos establecidos con institucion", "programa identificado"];
+const FAMILIAS_DOC: Array<[string, RegExp]> = [
+  ["aceptacion", /carta de aceptaci|aceptad[oa] en|admitid/],
+  ["postulacion", /postulaci.{0,10}enviad|\bpostule\b/],
+  ["invitacion", /carta de invitaci|invitaci/],
+  ["contactos", /contact|correo|reunion|entrevista|conversaci|\badvisor\b|tutor|director de tesis/],
+  ["programa", /programa identificado/]
+];
+
+// --- Actividades en inglés de funcionarios ---
+const ETIQUETAS_ACTIVIDAD = ["atencion a visitantes internacionales", "comunicacion escrita correos electronicos cartas", "atencion telefonica",
+  "gestion de documentos internacionales", "apoyo en eventos internacionales", "coordinacion con instituciones extranjeras",
+  "traduccion de documentos", "actualmente no realizo actividades en ingles"];
+const FAMILIAS_ACTIVIDAD: Array<[string, RegExp]> = [
+  ["visitantes internacionales", /visitante|visita|delegaci|turist|recepci|atenci.{0,25}(extranjer|internacional)/],
+  ["instituciones extranjeras", /instituci.{0,15}extranjer|coordinaci.{0,30}(extranjer|internacional)|convenio|contraparte|universidades? (extranjer|del exterior)/],
+  ["eventos internacionales", /evento|congres|seminari|conferenci|jornada|charla/],
+  ["documentos internacionales", /documentos? internacional|gestion de document|apostill|legaliz|contrato/],
+  ["traduccion", /traduc|interpret/],
+  ["correos", /correo|e-?mail|escrit|redacci|carta|mensaje/],
+  ["telefonica", /telefon|llamada|videollamada|videoconferenc|zoom|teams|\bmeet\b|reunion/],
+  ["investigacion y docencia", /docenc|clase|ense[nñ]|\bpaper|publica|investig|lectur|bibliograf|present|exposi|ponenc/]
+];
+
+// --- Descripciones abiertas (situaciones, proyectos, contribución): evidencia de uso concreto del inglés ---
+// Cada familia suma una sola vez entre los tres campos: describir más largo o repetir no suma más.
+const FAMILIAS_TEXTO_USO: Array<[string, RegExp]> = [
+  ["oral", /reunion|videollamada|zoom|conversaci|oralmente|exponer|exposici|presentar|presentaci|negoci|entrevista|conferenci|charla|llamada|fluidez/],
+  ["escrita", /redacci|escribir|escritura|articulo|\bpaper|publicaci|lectura|leer|revisi.{0,12}(bibliograf|document|literatura|antecedent)|bibliograf|documentaci|traduc|informe|correo/],
+  ["internacional", /internacional|extranjer|colabora|coordinaci|alianza|socios|universidades|redes|expertos|delegaci|intercambio/],
+  ["proyectos", /proyecto|postulaci|financiamiento|fondo|beca|convenio|licitaci|programa de/],
+  ["academico", /congres|seminari|investigaci|docen|acompa[nñ]amiento|formaci|curricul|innovaci|benchmark|metodolog|ciencia|cientific/]
+];
+
+function puntajeTextoUso_(fila: any[], idxs: Record<string, number>): number {
+  const U = SCORING_PARAMS.UsoIngles;
+  const t = normalizarTexto_([CONFIG.COLUMNS.SITUACIONES_INGLES, CONFIG.COLUMNS.PROYECTOS_FUTUROS_DESC, CONFIG.COLUMNS.ENGLISH_USE_CONTRIBUTION]
+    .map(c => obtenerValor_(fila, c, idxs)).join(" "))
+    .replace(/\b(ninguno|ninguna|no aplica|n\/a|no)\b/g, " "); // respuestas vacías de contenido no aportan
+  if (t.replace(/\s+/g, "").length < 15) return 0;
+  return Math.min(U.MaxTexto, FAMILIAS_TEXTO_USO.filter(([, re]) => re.test(t)).length * U.PuntajeTextoPorFamilia);
+}
+
+function calcularPuntajeUsoIngles_(fila: any[], tipo: string, idxs: Record<string, number>): number {
+  // Solo los funcionarios responden "Labor profesional". Los académicos no la ven: reciben un punto base fijo
+  // (ventaja de la comunidad que interesa atraer). Postgrado y pregrado no puntúan aquí.
+  if (/acad[eé]mico/i.test(tipo)) return SCORING_PARAMS.UsoIngles.peso.academico;
+  if (!/funcionario/i.test(tipo)) return 0;
+  const U = SCORING_PARAMS.UsoIngles;
+
+  // Reparto del máximo (4): frecuencia 1.5 + actividades 1 + proyectos futuros 0.5 + descripciones 1
+  const freq = normalizarTexto_(obtenerValor_(fila, CONFIG.COLUMNS.ENGLISH_USE_FREQUENCY, idxs));
+  let pFreq = 0;
+  for (const [k, v] of Object.entries(U.Frecuencia)) if (freq.includes(k)) pFreq += v;
+
+  const { cats, otro } = categoriasDeTexto_(obtenerValor_(fila, CONFIG.COLUMNS.ENGLISH_USE_ACTIVITIES, idxs), ETIQUETAS_ACTIVIDAD, FAMILIAS_ACTIVIDAD);
+  let pAct = 0;
+  for (const k of cats) pAct += U.Actividades[k] || 0;
+  if (otro) pAct += U.Actividades["otro"] || 0;
+
+  const pProy = esSi_(obtenerValor_(fila, CONFIG.COLUMNS.ENGLISH_USE_FUTURE_PROJECTS, idxs)) ? U.PuntajeProyectosFuturos : 0;
+  const p = pFreq + Math.min(U.MaxActividades, pAct) + pProy + puntajeTextoUso_(fila, idxs);
+  return Math.min(U.MaxPuntaje, p) * U.peso.funcionario;
 }
 
 function calcularPuntajeInternacionalizacion_(fila: any[], tipo: string, idxs: Record<string, number>): number {
-  let p = 0;
-  const peso = SCORING_PARAMS.Internacionalizacion.peso[esEstudiante_(tipo) ? "estudiante" : "funcionario"] || 1;
-  const docs = !!obtenerValor_(fila, CONFIG.COLUMNS.INTL_SUPPORT_DOCS, idxs);
-  const etapa = obtenerValor_(fila, CONFIG.COLUMNS.INTL_STAGE, idxs).toLowerCase();
+  const I = SCORING_PARAMS.Internacionalizacion;
+  const peso = I.peso[perfilPeso_(tipo)] || 1;
 
-  if (etapa.includes("carta de aceptación")) {
-    p += 3.5 + (docs ? 0.5 : 0);
-  } else if (etapa.includes("postulación enviada")) {
-    p += 2.5;
-  } else if (etapa.includes("en proceso de postulación")) {
-    p += 2;
-  } else if (etapa.includes("programa identificado") || etapa.includes("en contacto")) {
-    p += 1.5;
-  } else if (etapa.includes("buscando programa")) {
-    p += 0.5;
-  }
+  const etapa = normalizarTexto_(obtenerValor_(fila, CONFIG.COLUMNS.INTL_STAGE, idxs));
+  const [, pEtapa] = Object.entries(I.PuntajeEtapa).find(([k]) => etapa.includes(k)) || [, 0]; // "Interés general" u otras no suman
 
-  const pEtapa = p; // "Interés general" u otras etapas no reconocidas no suman
-  const plan = obtenerValor_(fila, CONFIG.COLUMNS.INTL_PLAN, idxs);
-  p += contarPalabrasClave_(plan, SCORING_PARAMS.Internacionalizacion.PalabrasClavePlan) * SCORING_PARAMS.Internacionalizacion.PuntajePorPalabraClave;
+  const planes = categoriasDeTexto_(obtenerValor_(fila, CONFIG.COLUMNS.INTL_PLAN, idxs), ETIQUETAS_PLAN, FAMILIAS_PLAN, CUE_PLAN_OTRO);
+  let pPlanes = 0;
+  for (const k of planes.cats) pPlanes += I.PuntajePlan[k] || 0;
+  if (planes.otro) pPlanes += I.PuntajePlan["otro"] || 0;
+  pPlanes = Math.min(I.MaxPlanes, pPlanes); // marcar muchos planes no iguala a quien ya está aceptado
 
-  if (esEstudiante_(tipo) && (pEtapa > 0 || plan.length > 10)) {
-    p += 0.5;
-  }
+  // Respaldo: gana la evidencia más fuerte declarada (no se suma), más un bono por adjuntar documento
+  const docs = categoriasDeTexto_(obtenerValor_(fila, CONFIG.COLUMNS.DOCUMENTOS_RESPALDO_SITUACION, idxs), ETIQUETAS_DOC, FAMILIAS_DOC);
+  const adjunto = obtenerValor_(fila, CONFIG.COLUMNS.INTL_SUPPORT_DOCS, idxs) ? I.PuntajeAdjunto : 0;
+  const pDocs = Math.min(I.MaxDocumentos, Math.max(0, ...[...docs.cats].map(k => I.PuntajeDocumentos[k] || 0)) + adjunto);
 
-  return Math.min(SCORING_PARAMS.Internacionalizacion.MaxPuntaje, p) * peso;
+  // Pregrado con etapa, plan o respaldo reconocibles: +0.5
+  const bonoPregrado = esEstudiante_(tipo) && (pEtapa > 0 || pPlanes > 0 || pDocs > 0) ? 0.5 : 0;
+  return Math.min(I.MaxPuntaje, pEtapa + pPlanes + pDocs + bonoPregrado) * peso;
 }
 
 /**
@@ -461,28 +558,39 @@ function calcularPuntajeInternacionalizacion_(fila: any[], tipo: string, idxs: R
  * shortcut: "cursos completados" y "situación PILE" se reconocen por palabras clave del texto de la opción;
  * revisar si el formulario cambia esas opciones.
  */
-function motivoNoElegible_(fila: any[], tipo: string, idxs: Record<string, number>): string | null {
+function motivosNoElegible_(fila: any[], tipo: string, idxs: Record<string, number>): string[] {
   const C = CONFIG.COLUMNS;
   const v = (col: string) => obtenerValor_(fila, col, idxs);
+  const m: string[] = [];
 
-  if (!esSi_(v(C.AVAILABILITY_SESSIONS)) || esSi_(v(C.AVAILABILITY_CONFLICTS))) return "sin disponibilidad para el horario del programa";
-  if (!esSi_(v(C.AVAILABILITY_ASSISTANCE))) return "no se compromete al 80 % de asistencia";
-  const sinAceptar = DECLARACIONES_REQUERIDAS.filter(d => !esSi_(v(d)));
-  if (sinAceptar.length > 0) return `no aceptó ${sinAceptar.length} declaración(es) del formulario`;
+  if (!esSi_(v(C.AVAILABILITY_SESSIONS))) m.push("no tiene disponibilidad en el horario del programa");
+  if (esSi_(v(C.AVAILABILITY_CONFLICTS))) m.push("tiene compromisos que impiden asistir en el horario");
+  if (!esSi_(v(C.AVAILABILITY_ASSISTANCE))) m.push("no se compromete al 80 % de asistencia");
+  // Los alumni terminan el formulario tras los datos personales: no ven declaraciones, año de ingreso ni nivel.
+  const alumni = esAlumni_(tipo);
+  if (!alumni) {
+    const sinAceptar = DECLARACIONES_REQUERIDAS.filter(d => !esSi_(v(d)));
+    if (sinAceptar.length > 0) m.push(`no aceptó ${sinAceptar.length} declaración(es) del formulario`);
+  }
 
-  if (esSi_(v(C.PREV_FAILED))) return "reprobó un curso PUCV2English";
-  if (esSi_(v(C.PREV_WITHDREW))) return "renunció a la beca después de la primera semana";
-  if (esSi_(v(C.PREV_C1))) return "ya cursó el nivel C1";
-  if (/\b(dos|tres|cuatro|[2-9])\b|m[aá]s de/i.test(v(C.PREV_COURSES))) return "completó dos o más cursos del programa";
+  if (esSi_(v(C.PREV_FAILED))) m.push("reprobó un curso PUCV2English");
+  if (esSi_(v(C.PREV_WITHDREW))) m.push("renunció a la beca después de la primera semana");
+  if (esSi_(v(C.PREV_C1))) m.push("ya cursó el nivel C1");
+  if (/\b(dos|tres|cuatro|[2-9])\b|m[aá]s de/i.test(v(C.PREV_COURSES))) m.push("completó dos o más cursos del programa");
 
-  if (/estudiante|alumno/i.test(tipo) && /^no$/i.test(v(C.ENROLLED))) return "estudiante sin matrícula vigente";
-  if (esEstudiante_(tipo) && !/aprob|exim/i.test(v(C.PILE_STATUS))) return "no aprobó ni se eximió de los cursos obligatorios de inglés del PILE";
-  return null;
+  if (/estudiante|alumno/i.test(tipo) && /^no$/i.test(v(C.ENROLLED))) m.push("estudiante sin matrícula vigente");
+  // Solo "Aún tengo cursos obligatorios pendientes" descarta; "Mi carrera no tiene cursos de inglés obligatorios" pasa (el nivel se verifica en la prueba)
+  if (esEstudiante_(tipo) && /pendiente/i.test(v(C.PILE_STATUS))) m.push("tiene cursos obligatorios de inglés del PILE pendientes");
+  if (alumni) m.push("alumni: el formulario no los evalúa (no responden el resto de las preguntas)");
+  return m;
 }
 
 function calcularPuntajeCertificado_(fila: any[], idxs: Record<string, number>): number {
   const txt = obtenerValor_(fila, CONFIG.COLUMNS.CERTIFICATE_LEVEL, idxs);
-  if (!txt || /no sé|no se|no tengo/i.test(txt)) return 0; // sin respuesta o sin certificado Cambridge
+  if (!txt || /no sé|no se|no tengo/i.test(txt)) {
+    // Puntaje base si adjunta un documento de nivel; la coordinación lo verifica y puede quitarlo.
+    return obtenerValor_(fila, CONFIG.COLUMNS.CERTIFICATE_ATTACHMENT, idxs) ? 1 : 0;
+  }
   if (/C1/i.test(txt)) return 5;
   if (/B2\.2/i.test(txt)) return 4;
   if (/B2/i.test(txt) || /\bexim/i.test(txt)) return 3;
@@ -503,7 +611,7 @@ function calcularPuntajeAnioIngreso_(fila: any[], tipo: string, idxs: Record<str
   // Bases n.º 7.2 y 7.3: solo pregrado; se prioriza a quienes cursan desde el tercer año de su carrera
   if (!esEstudiante_(tipo)) return 0;
   const anio = parseInt(obtenerValor_(fila, CONFIG.COLUMNS.ENTRY_YEAR, idxs), 10);
-  if (isNaN(anio)) return 0;
+  if (isNaN(anio)) return 0; // "Antes del 2020": por salir o con poca continuidad, no se prioriza
   const programa = anioDelPrograma_();
   if (anio <= programa - 2) return 2;    // 3.er año o superior
   if (anio === programa - 1) return 0.5; // 2.º año

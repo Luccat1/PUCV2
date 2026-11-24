@@ -302,18 +302,33 @@ Siguiendo las bases de la convocatoria, la evaluación tiene dos partes: un filt
 - Compromiso de asistir al menos al 80 % de las sesiones.
 - Las 7 declaraciones del formulario aceptadas (`DECLARACIONES_REQUERIDAS` en `Config.ts`).
 - Ningún impedimento: no haber reprobado un curso PUCV2English, no haber renunciado a la beca después de la primera semana, no haber cursado C1 ni completado dos cursos del programa.
-- Estudiantes: matrícula vigente y, en pregrado, cursos obligatorios de inglés del PILE aprobados o eximidos.
+- Estudiantes: matrícula vigente y, en pregrado, sin cursos obligatorios de inglés del PILE pendientes (si la carrera no tiene cursos de inglés, se evalúa igual y el nivel se verifica en la prueba).
 - Con más de una postulación del mismo correo se considera la primera enviada.
+
+**Ramificación del formulario (según el vínculo con la PUCV).** El vínculo (sección 3) decide qué secciones responde cada persona; lo que no se pregunta queda vacío y no puntúa:
+
+| Vínculo | Secciones que responde |
+|---|---|
+| Pregrado | 1-3, **4 (año de ingreso, matrícula, PILE)**, **6 (internacionalización)**, 7, 8 |
+| Postgrado y académico | 1-3, **6 (internacionalización)**, 7, 8 |
+| Funcionario | 1-3, **5 (labor profesional)**, 7, 8 (no responde internacionalización) |
+| Alumni | 1-3 y termina: no responde año de ingreso, labor, internacionalización, nivel ni declaraciones |
+
+Consecuencias: el *año de ingreso* solo puntúa en pregrado; el *uso del inglés* y el *respaldo de la jefatura* solo puntúan a funcionarios (los académicos no ven la sección 5); la *internacionalización* no puntúa a funcionarios. Los alumni quedan con `Observaciones` indicando que el formulario no los evalúa, sin nivel postulado y sin cupo automático (la coordinación los gestiona aparte, n.º 4).
+
+**Texto libre.** Puntúan cuatro preguntas con texto escrito: el "Otro:" de *planes de internacionalización*, el de *documentos que respaldan el proceso*, el de *actividades en inglés* (funcionarios) y las *descripciones abiertas* de funcionarios (situaciones, proyectos y contribución del inglés). El análisis normaliza el texto (minúsculas, sin tildes), separa las opciones oficiales de lo escrito, descarta respuestas negadas ("no", "ninguno", "sin…", "aún no…") y reconoce cada categoría por familias léxicas (por ejemplo, doctorado, magíster, máster y posgrado cuentan como postgrado). Un "Otro:" que no encaja en ninguna categoría suma el puntaje de "otro" solo si menciona algo internacional o formativo. Cada categoría suma una sola vez. En las descripciones abiertas cada una de 5 familias de evidencia (uso oral, escrito, colaboración internacional, proyectos, contexto académico) suma 0,2 hasta 1 punto: escribir más largo o repetir no suma más. Documentos de respaldo: gana la evidencia más fuerte (carta de aceptación 1, postulación enviada o carta de invitación 0,75, contactos 0,5, programa identificado 0,25; máx. 1 con un bono de 0,25 por adjuntar archivo). Las familias están en `Evaluacion.ts` y se prueban con `node tests/texto-libre.test.js` después de `npm run build`. La puntuación léxica no reemplaza la revisión humana: favorece, en parte, a quien redacta con más detalle, por eso su peso es acotado.
+
+**Máximo equivalente por vínculo.** Cada vínculo responde preguntas distintas, pero todos pueden llegar al mismo máximo de **11 puntos** antes de Disponibilidad y Compromiso, que suman 2 × su peso (pregrado +2, postgrado +3, funcionario y académico +4): pregrado (Tipo 1 + Internacionalización 5 + Año 2 + Nivel 3), postgrado (Tipo 1.5 + Internacionalización 5 × 1.3 + Nivel 3), académico (Tipo 2 + base 1 + Internacionalización 5 + Nivel 3) y funcionario (Tipo 2 + Uso 4 × 0.75 + Carta 3 + Nivel 3). Año de ingreso "Antes del 2020" puntúa 0 a propósito.
 
 **2. Pauta de puntaje (n.º 7.2).** Los criterios y su peso relativo:
 
-- **Proyección internacional (importancia alta, máx 5 pts):** puntaje por etapa del proceso más 0.5 por tipo de actividad planificada (postgrado, doble titulación, pasantía, intercambio, práctica profesional, curso especializado, congreso o seminario). Etapas: `Carta de aceptación` (3.5, +0.5 con documentos), `Postulación enviada` (2.5), `En proceso de postulación` (2), `Programa identificado` / `En contacto` (1.5), `Buscando programa` (0.5). Otras respuestas, como `Interés general`, no suman.
+- **Proyección internacional (importancia alta, máx 5 pts):** puntaje por etapa más la suma de las actividades planificadas, cada una con su valor (postgrado 1, doble titulación e intercambio 0.8, pasantía 0.6, práctica profesional y proyecto de investigación 0.5, curso corto 0.4, congreso 0.3, otro 0.2). Etapas, de mayor a menor: `Ya aceptado/a` (3.5, +0.5 con documentos), `En proceso de postulación` (2.5), `Con plan concreto para próximo año` (1.75), `En etapa de planificación` (1), `Interés general` (0). Las actividades planificadas suman como máximo 2 pts, de modo que la etapa pese más que marcar muchas opciones. Tope total 5.
 - **Vínculo y etapa (media):** tipo de vínculo (máx 2: `Académico/Funcionario` 2, `Postgrado` 1.5, otros 1) y, solo en pregrado, año de ingreso (máx 2): desde el 3.er año de la carrera 2 pts, 2.º año 0.5, 1.er año 0. El año del programa sale de `FECHA_INICIO`.
-- **Nivel de inglés (media, máx 5 pts):** certificado Cambridge vigente (C1, B2.2, etc.). `No tengo certificado Cambridge` = 0.
-- **Uso del inglés en las funciones (media-alta, máx 4 pts):** solo académicos y funcionarios.
-- **Respaldo de la jefatura (máx 3 pts):** solo académicos y funcionarios: respaldo (1) + carta adjunta (1), multiplicado por el peso 1.5.
+- **Nivel de inglés (media, máx 3 pts):** certificado Cambridge declarado: B2 = 3, B1 = 2. Sin certificado Cambridge pero con un documento adjunto = 1 (puntaje base; la coordinación lo verifica y puede quitarlo). Sin certificado ni adjunto = 0.
+- **Uso del inglés en las funciones (media-alta, máx 4 pts):** funcionarios (frecuencia + actividades + proyectos futuros, ×0.75). Los académicos no ven esta sección y reciben 1 punto base fijo.
+- **Respaldo de la jefatura (máx 3 pts):** solo funcionarios: respaldo (1) + carta adjunta (1), multiplicado por el peso 1.5.
 
-Las columnas `Puntaje Disponibilidad` y `Puntaje Compromiso` se mantienen en las hojas por compatibilidad, pero quedan en 0: son requisitos, no puntaje.
+**Disponibilidad y compromiso puntúan con un punto base × peso del perfil** (comprometerse cuesta más fuera del pregrado): pregrado 1, postgrado 1.5, funcionario y académico 2, para cada una de las dos columnas. `Puntaje Disponibilidad` = horario disponible y sin compromisos que lo impidan. `Puntaje Compromiso` = 80 % de asistencia, conocimiento de las 4 horas de estudio autónomo y declaración n.º 2 aceptada. Quien no cumple obtiene 0 en esa columna, y si además incumple un requisito igual se evalúa, pero queda con `NO ELEGIBLE: <motivos>` en `Observaciones` y no entra a los cupos de Seleccionados ni a la lista de espera. Los pesos están en `Config.ts` (`Disponibilidad`, `Compromiso`).
 
 **3. Prioridades y desempate.**
 

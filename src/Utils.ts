@@ -166,14 +166,9 @@ function obtenerValor_(fila: any[], titulo: string, indiceColumnas: Record<strin
   return String(fila[i] || "").trim();
 }
 
-/**
- * Counts how many keywords from a list are present in a given text.
- * @param texto The text to search in.
- * @param palabrasClave List of keywords to look for.
- */
-function contarPalabrasClave_(texto: string, palabrasClave: string[]): number {
-  const textoNormalizado = String(texto || "").toLowerCase();
-  return palabrasClave.reduce((contador, clave) => contador + (textoNormalizado.includes(clave) ? 1 : 0), 0);
+/** Minúsculas y sin tildes, para comparar texto libre. */
+function normalizarTexto_(texto: unknown): string {
+  return String(texto || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
 
 /**

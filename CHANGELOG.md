@@ -10,6 +10,7 @@ El versionado sigue [Semantic Versioning](https://semver.org/lang/es/).
 ## [Sin publicar]
 
 ### Cambiado
+
 - **Envío por lote unificado** (`EnvioLote.ts`, `enviarLote()`): `Correos`, `InicioClases` y `RechazoPorNivel` comparten cuota, borrador, límite de muestra, manejo de errores por destinatario y sello de fecha. Antes eran tres copias que ya habían divergido.
 - **Tabla de tipos de correo** (`CORREOS`, `TipoCorreo` en `Correos.ts`): reemplaza las cadenas `if/else` de plantilla y asunto de `sendEmailBatch` y `sendTestEmail`. `sendEmailBatch`, `previewEmailBatch` y `getRecipients` reciben `TipoCorreo` (tipo cerrado). Los destinatarios usan `rowNum` en vez de `index`.
 - **Plantillas de correo**: estilos, logo y pie salen de tres fragmentos compartidos (`CorreoBase_Estilos`, `CorreoBase_Cabecera`, `CorreoBase_Pie`). 11 plantillas pasan de 1.151 a 508 líneas (+54 de fragmentos). Verificado: el contenido de cada correo queda idéntico y el estilo efectivo no cambia, salvo `CorreoListaEspera` (el color de texto del cuerpo y de los títulos `h3` pasan a ser los de los demás correos). `CorreoPlacementTest` conserva su diseño propio.
@@ -22,10 +23,12 @@ El versionado sigue [Semantic Versioning](https://semver.org/lang/es/).
 - `getRecipients_` ya no crea la columna de sello al consultar (la vista previa no modifica hojas); la crea `sendEmailBatch` antes de enviar.
 
 ### Corregido
+
 - **Envíos largos**: `enviarLote_` y el envío de Prueba de Nivel se detienen a los 5 minutos y avisan "quedan N pendientes". Antes un lote grande podía cortarse a los 6 minutos sin informar cuántos salieron (y en Prueba de Nivel perder el estado de lo enviado, que se guarda al final).
 - **Salas de inicio de clases**: se eliminó el guardado en memoria de `guardarSalasYObtenerPreview` (cada llamada del diálogo es otra ejecución, así que nunca llegaba al envío). `HORARIOS[nivel].sala` ya no existe.
 
 ### Añadido
+
 - `renderPlantilla()` e `incluir()` en `Utils.ts`: reemplazan 52 asignaciones `(htmlBody as any).campo = ...`.
 - `sendTestEmail('CADENA_COMPLETA')` ahora prueba las 11 plantillas, incluyendo `CorreoEsperaSinCupo` y `CorreoRechazoPorNivel`, que antes no se probaban. Nueva columna `CONFIG.COLUMNS.CLOSURE_NOTIFICATION_DATE`.
 - Si falta la columna de sello (`Fecha Notificación`, `Notificado Inicio`, `Sala`), se crea al enviar; antes el envío salía sin sello y un reenvío duplicaba los correos.
@@ -37,6 +40,7 @@ El versionado sigue [Semantic Versioning](https://semver.org/lang/es/).
 Sexta convocatoria (1.er semestre 2027): la evaluación sigue las bases de postulación.
 
 ### Corregido
+
 - **Columnas del formulario 2026** — `CONFIG.COLUMNS` actualizado a los encabezados vigentes. Con los nombres antiguos todos los postulantes quedaban en B1+, con 1 punto de certificado y sin disponibilidad ni compromisos reconocidos.
 - **Fecha de postulación** — se guarda como fecha (antes texto largo) y se formatea `dd/MM/yyyy HH:mm` en Evaluación automatizada, Seleccionados y Lista de Espera. Admite textos `dd/mm/aaaa hh:mm:ss`.
 - **Internacionalización** — "Interés general" ya no activa el bono de +0.5 para estudiantes.
@@ -44,6 +48,7 @@ Sexta convocatoria (1.er semestre 2027): la evaluación sigue las bases de postu
 - **Estados de procesamiento** — `INCOMPLETA`, `DUPLICADO` y `NO ELEGIBLE` se guardan aunque no haya postulaciones nuevas válidas.
 
 ### Cambiado
+
 - **Elegibilidad como filtro** (`motivoNoElegible()`, bases n.º 4, 5.1 y 5.2): disponibilidad, 80 % de asistencia, 7 declaraciones, impedimentos (reprobó, renunció, C1 previo, dos cursos), matrícula vigente y PILE en pregrado. Quien no cumple queda `NO ELEGIBLE: <motivo>` y no se puntúa. Disponibilidad y Compromiso dejan de puntuar: sus columnas quedan en 0.
 - **Uso del inglés** y **respaldo de jefatura**: solo académicos y funcionarios (n.º 7.2). Peso de carta 1.5 para funcionarios y académicos; se eliminó el punto de "horario" (fusionado en el formulario).
 - **Año de ingreso**: solo pregrado; 3.er año o superior 2 pts, 2.º año 0.5, 1.er año 0 (n.º 7.3). El año del programa sale de `FECHA_INICIO`.
@@ -54,10 +59,12 @@ Sexta convocatoria (1.er semestre 2027): la evaluación sigue las bases de postu
 - **Datos del programa por defecto**: inicio 22 de marzo de 2027, término 1 de julio de 2027, límite viernes 11 de diciembre.
 
 ### Añadido
+
 - Nuevas columnas en `CONFIG.COLUMNS`: `PREV_COURSES`, `PREV_C1`, `PREV_FAILED`, `PREV_WITHDREW`, `ENROLLED`, `PILE_STATUS`; y la lista `DECLARACIONES_REQUERIDAS`.
 - Helpers en `Utils.ts`: `esAlumni()`, `esAcademicoOFuncionario()`, `rangoDesempate()`, `compararPostulantes()`, `normalizarFecha()`, `formatearColumnaFecha()`.
 
 ### Nota de despliegue
+
 Archivos modificados: `Config.js`, `Utils.js`, `Evaluacion.js`, `Seleccionados.js`. Para recalcular usa `🔄 Reevaluar Todo desde Cero` (borra Seleccionados: hazlo antes de registrar aceptaciones o pagos). Si la hoja `Configuración` existe, actualiza ahí `FECHA_INICIO`, `FECHA_TERMINO`, `FECHA_LIMITE`, `TEST_FECHA` y el peso de Carta de Respaldo (1.5).
 
 ---
@@ -65,6 +72,7 @@ Archivos modificados: `Config.js`, `Utils.js`, `Evaluacion.js`, `Seleccionados.j
 ## [2.5.0] — 2026-07-15
 
 ### Añadido
+
 - **Módulo Prueba de Nivel (CEPT)** — Sistema completo para gestionar el Cambridge English Placement Test:
   - **`Placement.ts`** — Módulo nuevo (484 líneas) con el flujo completo del placement test.
   - **`sincronizarPlacement()`** — Sincroniza candidatos elegibles desde `"Seleccionados"` a la hoja `"Prueba de Nivel"`. Un candidato es elegible cuando `Verificación Certificado = "Test de nivel"`, `Aceptación = "Acepta"` y `Pago Matrícula = "Pagado"`.
@@ -88,6 +96,7 @@ Archivos modificados: `Config.js`, `Utils.js`, `Evaluacion.js`, `Seleccionados.j
 ## [2.4.0] — 2026-07-13
 
 ### Añadido
+
 - **Lista de Espera Ampliada** — Hoja física `"Lista de Espera"` con capacidad de 30 candidatos por nivel (120 total).
 - **Columna Pago Matrícula** — Dropdown interactivo (`Pagado`/`Pendiente`) en `"Seleccionados"` para control de pagos.
 - **Filtro Estricto Lista Final** — Solo candidatos con `Aceptación = "Acepta"` y `Pago Matrícula = "Pagado"` entran a la lista final.
@@ -104,12 +113,14 @@ Archivos modificados: `Config.js`, `Utils.js`, `Evaluacion.js`, `Seleccionados.j
 - WebApp con módulos: dashboard, confirmación de postulante, estadísticas de datos.
 
 ### Cambiado
+
 - **Seleccionados Congelados** — La hoja `"Seleccionados"` ya no se sobreescribe al regenerar; solo se actualiza la lista de espera.
 - **Promoción Segura** — Al promover desde la lista de espera, se elimina al candidato de la lista de espera y se re-secuencian los rankings.
 - **Lista Final requiere pago** — La columna `"Pagó (Sí/No)"` se deriva automáticamente del estado de pago verificado.
 - **sendEmailBatch** — Soporte para 6 tipos de lote: `SELECTED`, `TEST_LEVEL_ONLY`, `HAND_PICKED`, `WAITLIST`, `WAITLIST_REJECTED`, `NO_SELECTED`.
 
 ### Corregido
+
 - **Bug de columnas TSV** — Corregido escape doble `\\t` que causaba discrepancia de columnas en restauración.
 - **Escritura de notificación NO_SELECTED** — Prevenida sobrescritura incorrecta de la hoja de seleccionados al enviar correos de rechazo.
 
@@ -118,6 +129,7 @@ Archivos modificados: `Config.js`, `Utils.js`, `Evaluacion.js`, `Seleccionados.j
 ## [2.3.0] — 2026-07-09
 
 ### Añadido
+
 - Motor de evaluación y archivos de configuración para el módulo PUCV2English.
 - Integración de criterios de evaluación específicos para el programa de inglés.
 
@@ -126,6 +138,7 @@ Archivos modificados: `Config.js`, `Utils.js`, `Evaluacion.js`, `Seleccionados.j
 ## [2.2.0] — 2026-07-08
 
 ### Añadido
+
 - **Procesamiento de Correos por Lotes** — Lógica de batch email con soporte para múltiples templates HTML.
 - **Soporte Bilingüe** — Arquitectura modular con soporte para estructura de proyecto bilingüe (español/inglés).
 - Función de notificación de prueba para validar envíos antes de producción.
@@ -135,10 +148,12 @@ Archivos modificados: `Config.js`, `Utils.js`, `Evaluacion.js`, `Seleccionados.j
 ## [2.1.0] — 2026-06-26
 
 ### Añadido
+
 - **Dashboard Expandido** — Desglose por nivel, conteo de certificados y corrección del popup blocker.
 - **Correos de Prueba** — Soporte para categorías `hand-picked` y `class-start` en modo test.
 
 ### Corregido
+
 - Corrección de heights de chart containers y redimensionamiento responsivo en Dashboard.
 - Eliminado segmento de path multi-login de URL de WebApp para evitar conflictos de sesión.
 
@@ -149,12 +164,14 @@ Archivos modificados: `Config.js`, `Utils.js`, `Evaluacion.js`, `Seleccionados.j
 > **Nueva temporada** — Motor de evaluación rediseñado desde cero para el ciclo 2026.
 
 ### Añadido
+
 - Motor de evaluación modular con cargador de configuración y documentación técnica para el pipeline PUCV2.
 - Correos de confirmación de matrícula automatizados.
 - Dashboard web expandido con métricas por categoría, sede y nivel.
 - Lógica de evaluación (Dashboard + Evaluación) para análisis y procesamiento de datos.
 
 ### Cambiado
+
 - Arquitectura del pipeline de evaluación completamente rediseñada.
 - Configuración externalizada a hojas de cálculo dedicadas.
 
@@ -163,6 +180,7 @@ Archivos modificados: `Config.js`, `Utils.js`, `Evaluacion.js`, `Seleccionados.j
 ## [1.2.0] — 2026-03-19
 
 ### Añadido
+
 - **Módulo Inicio de Clases** — `InicioClases.ts` con funciones: `getNivelesActivos`, `guardarSalasYObtenerPreview`, `enviarCorreosInicioClases`, `renderCorreoInicioClases`.
 - **Template `CorreoInicioClases.html`** — Con horarios, salas y fechas de inicio/término.
 - **Diálogo de Salas** — `DialogSalas.html`, modal en dos pasos para recolección de sala por nivel.
@@ -175,9 +193,11 @@ Archivos modificados: `Config.js`, `Utils.js`, `Evaluacion.js`, `Seleccionados.j
 ## [1.1.0] — 2026-03-13
 
 ### Añadido
+
 - **Email Hand Picked** — Categoría y plantilla `CorreoHandPicked.html` para candidatos seleccionados manualmente fuera de plazo.
 
 ### Corregido
+
 - **Mismatch de Columnas** — Corregido bug de desalineación de columnas en `ListaFinal`.
 
 ---
@@ -187,6 +207,7 @@ Archivos modificados: `Config.js`, `Utils.js`, `Evaluacion.js`, `Seleccionados.j
 > **Primera versión formal** — Refactorización completa de monolito JavaScript a arquitectura modular profesional con TypeScript.
 
 ### Añadido
+
 - **Arquitectura Modular TypeScript** — Migración completa desde monolito JS (~1.6k loc) a módulos con tipado estricto.
 - **Motor de Evaluación** — `Evaluacion.ts` con criterios ponderados y lógica de ranking.
 - **Sistema de Correos** — `Correos.ts` con hardening contra duplicados y límites de cuota.
@@ -206,6 +227,7 @@ Archivos modificados: `Config.js`, `Utils.js`, `Evaluacion.js`, `Seleccionados.j
 ## [0.5.0] — 2025-12-15
 
 ### Añadido
+
 - Sistema de evaluación con parámetros de scoring configurables.
 - Logging estructurado de evaluaciones.
 - Templates de email asociados al flujo de evaluación.
@@ -215,11 +237,13 @@ Archivos modificados: `Config.js`, `Utils.js`, `Evaluacion.js`, `Seleccionados.j
 ## [0.4.0] — 2025-11-17
 
 ### Añadido
+
 - **PUCV2English** — Dashboard con gestión de postulantes y estadísticas del programa de inglés.
 - Templates HTML de notificación por email para el programa PUCV English.
 - Estructura de datos `PROGRAM_DATA` para PUCV2English.
 
 ### Cambiado
+
 - Refactorización de estructura `CONFIG` con función de carga de configuración.
 - Mejoras en la lógica de scoring para análisis más preciso.
 
@@ -228,9 +252,11 @@ Archivos modificados: `Config.js`, `Utils.js`, `Evaluacion.js`, `Seleccionados.j
 ## [0.3.0] — 2025-11-13
 
 ### Añadido
+
 - Interfaz web (Web App) para análisis y gestión de notificaciones.
 
 ### Cambiado
+
 - Refactorización de parámetros de scoring.
 
 ---
@@ -238,12 +264,14 @@ Archivos modificados: `Config.js`, `Utils.js`, `Evaluacion.js`, `Seleccionados.j
 ## [0.2.0] — 2025-11-04
 
 ### Añadido
+
 - Motor de evaluación automatizada con funciones de scoring modularizadas.
 - Dashboard con análisis por categoría y hoja de postulantes seleccionados.
 - Notificaciones automáticas por email a candidatos seleccionados.
 - Bloqueo de ejecuciones simultáneas (`LockService`).
 
 ### Cambiado
+
 - `CONFIG` movida a constante global.
 - Lógica de scoring mejorada y modularizada.
 - Limpieza de hoja de resultados antes de escritura (elimina duplicados).
@@ -255,6 +283,7 @@ Archivos modificados: `Config.js`, `Utils.js`, `Evaluacion.js`, `Seleccionados.j
 > **Primera versión del sistema.**
 
 ### Añadido
+
 - Script inicial de evaluación de postulaciones PUCV2.
 - Cálculo de puntajes por criterios.
 - Dashboard básico de visualización de resultados.
