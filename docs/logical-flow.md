@@ -65,103 +65,103 @@ A continuación, se detalla qué requiere y qué produce cada script de la carpe
 
 * **Propósito**: Centraliza tipos, interfaces y objetos globales de configuración.
 * **Requerimientos / Entradas**:
-    * La hoja de cálculo activa de Google Sheets (contenedor).
-    * Una hoja llamada `"Configuración"` para persistir configuraciones personalizadas del usuario.
+  * La hoja de cálculo activa de Google Sheets (contenedor).
+  * Una hoja llamada `"Configuración"` para persistir configuraciones personalizadas del usuario.
 * **Salidas / Modificaciones**:
-    * Expone el objeto `CONFIG` con los nombres exactos de las hojas y columnas del formulario.
-    * Expone los parámetros de puntuación predeterminados (`DEFAULT_SCORING_PARAMS`) y de programa (`DEFAULT_PROGRAM_DATA`).
+  * Expone el objeto `CONFIG` con los nombres exactos de las hojas y columnas del formulario.
+  * Expone los parámetros de puntuación predeterminados (`DEFAULT_SCORING_PARAMS`) y de programa (`DEFAULT_PROGRAM_DATA`).
 * **Funciones clave**:
-    * `cargarConfiguracionDesdeHoja_()`: Lee pesos y configuraciones de la hoja `"Configuración"`.
-    * `saveConfiguracion(data)`: Guarda en la hoja `"Configuración"` los cambios de pesos hechos desde el sidebar.
-    * `resetConfiguracion()`: Borra la hoja `"Configuración"` y restablece valores predeterminados en memoria.
+  * `cargarConfiguracionDesdeHoja_()`: Lee pesos y configuraciones de la hoja `"Configuración"`.
+  * `saveConfiguracion(data)`: Guarda en la hoja `"Configuración"` los cambios de pesos hechos desde el sidebar.
+  * `resetConfiguracion()`: Borra la hoja `"Configuración"` y restablece valores predeterminados en memoria.
 
 ### 2. Evaluacion.ts
 
 * **Propósito**: Motor de cálculo que evalúa postulaciones aplicando criterios de ponderación.
 * **Requerimientos / Entradas**:
-    * Hoja `"Respuestas de formulario 1"` con datos estructurados y los encabezados exactos detallados en `CONFIG.COLUMNS`.
-    * Columna `"Estado de Procesamiento"` agregada al final de la hoja de respuestas.
+  * Hoja `"Respuestas de formulario 1"` con datos estructurados y los encabezados exactos detallados en `CONFIG.COLUMNS`.
+  * Columna `"Estado de Procesamiento"` agregada al final de la hoja de respuestas.
 * **Salidas / Modificaciones**:
-    * Sobrescribe la hoja `"Evaluación automatizada"`.
-    * Actualiza la columna `"Estado de Procesamiento"` en `"Respuestas de formulario 1"` con la marca de tiempo de la evaluación.
-    * Ejecuta la actualización en cadena de la hoja `"Lista de Espera"` y del `"Dashboard"`.
-    * **No sobreescribe** la hoja `"Seleccionados"` (congelada).
+  * Sobrescribe la hoja `"Evaluación automatizada"`.
+  * Actualiza la columna `"Estado de Procesamiento"` en `"Respuestas de formulario 1"` con la marca de tiempo de la evaluación.
+  * Ejecuta la actualización en cadena de la hoja `"Lista de Espera"` y del `"Dashboard"`.
+  * **No sobreescribe** la hoja `"Seleccionados"` (congelada).
 * **Funciones clave**:
-    * `evaluarPostulacionesPUCV2()`: Lee filas no procesadas, realiza la validación de duplicados por correo, calcula los puntajes detallados, escribe los resultados e invoca a las hojas derivadas.
-    * `calcularPuntajeUsoIngles_()`, `calcularPuntajeInternacionalizacion_()`, `calcularPuntajeCertificado_()`, `calcularPuntajeAnioIngreso_()`: Funciones modulares que calculan los puntajes de acuerdo al perfil del postulante.
-    * `motivoNoElegible_()`: Aplica los requisitos e impedimentos de las bases (n.º 4, 5.1 y 5.2). Si devuelve un motivo, la fila se marca `NO ELEGIBLE: <motivo>` en `Estado de Procesamiento` y no se evalúa.
-    * **Pauta**: Uso del inglés y respaldo de jefatura solo aplican a académicos y funcionarios; el año de ingreso solo a pregrado (desde 3.er año, 2 pts); Alumni queda en 0. Disponibilidad y compromiso suman 1 punto base × peso del perfil. El desempate usa `compararPostulantes_()` (n.º 7.5).
-    * `normalizarFecha_()` / `formatearColumnaFecha_()` (`Utils.ts`): guardan la marca temporal como fecha real y la muestran como `dd/MM/yyyy HH:mm`.
+  * `evaluarPostulacionesPUCV2()`: Lee filas no procesadas, realiza la validación de duplicados por correo, calcula los puntajes detallados, escribe los resultados e invoca a las hojas derivadas.
+  * `calcularPuntajeUsoIngles_()`, `calcularPuntajeInternacionalizacion_()`, `calcularPuntajeCertificado_()`, `calcularPuntajeAnioIngreso_()`: Funciones modulares que calculan los puntajes de acuerdo al perfil del postulante.
+  * `motivoNoElegible_()`: Aplica los requisitos e impedimentos de las bases (n.º 4, 5.1 y 5.2). Si devuelve un motivo, la fila se marca `NO ELEGIBLE: <motivo>` en `Estado de Procesamiento` y no se evalúa.
+  * **Pauta**: Uso del inglés y respaldo de jefatura solo aplican a académicos y funcionarios; el año de ingreso solo a pregrado (desde 3.er año, 2 pts); Alumni queda en 0. Disponibilidad y compromisos no puntúan. El desempate usa `compararPostulantes_()` (n.º 7.5).
+  * `normalizarFecha_()` / `formatearColumnaFecha_()` (`Utils.ts`): guardan la marca temporal como fecha real y la muestran como `dd/MM/yyyy HH:mm`.
 
 ### 3. Seleccionados.ts
 
 * **Propósito**: Seleccionar, ordenar y gestionar a los postulantes, incluyendo lista de espera y promociones.
 * **Requerimientos / Entradas**:
-    * Los resultados generados por el motor de evaluación (`resultados`).
-    * La hoja `"Evaluación automatizada"` (para buscar candidatos de lista de espera).
-    * La hoja `"Seleccionados"` existente (para preservar datos y promociones manuales).
+  * Los resultados generados por el motor de evaluación (`resultados`).
+  * La hoja `"Evaluación automatizada"` (para buscar candidatos de lista de espera).
+  * La hoja `"Seleccionados"` existente (para preservar datos y promociones manuales).
 * **Salidas / Modificaciones**:
-    * **`"Seleccionados"` (congelada)**: Solo se genera al inicio; las regeneraciones posteriores no la sobreescriben.
-    * **`"Lista de Espera"`**: Hoja con los siguientes 30 candidatos por nivel, ordenados por puntaje. Preserva las fechas de notificación y cierre existentes.
-    * Aplica validación de datos a las columnas de gestión (`Aceptación`, `Verificación Certificado`, `Nivel Asignado`, `Pago Matrícula`).
-    * Aplica formato condicional de color (verde para aceptados, rojo para rechazados).
+  * **`"Seleccionados"` (congelada)**: Solo se genera al inicio; las regeneraciones posteriores no la sobreescriben.
+  * **`"Lista de Espera"`**: Hoja con los siguientes 30 candidatos por nivel, ordenados por puntaje. Preserva las fechas de notificación y cierre existentes.
+  * Aplica validación de datos a las columnas de gestión (`Aceptación`, `Verificación Certificado`, `Nivel Asignado`, `Pago Matrícula`).
+  * Aplica formato condicional de color (verde para aceptados, rojo para rechazados).
 * **Funciones clave**:
-    * `generarHojaSeleccionados_()`: Selecciona a los mejores de cada nivel según sus **cupos abiertos** (B1+ 25; B2.1, B2.2 y C1 15 cada uno). Solo se ejecuta si la hoja no existe o está vacía.
-    * `generarHojaListaEspera_()`: Genera los siguientes 30 candidatos por nivel, preservando las fechas de notificación y cierre existentes, y excluyendo a los ya seleccionados.
-    * `promoverDesdeListaEspera()`: Mueve al candidato seleccionado de la fila activa de la lista de espera a `"Seleccionados"`, lo elimina de la lista de espera y re-secuencia los rankings.
-    * `restaurarHojaSeleccionadosPerdida()`: Recuperación de emergencia con datos backup hardcoded.
+  * `generarHojaSeleccionados_()`: Selecciona a los mejores de cada nivel según sus **cupos abiertos** (B1+ 25; B2.1, B2.2 y C1 15 cada uno). Solo se ejecuta si la hoja no existe o está vacía.
+  * `generarHojaListaEspera_()`: Genera los siguientes 30 candidatos por nivel, preservando las fechas de notificación y cierre existentes, y excluyendo a los ya seleccionados.
+  * `promoverDesdeListaEspera()`: Mueve al candidato seleccionado de la fila activa de la lista de espera a `"Seleccionados"`, lo elimina de la lista de espera y re-secuencia los rankings.
+  * `restaurarHojaSeleccionadosPerdida()`: Recuperación de emergencia con datos backup hardcoded.
 
 ### 4. Correos.ts
 
 * **Propósito**: Motor de envío de correos masivos o unitarios con plantillas HTML personalizadas.
 * **Requerimientos / Entradas**:
-    * Hojas `"Seleccionados"`, `"Lista de Espera"`, `"Evaluación automatizada"` y `"Continuación"`.
-    * Plantillas HTML: `CorreoSeleccionado`, `CorreoTestNivel`, `CorreoHandPicked`, `CorreoListaEspera`, `CorreoEsperaSinCupo`, `CorreoNoSeleccionado`, `CorreoContinuacion`, `CorreoConfirmacionAcepta`, `CorreoConfirmacionRechaza`.
-    * Cada plantilla contiene solo su contenido: el estilo, el logo y el pie vienen de los fragmentos `CorreoBase_Estilos`, `CorreoBase_Cabecera` y `CorreoBase_Pie` (`<?!= incluir('CorreoBase_Pie') ?>`). Un cambio de logo o de pie se hace en un solo archivo. `CorreoPlacementTest` tiene diseño propio y no los usa.
+  * Hojas `"Seleccionados"`, `"Lista de Espera"`, `"Evaluación automatizada"` y `"Continuación"`.
+  * Plantillas HTML: `CorreoSeleccionado`, `CorreoTestNivel`, `CorreoHandPicked`, `CorreoListaEspera`, `CorreoEsperaSinCupo`, `CorreoNoSeleccionado`, `CorreoContinuacion`, `CorreoConfirmacionAcepta`, `CorreoConfirmacionRechaza`.
+  * Cada plantilla contiene solo su contenido: el estilo, el logo y el pie vienen de los fragmentos `CorreoBase_Estilos`, `CorreoBase_Cabecera` y `CorreoBase_Pie` (`<?!= incluir('CorreoBase_Pie') ?>`). Un cambio de logo o de pie se hace en un solo archivo. `CorreoPlacementTest` tiene diseño propio y no los usa.
 * **Tabla de tipos (`CORREOS`)**: cada tipo de lote declara su plantilla, asunto, asunto de prueba, hoja y columna donde se sella la fecha, y si lleva enlaces con token. `TipoCorreo` es un tipo cerrado: TypeScript falla si falta una entrada.
 * **Cómo agregar un tipo de correo**: (1) entrada en `CORREOS`, (2) rama en `getRecipients_()`, (3) ítem de menú en `Menu.ts` con su función de una línea, (4) la plantilla HTML. `sendTestEmail` y la cadena completa de pruebas lo incluyen solos.
 * **Salidas / Modificaciones**:
-    * Envía correos electrónicos a través de `GmailApp` o crea borradores según la opción elegida.
-    * Registra la fecha y hora en la columna de control correspondiente para asegurar idempotencia.
+  * Envía correos electrónicos a través de `GmailApp` o crea borradores según la opción elegida.
+  * Registra la fecha y hora en la columna de control correspondiente para asegurar idempotencia.
 * **Tipos de Lote Soportados**:
-    * `SELECTED`: Candidatos con `Verificación Certificado = "Válido"` y sin fecha de notificación.
-    * `TEST_LEVEL_ONLY`: Candidatos con `Verificación Certificado = "Test de nivel"` y sin fecha de notificación.
-    * `HAND_PICKED`: Candidatos seleccionados manualmente fuera de plazo.
-    * `WAITLIST`: Candidatos en la hoja `"Lista de Espera"` sin fecha de notificación.
-    * `WAITLIST_REJECTED`: Candidatos en `"Lista de Espera"` sin `"Fecha Notificación Cierre"`.
-    * `NO_SELECTED`: Todos los evaluados que **no** estén en `"Seleccionados"` ni en `"Lista de Espera"`.
-    * `CONTINUATION`: Estudiantes del año anterior con asistencia ≥ 80%, nota ≥ 4.0 (40/70), y curso con continuación (excluye C1). Lee de la hoja `"Continuación"`.
+  * `SELECTED`: Candidatos con `Verificación Certificado = "Válido"` y sin fecha de notificación.
+  * `TEST_LEVEL_ONLY`: Candidatos con `Verificación Certificado = "Test de nivel"` y sin fecha de notificación.
+  * `HAND_PICKED`: Candidatos seleccionados manualmente fuera de plazo.
+  * `WAITLIST`: Candidatos en la hoja `"Lista de Espera"` sin fecha de notificación.
+  * `WAITLIST_REJECTED`: Candidatos en `"Lista de Espera"` sin `"Fecha Notificación Cierre"`.
+  * `NO_SELECTED`: Todos los evaluados que **no** estén en `"Seleccionados"` ni en `"Lista de Espera"`.
+  * `CONTINUATION`: Estudiantes del año anterior con asistencia ≥ 80%, nota ≥ 4.0 (40/70), y curso con continuación (excluye C1). Lee de la hoja `"Continuación"`.
 
 ### 5. WebApp.ts
 
 * **Propósito**: Sirve el panel de control web (Dashboard) y gestiona los endpoints de confirmación (`doGet`) para las respuestas de los postulantes.
 * **Gestión de Tokens y Respuestas**:
-    * Genera tokens UUID de un solo uso asociados al correo del postulante.
-    * Al recibir `action=accept` o `action=reject`:
+  * Genera tokens UUID de un solo uso asociados al correo del postulante.
+  * Al recibir `action=accept` o `action=reject`:
         1. Busca al candidato en la hoja `"Seleccionados"`. Si existe, actualiza la columna `"Aceptación"`.
         2. Si no se encuentra en `"Seleccionados"`, busca en la hoja `"Continuación"`. Si existe, crea la columna `"Aceptación"` si no estuviera y registra el estado (`"Acepta"` o `"Rechaza"`).
         3. Para estudiantes de continuación que aceptan, la WebApp muestra una página de confirmación personalizada notificando que su cupo está formalizado sin necesidad de pago de matrícula.
 * **Funciones clave**:
-    * `getRecipients_(type)`: Selecciona los destinatarios según el tipo de lote, aplicando filtros de idempotencia y exclusión.
-    * `sendEmailBatch(type, asDraft, limit)`: Arma el lote según `CORREOS[type]` y lo envía con `enviarLote_()`; crea la columna de sello si falta.
-    * `sendTestEmail(email, type)`: Envía un correo de ejemplo de cualquier tipo de `CORREOS` o `CORREOS_PRUEBA_EXTRA`; `CADENA_COMPLETA` los envía todos (11).
-    * `enviarCorreoConfirmacion_(correo, tipoConfirmacion)`: Envía correos automáticos al aceptar (con link de pago y plazo dinámico) o rechazar.
-    * `previewEmailBatch(type)`: Retorna un preview de los destinatarios sin enviar.
+  * `getRecipients_(type)`: Selecciona los destinatarios según el tipo de lote, aplicando filtros de idempotencia y exclusión.
+  * `sendEmailBatch(type, asDraft, limit)`: Arma el lote según `CORREOS[type]` y lo envía con `enviarLote_()`; crea la columna de sello si falta.
+  * `sendTestEmail(email, type)`: Envía un correo de ejemplo de cualquier tipo de `CORREOS` o `CORREOS_PRUEBA_EXTRA`; `CADENA_COMPLETA` los envía todos (11).
+  * `enviarCorreoConfirmacion_(correo, tipoConfirmacion)`: Envía correos automáticos al aceptar (con link de pago y plazo dinámico) o rechazar.
+  * `previewEmailBatch(type)`: Retorna un preview de los destinatarios sin enviar.
 
 ### 5. InicioClases.ts
 
 * **Propósito**: Notificar el inicio del curso a los alumnos definitivamente matriculados.
 * **Requerimientos / Entradas**:
-    * Hoja `"Lista Final Curso"`.
-    * Plantilla HTML `CorreoInicioClases`.
-    * Entrada de texto del administrador para definir las salas físicas/virtuales de cada nivel.
+  * Hoja `"Lista Final Curso"`.
+  * Plantilla HTML `CorreoInicioClases`.
+  * Entrada de texto del administrador para definir las salas físicas/virtuales de cada nivel.
 * **Salidas / Modificaciones**:
-    * Envía correos con horarios, sala y fechas a través de `GmailApp`.
-    * Escribe la sala en la columna `"Sala"` y la fecha de envío en `"Notificado Inicio"` de la hoja `"Lista Final Curso"`.
+  * Envía correos con horarios, sala y fechas a través de `GmailApp`.
+  * Escribe la sala en la columna `"Sala"` y la fecha de envío en `"Notificado Inicio"` de la hoja `"Lista Final Curso"`.
 * **Funciones clave**:
-    * `getNivelesActivos()`: Obtiene niveles con alumnos confirmados no notificados.
-    * `guardarSalasYObtenerPreview(salas)`: Guarda temporalmente la relación nivel-sala y retorna un preview.
-    * `enviarCorreosInicioClases()`: Ejecuta la lógica final de envío de correos y marcas de tiempo.
+  * `getNivelesActivos()`: Obtiene niveles con alumnos confirmados no notificados.
+  * `guardarSalasYObtenerPreview(salas)`: Guarda temporalmente la relación nivel-sala y retorna un preview.
+  * `enviarCorreosInicioClases()`: Ejecuta la lógica final de envío de correos y marcas de tiempo.
 
 ### 6. ListaFinal.ts
 
@@ -175,30 +175,30 @@ A continuación, se detalla qué requiere y qué produce cada script de la carpe
 
 * **Propósito**: Maneja el panel de control administrativo web (UI principal) y los endpoints para que los postulantes confirmen o liberen su cupo.
 * **Requerimientos / Entradas**:
-    * Acceso a `ScriptProperties` para almacenar y validar tokens temporales UUID de confirmación.
-    * `index.html` para la interfaz del panel.
+  * Acceso a `ScriptProperties` para almacenar y validar tokens temporales UUID de confirmación.
+  * `index.html` para la interfaz del panel.
 * **Salidas / Modificaciones**:
-    * Registros de aceptación/rechazo en la hoja `"Seleccionados"`.
-    * Páginas web dinámicas de confirmación para los postulantes.
-    * Datos de la lista de espera y estado de pago para la Web App.
+  * Registros de aceptación/rechazo en la hoja `"Seleccionados"`.
+  * Páginas web dinámicas de confirmación para los postulantes.
+  * Datos de la lista de espera y estado de pago para la Web App.
 * **Funciones clave**:
-    * `doGet(e)`: Enrutador principal. Procesa decisiones de postulantes o muestra el Panel de Control.
-    * `procesarAccionPostulante_(token, action)`: Valida el token único, actualiza la hoja, destruye el token (un solo uso) y envía el correo de confirmación.
-    * `generarToken_(correo)`: Genera un UUID único en ScriptProperties para el postulante.
-    * `getSelectionData()`: Retorna datos de seleccionados y lista de espera para el panel web, incluyendo estado de pago.
+  * `doGet(e)`: Enrutador principal. Procesa decisiones de postulantes o muestra el Panel de Control.
+  * `procesarAccionPostulante_(token, action)`: Valida el token único, actualiza la hoja, destruye el token (un solo uso) y envía el correo de confirmación.
+  * `generarToken_(correo)`: Genera un UUID único en ScriptProperties para el postulante.
+  * `getSelectionData()`: Retorna datos de seleccionados y lista de espera para el panel web, incluyendo estado de pago.
 
 ### 8. Menu.ts
 
 * **Propósito**: Define el menú personalizado de Google Sheets con todas las acciones administrativas.
 * **Opciones de Menú**:
-    * 📊 Evaluar Postulaciones / 🔄 Reevaluar Todo desde Cero
-    * 📋 Generar Lista Final
-    * 🔄 Regenerar Lista de Espera
-    * 👤 Promover desde Lista de Espera
-    * ⚠️ Restaurar Hoja Seleccionados Perdida
-    * ⚙️ Configurar Pesos / 👁️ Revisar Postulaciones
-    * 📧 Enviar Correos (submenú con 9 opciones)
-    * 📈 Ver Dashboard
+  * 📊 Evaluar Postulaciones / 🔄 Reevaluar Todo desde Cero
+  * 📋 Generar Lista Final
+  * 🔄 Regenerar Lista de Espera
+  * 👤 Promover desde Lista de Espera
+  * ⚠️ Restaurar Hoja Seleccionados Perdida
+  * ⚙️ Configurar Pesos / 👁️ Revisar Postulaciones
+  * 📧 Enviar Correos (submenú con 9 opciones)
+  * 📈 Ver Dashboard
 
 ### 9. Utils.ts
 
