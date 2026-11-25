@@ -3,7 +3,7 @@ const fs = require("fs"), vm = require("vm");
 const dist = require("path").join(__dirname, "..", "dist") + "/";
 const ctx = { console, SpreadsheetApp: {}, Utilities: {}, PropertiesService: {}, LockService: {}, Logger: console };
 vm.createContext(ctx);
-for (const f of ["Config.js", "Utils.js", "Evaluacion.js", "WebApp.js"]) {
+for (const f of ["Config.js", "Utils.js", "Evaluacion.js", "WebApp.js", "Seleccionados.js"]) {
   vm.runInContext(fs.readFileSync(dist + f, "utf8"), ctx, { filename: f });
 }
 const run = (code) => vm.runInContext(code, ctx);
@@ -105,6 +105,38 @@ console.log("== EXPIRACIÓN DE TOKENS (leerToken_) ==");
   ctx.__t2 = vencido;
   ok("token de 1 día sigue vigente", run("leerToken_(__t1)").vencido === false);
   ok("token de 5 días está vencido", run("leerToken_(__t2)").vencido === true);
+}
+
+
+console.log("== protegerFormulas_ (puntos de escritura) ==");
+{
+  const m = run("protegerFormulas_([['=IMAGE(\"x\")', 5, '-1', 'Ana', new Date(0)]])")[0];
+  ok("texto con = queda como texto", m[0] === "'=IMAGE(\"x\")");
+  ok("números y texto normal no cambian", m[1] === 5 && m[3] === "Ana");
+  ok("segunda pasada no duplica la comilla", run("protegerFormulas_(protegerFormulas_([['=a']]))")[0][0] === "'=a");
+}
+
+console.log("== LISTA DE ESPERA excluye a los ya seleccionados ==");
+{
+  ctx.LockService.getUserLock = () => ({ waitLock() {}, releaseLock() {} });
+  ctx.PropertiesService.getUserProperties = () => ({ getProperty: () => null, setProperty() {} });
+  class Hoja {
+    constructor(v) { this.values = v; this.out = null; }
+    getDataRange() { return { getValues: () => this.values.map(f => [...f]) }; }
+    clearConditionalFormatRules() {} getLastRow() { return this.values.length; } getLastColumn() { return this.values[0].length; }
+    getRange() { const s = this, r = { clearContent() { return r; }, setValues(v) { s.out = v; return r; }, setNumberFormat() { return r; }, setBackground() { return r; }, setFontColor() { return r; }, setFontWeight() { return r; } }; return r; }
+    setTabColor() {} setFrozenRows() {} autoResizeColumns() {}
+  }
+  const cab = [HEADERS.LAST_NAME, HEADERS.FIRST_NAME, HEADERS.EMAIL, HEADERS.APPLICATION_DATE, HEADERS.CATEGORY, HEADERS.TOTAL_SCORE, HEADERS.LEVEL_APPLIED];
+  const fila = (ap, em) => [ap, "N", em, new Date(2026, 0, 1), "Estudiante de pregrado", 5, "B1+"];
+  const espera = new Hoja([[HEADERS.RANKING, ...cab, HEADERS.NOTIFICATION_DATE, HEADERS.CLOSURE_NOTIFICATION_DATE], [1, ...fila("A", "ana@x.cl"), "", ""]]);
+  const selecc = new Hoja([[HEADERS.RANKING, ...cab], [1, ...fila("A", "ana@x.cl")]]);
+  const ss = { getSheetByName: n => (n === run("CONFIG.SHEETS.WAITLIST") ? espera : n === run("CONFIG.SHEETS.SELECTED") ? selecc : null) };
+  ctx.__ss = ss; ctx.__res = [cab, fila("A", "ana@x.cl"), fila("B", "bea@x.cl")];
+  run("generarHojaListaEspera_(__res, __ss)");
+  const correos = espera.out.slice(1).map(f => f[3]);
+  ok("ana (ya seleccionada) no queda en espera", !correos.includes("ana@x.cl"));
+  ok("bea (nueva) sí queda en espera", correos.includes("bea@x.cl"));
 }
 
 console.log(fallos ? `\n${fallos} fallo(s)` : "\nTodo OK");

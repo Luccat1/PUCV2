@@ -245,12 +245,16 @@ function sendEmailBatch(type: TipoCorreo, asDraft: boolean = false, limit: numbe
 
   try {
     cargarConfiguracionDesdeHoja_();
+    limpiarTokensVencidos();
     const recipients = getRecipients_(type);
     if (recipients.length === 0) return "No hay destinatarios pendientes para enviar '" + type + "'.";
 
     const def = CORREOS[type];
     if (def.usaPago && (!PROGRAM_DATA.PAYMENT_URL || PROGRAM_DATA.PAYMENT_URL === DEFAULT_PAYMENT_URL)) {
       return "ERROR: Configura PAYMENT_URL en la hoja Configuración antes de enviar correos con enlace de pago.";
+    }
+    if (type === 'TEST_LEVEL_ONLY' && (!PROGRAM_DATA.TEST_FECHA || !PROGRAM_DATA.TEST_INSTRUCCIONES_FECHA)) {
+      return "ERROR: Configura TEST_FECHA y TEST_INSTRUCCIONES_FECHA en la hoja Configuración antes de enviar el correo de test de nivel.";
     }
     const lote = limit > 0 ? recipients.slice(0, limit) : recipients;
     const hojaSello = getSpreadsheet_().getSheetByName(CONFIG.SHEETS[def.hoja]);

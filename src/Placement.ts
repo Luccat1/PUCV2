@@ -152,7 +152,7 @@ function sincronizarPlacement_(): void {
   }
 
   const targetRow = placSheet.getLastRow() + 1;
-  placSheet.getRange(targetRow, 1, newRows.length, PLACEMENT_HEADERS.length).setValues(newRows);
+  placSheet.getRange(targetRow, 1, newRows.length, PLACEMENT_HEADERS.length).setValues(protegerFormulas_(newRows));
   
   // Add checkboxes to new rows
   placSheet.getRange(targetRow, PLACEMENT_COL.enviarInicial + 1, newRows.length, 3).insertCheckboxes();
@@ -214,6 +214,10 @@ function saveConfigAndProcessPlacement(payload: {
 // ---------------------------------------------------------------------------
 
 function processPlacementEmails_(mode: string, deliveryMethod: string): string {
+  return conCandadoEnvio_(() => procesarPlacementSinCandado_(mode, deliveryMethod));
+}
+
+function procesarPlacementSinCandado_(mode: string, deliveryMethod: string): string {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const placSheet = ss.getSheetByName(CONFIG.SHEETS.PLACEMENT);
   if (!placSheet) {

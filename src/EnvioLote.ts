@@ -93,6 +93,20 @@ function enviarLote_<T extends IDestinatarioLote>(o: IOpcionesLote<T>): string {
 }
 
 /**
+ * Un solo envío masivo a la vez: el candado cubre desde que se leen los destinatarios pendientes
+ * hasta que se sella el último, para que un doble clic no duplique correos ni desalinee las filas.
+ */
+function conCandadoEnvio_(tarea: () => string): string {
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) return "No se pudo iniciar el envío. Otra operación está en curso.";
+  try {
+    return tarea();
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
  * Devuelve la columna (1-based) con ese encabezado; si no existe, la crea al final.
  * Sin esta columna no habría sello y un reenvío duplicaría los correos.
  */

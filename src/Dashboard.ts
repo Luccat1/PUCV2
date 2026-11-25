@@ -194,7 +194,7 @@ function generarYActualizarDashboard_(
       while (full.length < 3) full.push("");
       return full;
     });
-    sheet.getRange(1, 1, rectRows.length, 3).setValues(rectRows);
+    sheet.getRange(1, 1, rectRows.length, 3).setValues(protegerFormulas_(rectRows));
 
     rectRows.forEach((r, i) => {
       if (r[0].endsWith(":") || r[1] === "Nº Postulantes") {

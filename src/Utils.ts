@@ -154,6 +154,15 @@ function comoTexto_(v: unknown): string {
 }
 
 /**
+ * Protege una matriz antes de escribirla en una hoja: las celdas de texto que empiezan con =, +, - o @
+ * se guardarían como fórmula. Se aplica en cada punto de escritura, no solo donde nace el dato,
+ * porque las filas se releen de otra hoja y se reescriben.
+ */
+function protegerFormulas_(matriz: any[][]): any[][] {
+  return matriz.map(fila => fila.map(v => (typeof v === "string" ? comoTexto_(v) : v)));
+}
+
+/**
  * Checks if a value string is an affirmative response ("Sí", "Si", etc.).
  * @param valor The raw string.
  */

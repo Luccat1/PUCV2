@@ -112,6 +112,21 @@ function generarListaFinalCurso(): string {
   if (totalConfirmados === 0) return "No hay participantes confirmados para generar la lista final.";
 
   let hojaF = ss.getSheetByName(CONFIG.SHEETS.FINAL_LIST);
+
+  // Regenerar la lista no debe borrar quién ya recibió el correo de inicio de clases (si no, se reenvía a todos)
+  const sellosPrevios = new Map<string, [any, any]>();
+  if (hojaF) {
+    const previos = hojaF.getDataRange().getValues();
+    const hp = (previos.shift() || []).map(h => String(h).trim());
+    const iCorreo = hp.indexOf("Correo"), iSala = hp.indexOf("Sala"), iNotif = hp.indexOf("Notificado Inicio");
+    if (iCorreo !== -1 && iNotif !== -1) {
+      previos.forEach(f => {
+        const c = String(f[iCorreo]).trim().toLowerCase();
+        if (c && (f[iNotif] !== "" || (iSala !== -1 && f[iSala] !== ""))) sellosPrevios.set(c, [iSala !== -1 ? f[iSala] : "", f[iNotif]]);
+      });
+    }
+  }
+
   if (!hojaF) hojaF = ss.insertSheet(CONFIG.SHEETS.FINAL_LIST);
   else hojaF.clear();
 
@@ -123,15 +138,16 @@ function generarListaFinalCurso(): string {
     finalRows.push(["", "", "", "", "", "", ""]); // Empty row as separator (7 cols)
     finalRows.push([`CATEGORÍA: ${nivel}`, "", "", "", "", "", ""]); // Category header (7 cols)
     grupos[nivel].forEach(p => {
-      // Ensure row has exactly 7 columns (Sala and Notificado Inicio start empty)
-      const row = [...p];
-      while (row.length < 7) row.push("");
-      finalRows.push(row.slice(0, 7));
+      // 5 columnas de datos + Sala y Notificado Inicio (se conservan si ya existían para ese correo)
+      const row = p.slice(0, 5);
+      while (row.length < 5) row.push("");
+      const sello = sellosPrevios.get(String(p[2]).trim().toLowerCase());
+      finalRows.push([...row, sello ? sello[0] : "", sello ? sello[1] : ""]);
     });
   });
 
   if (finalRows.length > 0 && finalRows[0].length > 0) {
-    hojaF.getRange(1, 1, finalRows.length, finalRows[0].length).setValues(finalRows);
+    hojaF.getRange(1, 1, finalRows.length, finalRows[0].length).setValues(protegerFormulas_(finalRows));
     hojaF.getRange(1, 1, 1, 7).setFontWeight("bold").setBackground("#cfe2f3");
   }
   

@@ -154,6 +154,10 @@ function renderCorreoInicioClases_(vars: ICorreoInicioClasesVars): string {
  * @returns {string} Status message for the dialog UI.
  */
 function enviarCorreosInicioClases(salas: Record<string, string>, asDraft: boolean = false, limit: number = 0): string {
+  return conCandadoEnvio_(() => enviarInicioClasesSinCandado_(salas, asDraft, limit));
+}
+
+function enviarInicioClasesSinCandado_(salas: Record<string, string>, asDraft: boolean, limit: number): string {
   cargarConfiguracionDesdeHoja_();
   const recipients = getRecipientsInicioClases_();
   if (recipients.length === 0) return "No hay estudiantes pendientes de notificación de inicio de clases.";

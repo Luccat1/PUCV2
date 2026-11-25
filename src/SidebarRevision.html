@@ -221,7 +221,11 @@
       
       // Badge
       const container = document.getElementById('p-badge-container');
-      container.innerHTML = `<span class="status-badge badge-${p.aceptacion.toLowerCase()}">${p.aceptacion}</span>`;
+      const estado = String(p.aceptacion || '');
+      const badge = document.createElement('span');
+      badge.className = 'status-badge badge-' + estado.toLowerCase();
+      badge.textContent = estado;
+      container.replaceChildren(badge);
       
       // Form
       document.getElementById('f-verif').value = p.verificacion || '';

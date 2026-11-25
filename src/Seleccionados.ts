@@ -206,7 +206,7 @@ function generarHojaSeleccionados_(resultados: any[][], ss: GoogleAppsScript.Spr
 
   if (sheetData.length > 0) {
     const range = sheet.getRange(1, 1, sheetData.length, sheetData[0].length);
-    range.setValues(sheetData);
+    range.setValues(protegerFormulas_(sheetData));
     formatearColumnaFecha_(sheet, headersS, sheetData.length);
 
     if (sheetData.length > 1) {
@@ -354,7 +354,7 @@ function agregarASeleccionados_(
     comentario,
     ""
   ];
-  hojaSelected.appendRow(newRow);
+  hojaSelected.appendRow(protegerFormulas_([newRow])[0]);
   const newRowNum = hojaSelected.getLastRow();
   aplicarValidacionesSeleccionados_(hojaSelected, newRowNum, 1, headersS);
   return newRowNum;
@@ -614,7 +614,7 @@ function generarHojaListaEspera_(resultados: any[][], ss: GoogleAppsScript.Sprea
 
   if (sheetData.length > 0) {
     const range = sheet.getRange(1, 1, sheetData.length, sheetData[0].length);
-    range.setValues(sheetData);
+    range.setValues(protegerFormulas_(sheetData));
     formatearColumnaFecha_(sheet, headersW, sheetData.length);
     
     // Formatting
@@ -731,7 +731,7 @@ function restaurarHojaSeleccionadosPerdida(): void {
     const sheetData = [headers, ...rows];
 
     const range = sheet.getRange(1, 1, sheetData.length, sheetData[0].length);
-    range.setValues(sheetData);
+    range.setValues(protegerFormulas_(sheetData));
 
     // Apply formatting and validation
     sheet.setTabColor("#11aa55");
@@ -841,4 +841,30 @@ function promoverDesdeListaEspera(): void {
   reordenarRankingEspera_(activeSheet);
 
   ui.alert("Promoción Exitosa", `Se ha promovido a ${nombres} ${apellidos} de Lista de Espera a Seleccionados.`, ui.ButtonSet.OK);
+}
+
+/**
+ * Permite reenviar el correo (con enlaces nuevos) a un postulante cuyo enlace caducó:
+ * borra su "Fecha Notificación" para que el siguiente envío masivo lo incluya de nuevo.
+ */
+function reenviarEnlacePostulante(): void {
+  const ui = SpreadsheetApp.getUi();
+  const r = ui.prompt(
+    "Reenviar enlace",
+    "Correo del postulante en 'Seleccionados'. Se borrará su fecha de notificación y el próximo envío masivo le llegará de nuevo con enlaces nuevos (debe tener Verificación 'Válido', 'Manual' o 'Hand picked'):",
+    ui.ButtonSet.OK_CANCEL
+  );
+  if (r.getSelectedButton() !== ui.Button.OK) return;
+  const correo = r.getResponseText().trim().toLowerCase();
+  try {
+    const h = leerHoja_(CONFIG.SHEETS.SELECTED);
+    const cCorreo = h.col(HEADERS.EMAIL);
+    const cNotif = h.col(HEADERS.NOTIFICATION_DATE);
+    const i = h.filas.findIndex(f => String(f[cCorreo]).trim().toLowerCase() === correo);
+    if (i === -1) { ui.alert("No encontrado", `No hay un postulante con correo ${correo} en 'Seleccionados'.`, ui.ButtonSet.OK); return; }
+    h.hoja.getRange(i + 2, cNotif + 1).clearContent();
+    ui.alert("Listo", `Se limpió la notificación de ${correo}. Ejecuta el envío correspondiente para que reciba enlaces nuevos.`, ui.ButtonSet.OK);
+  } catch (e) {
+    ui.alert("Error", mensajeError_(e), ui.ButtonSet.OK);
+  }
 }

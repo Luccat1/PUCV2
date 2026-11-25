@@ -32,6 +32,10 @@ function renderCorreoRechazoPorNivel_(vars: ICorreoRechazoPorNivelVars): string 
  * @returns Status string for display via SpreadsheetApp.getUi().alert().
  */
 function enviarCorreosRechazoPorNivel_(): string {
+  return conCandadoEnvio_(enviarRechazoPorNivelSinCandado_);
+}
+
+function enviarRechazoPorNivelSinCandado_(): string {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const placSheet = ss.getSheetByName(CONFIG.SHEETS.PLACEMENT);
   if (!placSheet) return "ERROR: Hoja \"Prueba de Nivel\" no encontrada. Ejecuta primero \"Sincronizar Candidatos a Test\".";

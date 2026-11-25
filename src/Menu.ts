@@ -16,6 +16,7 @@ function onOpen(): void {
     .addItem('👤 Promover desde Lista de Espera', 'promoverDesdeListaEspera')
     .addItem('🔄 Regenerar Lista de Espera', 'ejecutarRegeneracionDeListas')
     .addItem('⚠️ Restaurar Hoja Seleccionados Perdida', 'restaurarHojaSeleccionadosPerdida')
+    .addItem('🔁 Reenviar enlace a un postulante', 'reenviarEnlacePostulante')
     .addSeparator()
     .addItem('⚙️ Configurar Pesos', 'abrirSidebarConfig')
     .addItem('👁️ Revisar Postulaciones', 'abrirSidebarRevision')

@@ -153,8 +153,8 @@
       <label>📬 Método de entrega:</label>
       <div class="delivery-grid">
 
-        <div class="delivery-option selected" id="opt-ENVIAR_REAL" onclick="selectDelivery('ENVIAR_REAL')">
-          <input type="radio" name="deliveryMethod" value="ENVIAR_REAL" checked>
+        <div class="delivery-option" id="opt-ENVIAR_REAL" onclick="selectDelivery('ENVIAR_REAL')">
+          <input type="radio" name="deliveryMethod" value="ENVIAR_REAL">
           <span class="icon">✉️</span>
           <span class="label">Enviar Real</span>
           <span class="desc">Correos reales a todos los marcados</span>
@@ -167,8 +167,8 @@
           <span class="desc">Crea borradores en Gmail para revisión</span>
         </div>
 
-        <div class="delivery-option" id="opt-BORRADOR_MUESTRA" onclick="selectDelivery('BORRADOR_MUESTRA')">
-          <input type="radio" name="deliveryMethod" value="BORRADOR_MUESTRA">
+        <div class="delivery-option selected" id="opt-BORRADOR_MUESTRA" onclick="selectDelivery('BORRADOR_MUESTRA')">
+          <input type="radio" name="deliveryMethod" value="BORRADOR_MUESTRA" checked>
           <span class="icon">🔍</span>
           <span class="label">Muestra (5 borradores)</span>
           <span class="desc">Solo los 5 primeros como borrador</span>
@@ -198,7 +198,7 @@
   </form>
 
   <script>
-    var selectedDelivery = 'ENVIAR_REAL';
+    var selectedDelivery = 'BORRADOR_MUESTRA';
 
     function selectDelivery(value) {
       // Deselect all

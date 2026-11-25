@@ -198,7 +198,7 @@ function evaluarPostulacionesPUCV2(): string {
       }
     }
 
-    hojaResultados.getRange(1, 1, resultados.length, expectedCols).setValues(resultados);
+    hojaResultados.getRange(1, 1, resultados.length, expectedCols).setValues(protegerFormulas_(resultados));
     formatearColumnaFecha_(hojaResultados, resultados[0], resultados.length);
     applyConditionalFormattingToScores_(hojaResultados, resultados.length);
 
