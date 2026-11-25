@@ -7,13 +7,14 @@
 
 > **Novedades v2.6.0 (Noviembre 2026) — Sexta convocatoria, 1.er semestre 2027:**
 >
-> - **Evaluación alineada con las bases**: los requisitos e impedimentos (n.º 4, 5.1 y 5.2) son un filtro previo; quien no los cumple queda marcado `NO ELEGIBLE: <motivo>` y no se puntúa. La pauta solo contiene los criterios del n.º 7.2.
+> - **Evaluación alineada con las bases**: todas las postulaciones se evalúan y puntúan. Quien incumple un requisito o impedimento (n.º 4, 5.1 y 5.2) queda con `NO ELEGIBLE: <motivos>` en la columna `Observaciones` y no entra a los cupos ni a la lista de espera, para que siempre se sepa por qué. La pauta contiene los criterios del n.º 7.2.
 > - **Formulario 2026 soportado**: `CONFIG.COLUMNS` coincide con los encabezados vigentes. Antes varias columnas no se encontraban y todos quedaban en nivel B1+, con 1 punto de certificado.
-> - **Uso del inglés y respaldo de jefatura** puntúan solo a académicos y funcionarios; **año de ingreso** solo a pregrado (prioridad desde el 3.er año).
-> - **Alumni** puntúan 0: solo acceden a cupo si no quedan elegibles de la comunidad activa.
+> - **Uso del inglés y respaldo de jefatura** puntúan a funcionarios (los académicos, que no ven esa sección, reciben 1 punto base en Uso del Inglés); **año de ingreso** solo a pregrado (prioridad desde el 3.er año). **Disponibilidad y compromiso** puntúan con 1 punto base × peso del perfil.
+> - **Alumni**: el formulario no les pregunta nada más allá de sus datos personales, así que puntúan 0, quedan con `Observaciones` y solo acceden a cupo si no quedan elegibles de la comunidad activa.
 > - **Cupos de convocatoria abierta**: 25 en B1+ y 15 en B2.1, B2.2 y C1 (el resto son de continuidad).
 > - **Desempate** según n.º 7.5: académicos y postgrado, funcionarios, pregrado, y luego quien postuló primero.
-> - **Etapa "En proceso de postulación"** suma 2 pts; "Interés general" no suma. **Fecha de postulación** se guarda como fecha (`dd/MM/yyyy HH:mm`).
+> - **Internacionalización**: etapas correlativas (Ya aceptado 3,5 … Interés general 0), planes con puntaje jerárquico y documentos de respaldo; el texto libre ("Otro:") se interpreta con familias léxicas. **Fecha de postulación** se guarda como fecha (`dd/MM/yyyy HH:mm`).
+> - **Despliegue con `clasp`** (`bash deploy.sh && clasp push -f`) y pruebas automáticas del texto libre (`node tests/texto-libre.test.js`).
 >
 > **Novedades v2.5.0 (Julio 2026):**
 >
@@ -117,7 +118,10 @@ src/
 ├── Dashboard.ts           # Generación del dashboard estadístico
 ├── Menu.ts                # Menú personalizado de Google Sheets
 ├── Utils.ts               # Funciones de soporte transversales
+├── RechazoPorNivel.ts     # Correos de rechazo por nivel insuficiente
 ├── TestInicioClases.ts    # Tests para inicio de clases
+├── TestRechazoPorNivel.ts # Tests de rechazo por nivel
+├── TestCriticalPaths.ts   # Tests de rutas críticas
 ├── CorreoSeleccionado.html
 ├── CorreoTestNivel.html
 ├── CorreoHandPicked.html
@@ -140,6 +144,11 @@ src/
 ├── index.html             # Interfaz del panel de control web
 ├── appsscript.json
 └── tsconfig.json
+
+tests/
+└── texto-libre.test.js    # Pruebas del análisis de texto libre (node, sobre dist/)
+
+deploy.sh                  # Compila y prepara PUCV2English/ (luego: clasp push -f)
 ```
 
 ### Objeto CONFIG
@@ -190,17 +199,23 @@ const CONFIG = {
    npm run build
    ```
 
-2. Copia los archivos compilados y las plantillas HTML a la carpeta de producción:
+2. Prepara la carpeta de producción (compila y copia `.js` desde `dist/` y `.html` desde `src/` a `PUCV2English/`):
 
    ```bash
-   # Los archivos .js se copian desde dist/ a PUCV2English/
-   # Los archivos .html se copian desde src/ a PUCV2English/
+   bash deploy.sh
    ```
 
 ### **Paso 4: Subir a Google Apps Script**
 
+**Recomendado: `clasp`** (sube todos los archivos de una vez y evita proyectos con archivos desactualizados; `clasp push` reemplaza todo el proyecto remoto).
+
+1. Una sola vez: instala `clasp` global (`npm i -g @google/clasp`), inicia sesión con `clasp login` y crea `.clasp.json` en la raíz con `{"scriptId":"<ID del script>","rootDir":"PUCV2English"}` (el ID está en Configuración del proyecto de Apps Script). Si `PUCV2English/` no tiene `appsscript.json`, cópialo desde `src/`.
+2. Cada vez que cambies código: `bash deploy.sh && clasp push -f`.
+
+**Alternativa manual:**
+
 1. En tu Google Sheet, ve a `Extensiones` > `Apps Script`.
-2. Crea un archivo nuevo por cada archivo `.js` y `.html` de la carpeta `PUCV2English/`.
+2. Crea un archivo nuevo por cada archivo `.js` y `.html` de la carpeta `PUCV2English/` (todos: los módulos se llaman entre sí y un archivo desactualizado produce `ReferenceError`).
 3. Copia y pega el contenido de cada archivo con el mismo nombre (sin extensión).
 4. En `Config.js`, actualiza la propiedad `WEB_APP_URL` con la URL de tu Web App publicada.
 5. Guarda el proyecto.
@@ -217,9 +232,10 @@ const CONFIG = {
 ### **Paso 6: Implementar el Panel de Control Web**
 
 1. Haz clic en **Implementar** > **Nueva implementación** > **Aplicación web**.
-2. Configura: Ejecutar como `Yo`, Acceso `Solo yo`.
-3. Copia la URL generada — este es tu panel de control para tareas manuales.
-    > ⚠️ Si usas múltiples cuentas de Google, abre la URL en una ventana de incógnito.
+2. Configura: Ejecutar como `Yo`, Acceso `Cualquiera` (los postulantes confirman su cupo desde el correo sin iniciar sesión).
+3. Copia la URL generada y pégala en `WEB_APP_URL` (`Config.ts`): los enlaces de Aceptar/Rechazar de los correos se arman con ella.
+    > La URL pública solo atiende confirmaciones (`action` + `token`); sin esos parámetros muestra un aviso y no entrega datos. El panel de control administrativo se abre desde el menú de la planilla (`📈 Ver Dashboard`).
+    > ⚠️ Si usas múltiples cuentas de Google, abre los enlaces en una ventana de incógnito.
 
 ---
 
@@ -241,14 +257,17 @@ El menú superior `PUCV2English` ofrece las siguientes opciones:
 | Opción | Descripción |
 | --- | --- |
 | 📊 Evaluar Postulaciones | Ejecuta la evaluación manual de postulaciones pendientes |
-| 🔄 Reevaluar Todo desde Cero | Limpia y recalcula todos los puntajes |
+| 🔄 Reevaluar Todo desde Cero | **Borra** evaluaciones y selecciones y recalcula todo desde cero (hazlo antes de registrar aceptaciones o pagos) |
 | 📋 Generar Lista Final | Crea la hoja `"Lista Final Curso"` |
 | 🔄 Regenerar Lista de Espera | Regenera la lista de espera sin afectar seleccionados |
 | 👤 Promover desde Lista de Espera | Mueve al candidato seleccionado de la lista de espera a seleccionados |
 | ⚠️ Restaurar Hoja Seleccionados | Recupera los datos de seleccionados en caso de pérdida |
 | ⚙️ Configurar Pesos | Abre el sidebar para ajustar los parámetros de ponderación |
 | 👁️ Revisar Postulaciones | Abre el sidebar de revisión de certificados |
+| 👤 Promover Candidato Activo | Desde `Evaluación automatizada`, promueve a Seleccionados a la persona de la fila activa (también a un `NO ELEGIBLE`, dejando sus observaciones en `Comentarios`) |
 | 📈 Ver Dashboard | Abre el panel de control web |
+| 📉 Ver Análisis de Equilibrio | Muestra el reparto de seleccionados por categoría |
+| ⚙️ Forzar Autorización | Solicita los permisos de Apps Script |
 
 **Submenú 📧 Enviar Correos:**
 
@@ -260,6 +279,8 @@ El menú superior `PUCV2English` ofrece las siguientes opciones:
 | ⏳ Lista de Espera | Notifica ingreso a la lista de espera |
 | ⏳ Cierre Lista de Espera (Sin Cupo) | Notifica cierre definitivo del proceso a la lista de espera |
 | ❌ No Seleccionados | Envía correos de rechazo (excluye seleccionados y lista de espera) |
+| 🔄 Continuación (Año Anterior) | Invita a estudiantes del año anterior elegibles para continuar |
+| ❌ Rechazo por Nivel Insuficiente | Notifica a quienes no alcanzan el nivel mínimo |
 | 👁️ Vista Previa Siguiente | Muestra el próximo candidato de la lista de espera |
 | ✉️ Enviar Correo de Prueba | Envía un correo de prueba a una dirección específica |
 | 🏫 Inicio de Clases | Abre el diálogo de asignación de salas y envío de bienvenida |
@@ -296,7 +317,7 @@ El puntaje total es la suma de varias áreas, con pesos ajustables desde la hoja
 
 Siguiendo las bases de la convocatoria, la evaluación tiene dos partes: un filtro de elegibilidad y una pauta de puntaje.
 
-**1. Elegibilidad (n.º 4, 5.1 y 5.2).** Quien no cumple no se evalúa: la fila queda marcada `NO ELEGIBLE: <motivo>` en `Estado de Procesamiento` y no aparece en `Evaluación automatizada`. Se exige:
+**1. Elegibilidad (n.º 4, 5.1 y 5.2).** Nadie se excluye de la evaluación: quien incumple se evalúa y puntúa igual, pero queda con `NO ELEGIBLE: <todos los motivos>` en `Observaciones` (hoja `Evaluación automatizada`) y en `Estado de Procesamiento` (hoja de respuestas), y no entra a `Seleccionados` ni a la lista de espera. La coordinación decide caso a caso. Se exige:
 
 - Disponibilidad para todo el horario (lunes, miércoles y jueves 17:45–18:55) y sin compromisos que lo impidan.
 - Compromiso de asistir al menos al 80 % de las sesiones.
@@ -322,10 +343,10 @@ Consecuencias: el *año de ingreso* solo puntúa en pregrado; el *uso del inglé
 
 **2. Pauta de puntaje (n.º 7.2).** Los criterios y su peso relativo:
 
-- **Proyección internacional (importancia alta, máx 5 pts):** puntaje por etapa más la suma de las actividades planificadas, cada una con su valor (postgrado 1, doble titulación e intercambio 0.8, pasantía 0.6, práctica profesional y proyecto de investigación 0.5, curso corto 0.4, congreso 0.3, otro 0.2). Etapas, de mayor a menor: `Ya aceptado/a` (3.5, +0.5 con documentos), `En proceso de postulación` (2.5), `Con plan concreto para próximo año` (1.75), `En etapa de planificación` (1), `Interés general` (0). Las actividades planificadas suman como máximo 2 pts, de modo que la etapa pese más que marcar muchas opciones. Tope total 5.
+- **Proyección internacional (importancia alta, máx 5 pts):** etapa + planes + respaldo. *Etapa* (de mayor a menor): `Ya aceptado/a` 3.5, `En proceso de postulación` 2.5, `Con plan concreto para próximo año` 1.75, `En etapa de planificación` 1, `Interés general` 0. *Planes* (suman cada uno, tope 1.5): postgrado 1, doble titulación e intercambio 0.8, pasantía 0.6, práctica profesional y proyecto de investigación 0.5, curso corto 0.4, congreso 0.3, otro 0.2. *Respaldo* (gana la evidencia más fuerte, tope 1): carta de aceptación 1, postulación enviada y carta de invitación 0.75, contactos 0.5, programa identificado 0.25, más 0.25 por adjuntar archivo. Pregrado con etapa, plan o respaldo reconocibles: +0.5. Tope total 5; luego se multiplica por el peso del perfil (postgrado 1.3).
 - **Vínculo y etapa (media):** tipo de vínculo (máx 2: `Académico/Funcionario` 2, `Postgrado` 1.5, otros 1) y, solo en pregrado, año de ingreso (máx 2): desde el 3.er año de la carrera 2 pts, 2.º año 0.5, 1.er año 0. El año del programa sale de `FECHA_INICIO`.
 - **Nivel de inglés (media, máx 3 pts):** certificado Cambridge declarado: B2 = 3, B1 = 2. Sin certificado Cambridge pero con un documento adjunto = 1 (puntaje base; la coordinación lo verifica y puede quitarlo). Sin certificado ni adjunto = 0.
-- **Uso del inglés en las funciones (media-alta, máx 4 pts):** funcionarios (frecuencia + actividades + proyectos futuros, ×0.75). Los académicos no ven esta sección y reciben 1 punto base fijo.
+- **Uso del inglés en las funciones (media-alta, máx 4 pts):** solo funcionarios, ×0.75: frecuencia (máx 1.5) + actividades (máx 1) + proyectos futuros "Sí" (0.5) + descripciones abiertas (máx 1). Los académicos no ven esta sección y reciben 1 punto base fijo.
 - **Respaldo de la jefatura (máx 3 pts):** solo funcionarios: respaldo (1) + carta adjunta (1), multiplicado por el peso 1.5.
 
 **Disponibilidad y compromiso puntúan con un punto base × peso del perfil** (comprometerse cuesta más fuera del pregrado): pregrado 1, postgrado 1.5, funcionario y académico 2, para cada una de las dos columnas. `Puntaje Disponibilidad` = horario disponible y sin compromisos que lo impidan. `Puntaje Compromiso` = 80 % de asistencia, conocimiento de las 4 horas de estudio autónomo y declaración n.º 2 aceptada. Quien no cumple obtiene 0 en esa columna, y si además incumple un requisito igual se evalúa, pero queda con `NO ELEGIBLE: <motivos>` en `Observaciones` y no entra a los cupos de Seleccionados ni a la lista de espera. Los pesos están en `Config.ts` (`Disponibilidad`, `Compromiso`).
@@ -337,6 +358,6 @@ Consecuencias: el *año de ingreso* solo puntúa en pregrado; el *uso del inglé
 - **Cupos de convocatoria abierta** (n.º 3): B1+ 25; B2.1, B2.2 y C1 15 cada uno. Los otros 10 cupos de esos niveles son de continuidad, por invitación, y no los asigna esta pauta.
 
 > La pauta ordena; la selección la hace la coordinación al revisar cada caso (n.º 7.1). El nivel del formulario es una solicitud: el nivel de ingreso lo asigna la coordinación según el n.º 6.
-> Preguntas que no puntúan: fecha de nacimiento, teléfono, carrera, unidad, cargo, antigüedad, nivel y semestre cursados antes, y descripciones libres.
+> Preguntas que no puntúan: fecha de nacimiento, teléfono, carrera, unidad, cargo, antigüedad, y nivel y semestre cursados antes. Las descripciones abiertas solo puntúan en funcionarios (ver *Texto libre*).
 > Los encabezados de la hoja de respuestas deben coincidir exactamente con `CONFIG.COLUMNS` (`src/Config.ts`). Una columna no encontrada puntúa como vacía sin avisar.
-> Si la hoja `Configuración` ya existe, sus valores pisan los de código. Para esta convocatoria revisa ahí que `FECHA_INICIO` sea 22 de marzo de 2027 (de ella sale el año del programa), `FECHA_TERMINO`, `FECHA_LIMITE`, `TEST_FECHA` y que el peso de Carta de Respaldo para Funcionario y Académico sea 1.5.
+> La hoja `Configuración` se crea sola con los valores por defecto la primera vez que se abre `⚙️ Configurar Pesos`; "Restaurar" la borra y la vuelve a crear. El sidebar edita pesos por perfil, topes y fechas; los puntajes de planes, etapas, respaldos y actividades se editan en `Config.ts`. Si la hoja `Configuración` ya existe, sus valores pisan los de código. Para esta convocatoria revisa ahí que `FECHA_INICIO` sea 22 de marzo de 2027 (de ella sale el año del programa), `FECHA_TERMINO`, `FECHA_LIMITE`, `TEST_FECHA` y que el peso de Carta de Respaldo para Funcionario y Académico sea 1.5.

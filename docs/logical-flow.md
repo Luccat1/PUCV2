@@ -1,4 +1,4 @@
-# Flujo Lógico y Operación de Scripts (PUCV2English v2.4.0)
+# Flujo Lógico y Operación de Scripts (PUCV2English v2.6.0)
 
 Este documento detalla la arquitectura, requerimientos y secuencia de ejecución del sistema modular **PUCV2English**, diseñado para la gestión y evaluación automatizada de postulaciones.
 
@@ -20,9 +20,9 @@ graph TD
     Trigger["Trigger: Al enviar Formulario"]:::process -->|2. Ejecución automática| Eval["Engine: evaluarPostulacionesPUCV2"]:::process
     SheetInput -->|Lee Fila sin Procesar| Eval
 
-    Eval -->|3. Escribe Puntajes| SheetOutput["Hoja: Evaluación automatizada"]:::sheet
+    Eval -->|3. Escribe Puntajes y Observaciones de todos| SheetOutput["Hoja: Evaluación automatizada"]:::sheet
     Eval -->|4. Genera Dashboard| SheetDash["Hoja: Dashboard"]:::sheet
-    Eval -->|5. Filtra cupos abiertos por nivel| SheetSelected["Hoja: Seleccionados (Congelada)"]:::sheet
+    Eval -->|5. Cupos abiertos por nivel, solo elegibles| SheetSelected["Hoja: Seleccionados (Congelada)"]:::sheet
     Eval -->|6. Sgtes 30 por nivel| SheetWaitlist["Hoja: Lista de Espera"]:::waitlist
 
     AdminRev["Admin: Sidebar de Revisión"]:::process -->|7. Verifica Certificados| SheetSelected
@@ -63,7 +63,7 @@ A continuación, se detalla qué requiere y qué produce cada script de la carpe
 
 ### 1. Config.ts
 
-* **Propósito**: Centraliza tipos, interfaces y objetos globales de configuración.
+* **Propósito**: Centraliza tipos, interfaces y objetos globales de configuración (encabezados, columnas del formulario, puntajes por defecto).
 * **Requerimientos / Entradas**:
   * La hoja de cálculo activa de Google Sheets (contenedor).
   * Una hoja llamada `"Configuración"` para persistir configuraciones personalizadas del usuario.
@@ -71,9 +71,9 @@ A continuación, se detalla qué requiere y qué produce cada script de la carpe
   * Expone el objeto `CONFIG` con los nombres exactos de las hojas y columnas del formulario.
   * Expone los parámetros de puntuación predeterminados (`DEFAULT_SCORING_PARAMS`) y de programa (`DEFAULT_PROGRAM_DATA`).
 * **Funciones clave**:
-  * `cargarConfiguracionDesdeHoja_()`: Lee pesos y configuraciones de la hoja `"Configuración"`.
-  * `saveConfiguracion(data)`: Guarda en la hoja `"Configuración"` los cambios de pesos hechos desde el sidebar.
-  * `resetConfiguracion()`: Borra la hoja `"Configuración"` y restablece valores predeterminados en memoria.
+  * La lectura, el guardado y el reinicio de la hoja `"Configuración"` viven en `Evaluacion.ts` (`cargarConfiguracionDesdeHoja_()`, `saveConfiguracion()`, `getConfiguracion()`, `resetConfiguracion()`).
+  * Los puntajes de planes, etapas, documentos de respaldo y actividades (`PuntajePlan`, `PuntajeEtapa`, `PuntajeDocumentos`, `Actividades`) se editan en `Config.ts`; el sidebar edita pesos por perfil (Uso, Internacionalización, Carta), topes y fechas. Los pesos de Disponibilidad y Compromiso se editan en `Config.ts`.
+  * Reiniciar borra la hoja `"Configuración"`; `getConfiguracion()` la vuelve a crear con los valores por defecto.
 
 ### 2. Evaluacion.ts
 
@@ -82,15 +82,18 @@ A continuación, se detalla qué requiere y qué produce cada script de la carpe
   * Hoja `"Respuestas de formulario 1"` con datos estructurados y los encabezados exactos detallados en `CONFIG.COLUMNS`.
   * Columna `"Estado de Procesamiento"` agregada al final de la hoja de respuestas.
 * **Salidas / Modificaciones**:
-  * Sobrescribe la hoja `"Evaluación automatizada"`.
+  * Sobrescribe la hoja `"Evaluación automatizada"` (todas las postulaciones, con una columna final `Observaciones`).
   * Actualiza la columna `"Estado de Procesamiento"` en `"Respuestas de formulario 1"` con la marca de tiempo de la evaluación.
   * Ejecuta la actualización en cadena de la hoja `"Lista de Espera"` y del `"Dashboard"`.
   * **No sobreescribe** la hoja `"Seleccionados"` (congelada).
 * **Funciones clave**:
   * `evaluarPostulacionesPUCV2()`: Lee filas no procesadas, realiza la validación de duplicados por correo, calcula los puntajes detallados, escribe los resultados e invoca a las hojas derivadas.
   * `calcularPuntajeUsoIngles_()`, `calcularPuntajeInternacionalizacion_()`, `calcularPuntajeCertificado_()`, `calcularPuntajeAnioIngreso_()`: Funciones modulares que calculan los puntajes de acuerdo al perfil del postulante.
-  * `motivoNoElegible_()`: Aplica los requisitos e impedimentos de las bases (n.º 4, 5.1 y 5.2). Si devuelve un motivo, la fila se marca `NO ELEGIBLE: <motivo>` en `Estado de Procesamiento` y no se evalúa.
-  * **Pauta**: Uso del inglés y respaldo de jefatura solo aplican a académicos y funcionarios; el año de ingreso solo a pregrado (desde 3.er año, 2 pts); Alumni queda en 0. Disponibilidad y compromisos no puntúan. El desempate usa `compararPostulantes_()` (n.º 7.5).
+  * `motivosNoElegible_()`: Aplica los requisitos e impedimentos de las bases (n.º 4, 5.1 y 5.2) y devuelve **todos** los motivos incumplidos. La fila se evalúa igual, pero queda con `NO ELEGIBLE: <motivos>` en `Observaciones` y en `Estado de Procesamiento`, y se excluye de Seleccionados y Lista de Espera (el dashboard sí la cuenta).
+  * `categoriasDeTexto_()`: Análisis del texto libre ("Otro:") de planes, documentos de respaldo y actividades: normaliza, separa las etiquetas del formulario, descarta negaciones y reconoce categorías con familias léxicas (`FAMILIAS_PLAN`, `FAMILIAS_DOC`, `FAMILIAS_ACTIVIDAD`). `puntajeTextoUso_()` puntúa las descripciones abiertas de funcionarios por familias de evidencia. Pruebas: `node tests/texto-libre.test.js`.
+  * `vistaEvaluacion_()` (`Utils.ts`): entrega la tabla de `Evaluación automatizada` sin la columna `Observaciones` y solo con elegibles; la usan la generación de Seleccionados, Lista de Espera, su regeneración y el dashboard. `promoverSiguienteEsperaAPI` no promueve `NO ELEGIBLE`; `promoverCandidatoActivo` sí (decisión manual).
+  * `saveConfiguracion()` / `getConfiguracion()`: el guardado mezcla lo que envía el sidebar con el estado actual y arma todas las filas antes de borrar la hoja; `getConfiguracion()` crea la hoja con los valores por defecto si no existe.
+  * **Pauta**: El formulario se ramifica por vínculo (pregrado: año de ingreso e internacionalización; postgrado y académico: internacionalización; funcionario: labor profesional; alumni: solo datos personales), y lo no preguntado no puntúa. Uso del inglés y respaldo de jefatura puntúan a funcionarios (académicos: 1 punto base en Uso); el año de ingreso solo a pregrado (desde 3.er año, 2 pts). Disponibilidad y compromiso suman 1 punto base × peso del perfil. Alumni queda en 0. Todos los vínculos pueden llegar al mismo máximo de 11 puntos antes de Disponibilidad y Compromiso. El desempate usa `compararPostulantes_()` (n.º 7.5).
   * `normalizarFecha_()` / `formatearColumnaFecha_()` (`Utils.ts`): guardan la marca temporal como fecha real y la muestran como `dd/MM/yyyy HH:mm`.
 
 ### 3. Seleccionados.ts
@@ -148,7 +151,7 @@ A continuación, se detalla qué requiere y qué produce cada script de la carpe
   * `enviarCorreoConfirmacion_(correo, tipoConfirmacion)`: Envía correos automáticos al aceptar (con link de pago y plazo dinámico) o rechazar.
   * `previewEmailBatch(type)`: Retorna un preview de los destinatarios sin enviar.
 
-### 5. InicioClases.ts
+### 5b. InicioClases.ts
 
 * **Propósito**: Notificar el inicio del curso a los alumnos definitivamente matriculados.
 * **Requerimientos / Entradas**:
@@ -171,7 +174,7 @@ A continuación, se detalla qué requiere y qué produce cada script de la carpe
     2. Lee la hoja `"Continuación"` y filtra a los estudiantes con `Aceptación` = `"Acepta"`. Mapea su curso anterior al nuevo nivel (ej: `B1+ → B2.1`) y los marca como `"Exento (Continuación)"` en la columna `"Pagó (Sí/No)"`.
     3. Agrupa a todos los confirmados por nivel (o `"PRUEBA DE NIVEL"`) y construye la lista dividida por categorías con encabezados destacados.
 
-### 7. WebApp.ts
+### 7. WebApp.ts (panel y tokens)
 
 * **Propósito**: Maneja el panel de control administrativo web (UI principal) y los endpoints para que los postulantes confirmen o liberen su cupo.
 * **Requerimientos / Entradas**:
@@ -194,11 +197,12 @@ A continuación, se detalla qué requiere y qué produce cada script de la carpe
   * 📊 Evaluar Postulaciones / 🔄 Reevaluar Todo desde Cero
   * 📋 Generar Lista Final
   * 🔄 Regenerar Lista de Espera
-  * 👤 Promover desde Lista de Espera
+  * 👤 Promover desde Lista de Espera / 👤 Promover Candidato Activo
   * ⚠️ Restaurar Hoja Seleccionados Perdida
   * ⚙️ Configurar Pesos / 👁️ Revisar Postulaciones
-  * 📧 Enviar Correos (submenú con 9 opciones)
-  * 📈 Ver Dashboard
+  * 📧 Enviar Correos (submenú: Seleccionados, Test de Nivel, Hand Picked, Lista de Espera, Cierre de Espera, No Seleccionados, Continuación, vista previa, prueba, Rechazo por Nivel, Inicio de Clases)
+  * 🧪 Prueba de Nivel (CEPT) (submenú de 4 opciones)
+  * 📈 Ver Dashboard / 📉 Análisis de Equilibrio / ⚙️ Forzar Autorización
 
 ### 9. Utils.ts
 
@@ -231,7 +235,7 @@ A continuación, se detalla qué requiere y qué produce cada script de la carpe
 
 1. El Administrador publica la **Web App** en Google Apps Script.
 2. Configura la URL resultante en `CONFIG.WEB_APP_URL` en Config.ts.
-3. Configura los horarios del programa y los pesos de ponderación en `PUCV2English` > `⚙️ Configurar Pesos`.
+3. Configura los horarios del programa y los pesos de ponderación en `PUCV2English` > `⚙️ Configurar Pesos` (la hoja `Configuración` se crea sola la primera vez).
 
 ### Paso 2: Admisión de Postulaciones y Puntuación
 
@@ -240,7 +244,7 @@ A continuación, se detalla qué requiere y qué produce cada script de la carpe
 3. El motor calcula el puntaje y actualiza:
     * `"Evaluación automatizada"` (listado de puntuaciones).
     * `"Dashboard"` (gráficos y métricas).
-    * `"Seleccionados"` (cupos abiertos por nivel: B1+ 25, resto 15; solo la primera vez).
+    * `"Seleccionados"` (cupos abiertos por nivel: B1+ 25, resto 15; solo elegibles; solo la primera vez).
     * `"Lista de Espera"` (Siguientes 30 por nivel, se regenera cada vez).
 
 ### Paso 3: Validación Administrativa de Certificados

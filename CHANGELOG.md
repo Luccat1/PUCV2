@@ -9,6 +9,20 @@ El versionado sigue [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Pauta de evaluación — ajustes tras la primera corrida real (nov 2026)
+
+Reemplaza lo descrito más abajo en "Sexta convocatoria" donde se contradiga.
+
+- **Nadie se excluye de la evaluación**: `motivosNoElegible_()` devuelve todos los motivos; la fila se puntúa igual y queda con `NO ELEGIBLE: <motivos>` en la nueva columna `Observaciones` (y en `Estado de Procesamiento`). Solo los elegibles entran a Seleccionados y Lista de Espera. "Mi carrera no tiene cursos de inglés obligatorios" ya no es impedimento; solo "cursos obligatorios pendientes".
+- **Ramificación del formulario** documentada y respetada: pregrado (año de ingreso, internacionalización), postgrado y académico (internacionalización), funcionario (labor profesional), alumni (solo datos personales: sin declaraciones, sin nivel, `Observaciones` lo explica).
+- **Disponibilidad y Compromiso puntúan**: 1 punto base × peso del perfil (pregrado 1, postgrado 1,5, funcionario y académico 2).
+- **Máximo equivalente (11 puntos antes de Disponibilidad y Compromiso)** por vínculo: nivel de inglés máx 3 (el formulario solo ofrece Cambridge B1 y B2); sin certificado pero con adjunto, 1 punto base; peso de postgrado en Internacionalización 1,3; funcionarios ×0,75 en Uso del Inglés; académicos con 1 punto base fijo en Uso.
+- **Internacionalización**: etapas correlativas (Ya aceptado 3,5 … Interés general 0), planes con puntaje jerárquico (postgrado 1 … congreso 0,3; tope 1,5), y por primera vez puntúan los **documentos de respaldo** (casillas; gana la más fuerte, tope 1). Peso de académicos corregido (1, no 0,75).
+- **Texto libre**: análisis léxico (normalización, negaciones, familias léxicas, indicio mínimo para "otro") en planes, documentos y actividades; descripciones abiertas de funcionarios puntúan por familias de evidencia (0,2 c/u, tope 1). Palabras clave del formulario corregidas ("curso corto especializado", "visitantes internacionales"…). Se eliminó configuración muerta (`PalabrasClaveContribucion`, `PuntajePorPalabraClave`) y `contarPalabrasClave_`.
+- **Año de ingreso** "Antes del 2020" puntúa 0 a propósito. La columna Carta muestra el valor ponderado.
+- **Configuración**: `saveConfiguracion` ya no borra la hoja si falla (mezcla con el estado actual y arma las filas antes de borrar); la hoja `Configuración` se crea sola al abrir el sidebar y "Restaurar" la recrea.
+- **Despliegue con `clasp`** (`bash deploy.sh && clasp push -f`) y pruebas `node tests/texto-libre.test.js`.
+
 ### Cambiado
 
 - **Envío por lote unificado** (`EnvioLote.ts`, `enviarLote()`): `Correos`, `InicioClases` y `RechazoPorNivel` comparten cuota, borrador, límite de muestra, manejo de errores por destinatario y sello de fecha. Antes eran tres copias que ya habían divergido.

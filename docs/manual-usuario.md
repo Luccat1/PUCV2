@@ -23,20 +23,21 @@ El ecosistema de Google Sheets contiene las siguientes pestañas, cada una con u
 
 1. **`Respuestas de formulario 1` (Entrada de Datos)**:
     * **Qué es**: Pestaña vinculada directamente al formulario de Google donde se registran las postulaciones entrantes de forma cronológica.
-    * **Cómo usarla**: No se debe modificar manualmente. Solo se debe asegurar que la última columna sea `"Estado de Procesamiento"`. Aquí el script marcará la marca de tiempo de la evaluación, `"DUPLICADO (Ignorado)"` para segundos envíos de la misma persona, o `"INCOMPLETA (Datos insuficientes)"` si falta información esencial (RUT, nombre o correo).
+    * **Cómo usarla**: No se debe modificar manualmente. Solo se debe asegurar que la última columna sea `"Estado de Procesamiento"`. Aquí el script marcará la marca de tiempo de la evaluación, `"DUPLICADO (Ignorado)"` para segundos envíos de la misma persona, o `"INCOMPLETA (Datos insuficientes)"` si falta información esencial (RUT, nombre o correo). Si la persona incumple un requisito, aparece `"NO ELEGIBLE: <motivos>"` (ver más abajo).
 2. **`Configuración` (Parámetros del Programa)**:
     * **Qué es**: Hoja que centraliza los pesos de ponderación, URLs, fechas clave y horarios del curso.
-    * **Cómo usarla**: Puedes modificar las celdas de la columna `Peso/Valor` directamente o usar el menú lateral superior `PUCV2English` > `⚙️ Configurar Pesos`.
+    * **Cómo usarla**: Puedes modificar las celdas de la columna `Peso/Valor` directamente o usar el menú lateral superior `PUCV2English` > `⚙️ Configurar Pesos`. La hoja se crea sola con los valores por defecto la primera vez que se abre ese menú.
 3. **`Evaluación automatizada` (Base de Datos Puntajeada)**:
     * **Qué es**: El listado completo de todos los postulantes evaluados con sus puntajes detallados columna por columna y el `PUNTAJE TOTAL`.
-    * **Cómo usarla**: Es una hoja de lectura. Se refresca automáticamente al evaluar y tiene formato condicional degradado de color (verde es puntaje alto, rojo bajo) para facilitar auditorías de puntuación.
+    * **Cómo usarla**: Es una hoja de lectura. Se refresca automáticamente al evaluar y tiene formato condicional degradado de color (verde es puntaje alto, rojo bajo) para facilitar auditorías de puntuación. La última columna, `Observaciones`, explica por qué alguien quedó fuera de los cupos.
     * **Reglas a considerar al leer los puntajes** (siguen las bases de la convocatoria):
-        * Solo aparecen las postulaciones **elegibles**. Las que no cumplen requisitos o tienen un impedimento (reprobó, renunció a la beca, ya cursó C1, completó dos cursos, estudiante sin matrícula vigente, sin PILE aprobado, declaraciones sin aceptar) quedan marcadas `NO ELEGIBLE: <motivo>` en `Estado de Procesamiento` de la hoja de respuestas.
+        * Aparecen **todas** las postulaciones evaluadas. Las que no cumplen un requisito o tienen un impedimento (sin disponibilidad, compromisos que impiden asistir, menos del 80 % de asistencia, declaraciones sin aceptar, reprobó, renunció a la beca, ya cursó C1, completó dos cursos, estudiante sin matrícula vigente, PILE pendiente) llevan `NO ELEGIBLE: <todos los motivos>` en la columna `Observaciones` y en `Estado de Procesamiento` de la hoja de respuestas. Esas personas **no entran** a `Seleccionados` ni a la lista de espera; la coordinación decide caso a caso.
         * Si una postulación se corrigió (enmienda por correo), borra el `Estado de Procesamiento` de esa fila y vuelve a evaluar.
-        * `Puntaje Disponibilidad` y `Puntaje Compromiso` están siempre en 0: son requisitos, no puntaje.
-        * `Puntaje Uso Inglés` y el respaldo de jefatura solo puntúan a académicos y funcionarios; el año de ingreso solo a pregrado (desde 3.er año, 2 pts).
-        * Los **Alumni** tienen puntaje 0: solo acceden a un cupo si no quedan elegibles de la comunidad activa.
-        * En Internacionalización, "En proceso de postulación" suma 2 puntos y "Interés general" no suma.
+        * `Puntaje Disponibilidad` y `Puntaje Compromiso` dan 1 punto base por cumplir, multiplicado por el peso del perfil (pregrado 1, postgrado 1,5, funcionario y académico 2). Un 0 significa que no cumple esa condición.
+        * El formulario se ramifica según el vínculo: pregrado responde año de ingreso e internacionalización; postgrado y académico, internacionalización; funcionario, labor profesional (uso del inglés y respaldo de jefatura, que solo puntúan a funcionarios; los académicos reciben 1 punto base en Uso Inglés); alumni solo datos personales. Lo que no se pregunta no puntúa. Año de ingreso solo puntúa en pregrado (desde 3.er año, 2 pts; "Antes del 2020", 0).
+        * Los **Alumni** tienen puntaje 0 y `Observaciones` indica que el formulario no los evalúa; sin nivel postulado y sin cupo automático (la coordinación los gestiona aparte).
+        * Internacionalización: etapa (Ya aceptado 3,5; En proceso de postulación 2,5; Con plan concreto 1,75; En planificación 1; Interés general 0) + planes (tope 1,5) + documentos de respaldo (tope 1). El texto escrito en "Otro:" también se interpreta (por ejemplo, doctorado cuenta como postgrado); un texto que niega ("no", "ninguno") no suma.
+        * Nivel de inglés: certificado Cambridge B2 = 3, B1 = 2; sin certificado pero con documento adjunto = 1 (la coordinación lo verifica); sin ninguno = 0.
         * El desempate prefiere académicos y postgrado, luego funcionarios, luego pregrado, y por último quien postuló primero.
         * `Fecha de Postulación` se muestra como `dd/MM/yyyy HH:mm`.
 4. **`Seleccionados` (Tablero de Control Operativo)**:
@@ -89,7 +90,8 @@ Sigue esta secuencia para operar el programa completo desde el cierre de postula
 
 1. Una vez cerrado el formulario, ve a la hoja de cálculo.
 2. Si deseas forzar el cálculo de los candidatos que falten por procesar, haz clic en el menú superior **`PUCV2English`** > **`📊 Evaluar Postulaciones`**.
-3. Si detectas inconsistencias históricas o deseas actualizar el ranking tras haber cambiado los pesos de ponderación en la hoja de `Configuración`, haz clic en **`PUCV2English`** > **`🔄 Reevaluar Todo desde Cero`**. Esto limpiará todo el historial de cálculo, eliminará los duplicados y recalculará la lista de seleccionados y el dashboard basándose en las nuevas reglas.
+3. Si detectas inconsistencias históricas o deseas actualizar el ranking tras haber cambiado los pesos de ponderación en la hoja de `Configuración`, haz clic en **`PUCV2English`** > **`🔄 Reevaluar Todo desde Cero`**. Esto limpiará todo el historial de cálculo, eliminará los duplicados y recalculará la lista de seleccionados y el dashboard basándose en las nuevas reglas. ⚠️ **Borra también la hoja `Seleccionados`**: hazlo antes de registrar verificaciones, aceptaciones o pagos.
+4. Revisa la columna **`Observaciones`** de `Evaluación automatizada`: las personas con `NO ELEGIBLE: <motivos>` no entran a los cupos. Si corresponde incluir a alguna, ubícate en su fila de `Evaluación automatizada` y usa **`👤 Promover Candidato Activo`**: pasa a `Seleccionados` y sus observaciones quedan registradas en `Comentarios`. Si fue un error de respuesta (enmienda aprobada), corrige la respuesta, borra su `Estado de Procesamiento` y vuelve a evaluar.
 
 ### Fase 2: Auditoría de Certificados
 
@@ -179,6 +181,16 @@ Sigue esta secuencia para operar el programa completo desde el cierre de postula
 
 * **Causa**: El nombre del curso en la columna `Curso` no comienza con el prefijo esperado (`B1+`, `B2.1`, `B2.2` o `C1`).
 * **Solución**: Verifica que los nombres de curso en la hoja `"Continuación"` sigan el formato estándar (ej: `B1+ PIIE 2096 - 01`). El regex extrae el nivel del inicio del texto.
+
+### 8. Error "... is not defined" al evaluar (por ejemplo `mensajeError_` o `generarHojaSeleccionados_`)
+
+* **Causa**: El proyecto de Apps Script tiene archivos desactualizados o faltantes: los módulos se llaman entre sí.
+* **Solución**: Sube **todos** los archivos de `PUCV2English/` (con `clasp push -f` desde la carpeta del proyecto) y recarga la planilla.
+
+### 9. Los cambios del sidebar "Configurar Pesos" no se guardan o no existe la hoja `Configuración`
+
+* **Causa**: La hoja se crea al abrir el sidebar con la versión actual del código; con una versión antigua el guardado podía fallar.
+* **Solución**: Actualiza el código, abre `⚙️ Configurar Pesos` (crea la hoja con los valores por defecto) y guarda de nuevo. Si el sidebar muestra un error rojo, anota el mensaje.
 
 ### 7. La asistencia con coma no se parsea correctamente
 

@@ -45,7 +45,7 @@ function evaluarPostulacionesPUCV2(): string {
     const resultados: any[][] = [
       [HEADERS.LAST_NAME, HEADERS.FIRST_NAME, HEADERS.EMAIL, "RUT", HEADERS.APPLICATION_DATE, HEADERS.CATEGORY, "Sede",
         "Puntaje Disponibilidad", "Puntaje Tipo", "Puntaje Uso Inglés", "Puntaje Intl.", "Puntaje Nivel Inglés",
-        "Puntaje Año Ingreso", "Puntaje Compromiso", "Puntaje Carta", HEADERS.TOTAL_SCORE, HEADERS.CERTIFICATE_LINK, HEADERS.LEVEL_APPLIED, "Observaciones"]
+        "Puntaje Año Ingreso", "Puntaje Compromiso", "Puntaje Carta", HEADERS.TOTAL_SCORE, HEADERS.CERTIFICATE_LINK, HEADERS.LEVEL_APPLIED, HEADERS.OBSERVATIONS]
     ];
 
     const correosProcesados = new Set<string>();
@@ -212,12 +212,10 @@ function evaluarPostulacionesPUCV2(): string {
     // Update UI components
     logToWebApp_("Generando hoja de seleccionados y dashboard...");
     // Selección y lista de espera solo con elegibles; ambas (y el dashboard) trabajan sin la columna "Observaciones".
-    const colObs = expectedCols - 1;
-    const sinObs = (filas: any[][]) => filas.map(f => f.slice(0, colObs));
-    const elegibles = [resultados[0], ...resultados.slice(1).filter(f => !f[colObs])];
-    generarHojaSeleccionados_(sinObs(elegibles), ss); // From Seleccionados.ts
-    generarHojaListaEspera_(sinObs(elegibles), ss); // From Seleccionados.ts
-    generarYActualizarDashboard_(sinObs(resultados), ss, datos, indiceColumnas); // From Dashboard.ts
+    const elegibles = vistaEvaluacion_(resultados, true);
+    generarHojaSeleccionados_(elegibles, ss); // From Seleccionados.ts
+    generarHojaListaEspera_(elegibles, ss); // From Seleccionados.ts
+    generarYActualizarDashboard_(vistaEvaluacion_(resultados, false), ss, datos, indiceColumnas); // From Dashboard.ts
 
     SpreadsheetApp.flush();
     logToWebApp_("Evaluación completada.");

@@ -137,6 +137,7 @@ const HEADERS = {
   TOTAL_SCORE: "PUNTAJE TOTAL",
   CERTIFICATE_LINK: "Enlace Certificado",
   LEVEL_APPLIED: "Nivel Postulado",
+  OBSERVATIONS: "Observaciones",
   CERT_VERIFICATION: "Verificación Certificado",
   LEVEL_ASSIGNED: "Nivel Asignado",
   ACCEPTANCE: "Aceptación",

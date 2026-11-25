@@ -247,6 +247,7 @@ function gestionarListaDeEspera_(nivelTarget?: string): void {
     const idxScore = headersOutput.indexOf(CONFIG.COLUMNS.SCORE);
     const idxNivelPostulado = headersOutput.indexOf(HEADERS.LEVEL_APPLIED);
     const idxEmail = headersOutput.indexOf(CONFIG.COLUMNS.EMAIL);
+    const idxObs = headersOutput.indexOf(HEADERS.OBSERVATIONS);
 
     const valuesS = hojaSelected.getDataRange().getValues();
     const headersS = valuesS.shift() || [];
@@ -258,7 +259,7 @@ function gestionarListaDeEspera_(nivelTarget?: string): void {
     // Sort by score descending, then date ascending
     const idxFecha = headersOutput.indexOf(HEADERS.APPLICATION_DATE);
     let candidates = valuesOutput
-      .filter(row => row[idxEmail] && !emailsSelected.has(String(row[idxEmail]).trim().toLowerCase()))
+      .filter(row => row[idxEmail] && !(idxObs !== -1 && row[idxObs]) && !emailsSelected.has(String(row[idxEmail]).trim().toLowerCase())) // los NO ELEGIBLE no se promueven solos
       .sort((a, b) => compararPostulantes_(a, b, idxScore, headersOutput.indexOf(HEADERS.CATEGORY), idxFecha));
 
     if (nivelTarget && idxNivelPostulado !== -1) {
@@ -280,7 +281,7 @@ function gestionarListaDeEspera_(nivelTarget?: string): void {
     const lastRanking = hojaSelected.getLastRow();
     const newRow = [
       lastRanking, // New Ranking
-      ...nextCandidate,
+      ...nextCandidate.filter((_, j) => j !== idxObs), // sin la columna Observaciones (Seleccionados no la tiene)
       "", // Verificación Certificado
       candidateNivel, // Nivel Asignado
       "Pendiente", // Aceptación
@@ -369,6 +370,7 @@ function promoverCandidatoActivo(): void {
   const idxNombre = headers.indexOf(HEADERS.FIRST_NAME);
   const idxApellido = headers.indexOf(HEADERS.LAST_NAME);
   const idxNivelPostulado = headers.indexOf(HEADERS.LEVEL_APPLIED);
+  const idxObs = headers.indexOf(HEADERS.OBSERVATIONS);
 
   if (idxEmail === -1 || idxNombre === -1 || idxApellido === -1 || idxNivelPostulado === -1) {
     SpreadsheetApp.getUi().alert("Error", "No se encontraron las columnas necesarias en la hoja de evaluación.", SpreadsheetApp.getUi().ButtonSet.OK);
@@ -415,12 +417,12 @@ function promoverCandidatoActivo(): void {
   const nextRanking = hojaSelected.getLastRow();
   const newRow = [
     nextRanking, // Ranking
-    ...rowData,
+    ...rowData.filter((_, j) => j !== idxObs), // sin la columna Observaciones (Seleccionados no la tiene)
     "Válido", // Verificación Certificado
     nivelPostulado, // Nivel Asignado
     "Pendiente", // Aceptación
     "Pendiente", // Pago Matrícula
-    "Promovido manualmente", // Comentarios
+    "Promovido manualmente" + (idxObs !== -1 && rowData[idxObs] ? ` (${rowData[idxObs]})` : ""), // Comentarios: deja registro si era NO ELEGIBLE
     "" // Fecha Notificación
   ];
 
@@ -621,7 +623,7 @@ function ejecutarRegeneracionDeListas(): void {
     }
 
     // Only generate the Waitlist sheet, keeping the Selected sheet 100% intact!
-    generarHojaListaEspera_(resultados, ss);
+    generarHojaListaEspera_(vistaEvaluacion_(resultados, true), ss);
 
     SpreadsheetApp.flush();
     ui.alert("Operación Exitosa", "Se ha regenerado la hoja 'Lista de Espera' de forma correcta, excluyendo a los seleccionados actuales.", ui.ButtonSet.OK);

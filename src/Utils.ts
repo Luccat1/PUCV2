@@ -166,6 +166,18 @@ function obtenerValor_(fila: any[], titulo: string, indiceColumnas: Record<strin
   return String(fila[i] || "").trim();
 }
 
+/**
+ * Tabla de "Evaluación automatizada" (con encabezado) sin la columna "Observaciones", que las demás hojas no tienen,
+ * y solo con postulantes elegibles (sin observaciones) cuando `soloElegibles` es true.
+ */
+function vistaEvaluacion_(tabla: any[][], soloElegibles: boolean): any[][] {
+  const iObs = tabla[0].indexOf(HEADERS.OBSERVATIONS);
+  if (iObs === -1) return tabla;
+  return tabla
+    .filter((fila, i) => i === 0 || !soloElegibles || !fila[iObs])
+    .map(fila => fila.filter((_, j) => j !== iObs));
+}
+
 /** Minúsculas y sin tildes, para comparar texto libre. */
 function normalizarTexto_(texto: unknown): string {
   return String(texto || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();

@@ -1,15 +1,15 @@
 # 📋 PUCV2English v2.6.0 Deployment Checklist
 
-**Updated:** 2026-07-16
+**Updated:** 2026-11-25
 **Status:** Ready for Google Apps Script deployment
 
 ---
 
 ## ✅ Files Ready to Upload
 
-All files have been compiled and copied to `PUCV2English/` folder.
+All files are compiled and copied to `PUCV2English/` by `bash deploy.sh`. **Preferred:** `clasp push -f` uploads all 35 files at once (see `SETUP_GUIDE.md`); the manual steps below are the alternative. Upload **every** file: modules call each other, and an outdated file causes `ReferenceError`.
 
-### JavaScript Files (11 total)
+### JavaScript Files (13 in production; `EnvioLote.js` and `RechazoPorNivel.js` are also required)
 
 Upload each file as a separate **Script** file in Google Apps Script editor:
 
@@ -26,6 +26,8 @@ Upload each file as a separate **Script** file in Google Apps Script editor:
 | `Menu.js` | Menú personalizado de Google Sheets | ✓ Updated |
 | `Dashboard.js` | Generación del dashboard estadístico | ✓ Ready |
 | `WebApp.js` | Panel de control web y endpoints de confirmación | ✓ Ready |
+| `EnvioLote.js` | Envío por lote unificado (cuota, borrador, sello de fecha) | ✓ Ready |
+| `RechazoPorNivel.js` | Correos de rechazo por nivel insuficiente | ✓ Ready |
 | `TestInicioClases.js` | Tests para inicio de clases | ✓ Ready |
 
 ### HTML Files (13 total)
@@ -77,7 +79,7 @@ For each `.js` file in the table above:
 5. **Select all** (Ctrl+A) and **copy** entire content
 6. **Paste** into Google Apps Script editor
 7. **Save** (Ctrl+S)
-8. Repeat for all 11 files
+8. Repeat for all 13 files
 
 **Order recommendation:**
 
@@ -99,7 +101,7 @@ For each `.html` file:
 5. **Select all** and **copy** entire content
 6. **Paste** into HTML editor
 7. **Save** (Ctrl+S)
-8. Repeat for all 14 files
+8. Repeat for all 21 files
 
 ---
 

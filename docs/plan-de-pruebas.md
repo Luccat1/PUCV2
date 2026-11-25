@@ -10,7 +10,7 @@ Antes de iniciar la simulación, debemos asegurar que las bases de datos de prue
 
 - [ ] **1.1. Duplicar Hojas de Producción (Sandbox)**
   - Crea copias de prueba de las hojas en tu Google Sheet para no alterar datos reales.
-  - Asegúrate de que existan las 6 hojas parametrizadas en `CONFIG.SHEETS`:
+  - Asegúrate de que existan las 7 hojas parametrizadas en `CONFIG.SHEETS`:
       1. `"Respuestas de formulario 1"` (con la columna `"Estado de Procesamiento"` agregada al final).
       2. `"Evaluación automatizada"`.
       3. `"Dashboard"`.
@@ -25,7 +25,7 @@ Antes de iniciar la simulación, debemos asegurar que las bases de datos de prue
 - [ ] **1.3. Desplegar y Configurar la Web App**
   - Despliega el script en Apps Script (`Implementar > Nueva Implementación > Aplicación Web`).
   - **Configuración obligatoria**: Ejecutar como: `Yo`, Quién tiene acceso: `Cualquiera`.
-  - Copia la URL provista (terminada en `/exec`) y pégala en el campo `WEB_APP_URL` de [Config.ts](file:///c:/Users/Usuario/Documents/code\pucv\PUCV2\src\Config.ts) (o de manera equivalente en `Config.js` en tu Apps Script). *Esto es crítico para que los enlaces de confirmación generen URLs válidas.*
+  - Copia la URL provista (terminada en `/exec`) y pégala en el campo `WEB_APP_URL` de `src/Config.ts` (o de manera equivalente en `Config.js` en tu Apps Script). *Esto es crítico para que los enlaces de confirmación generen URLs válidas.*
 
 ---
 
@@ -33,15 +33,16 @@ Antes de iniciar la simulación, debemos asegurar que las bases de datos de prue
 
 Probaremos que el motor de evaluación procese las filas nuevas, calcule correctamente los puntajes parciales según el tipo de postulante y evite procesar duplicados.
 
+- [ ] **2.0. Pruebas automáticas del texto libre**: tras `npm run build`, ejecuta `node tests/texto-libre.test.js` (debe terminar en "Todo OK"). Cubre planes, documentos de respaldo, actividades, descripciones abiertas, certificado y requisitos de texto fijo.
 - [ ] **2.1. Simular Postulaciones Válidas (Estudiante y Funcionario)**
   - Inserta manualmente en `"Respuestas de formulario 1"` dos filas de prueba:
-    - **Fila A (Estudiante)**: Nombre: "Juan Estudiante", Correo: "<juan.estud@test.com>", Categoría: "Estudiante de Pregrado", Año Ingreso: 2024, Certificación de Inglés: "B2.1", Disponibilidad: Contesta "Sí" a compromiso y tiempo.
-    - **Fila B (Funcionario)**: Nombre: "Ana Funcionaria", Correo: "<ana.func@test.com>", Categoría: "Funcionario/Administrativo", Año Ingreso: 2012, Certificación de Inglés: "C1", Disponibilidad: Contesta "Sí" a todo.
-    - **Fila C (Alumni)**: Vínculo con la PUCV: "Alumni", resto de respuestas favorables y las 7 declaraciones en "Sí". **Esperado**: puntaje 0 en todas las áreas y último en el ranking de su nivel.
-    - **Fila D (Estudiante sin matrícula)**: Vínculo: "Estudiante de pregrado", `¿Tienes matrícula vigente en la PUCV?` = "No". **Esperado**: `Estado de Procesamiento` = `NO ELEGIBLE: estudiante sin matrícula vigente`; no aparece en `Evaluación automatizada`.
-    - **Fila E (Reprobó antes)**: `¿Has reprobado algún curso PUCV2English?` = "Sí". **Esperado**: `NO ELEGIBLE: reprobó un curso PUCV2English`.
+    - **Fila A (Estudiante de pregrado)**: Nombre: "Juan Estudiante", Correo: "<juan.estud@test.com>", Vínculo: "Estudiante de pregrado", Año de ingreso: 2024, Nivel: B2.1, certificado Cambridge: "Certificado Cambridge B2", disponibilidad y compromisos favorables, 7 declaraciones en "Sí". **Esperado**: Tipo 1, Año Ingreso 2, Nivel Inglés 3, Disponibilidad y Compromiso 1 cada una, sin Observaciones.
+    - **Fila B (Funcionario)**: Nombre: "Ana Funcionaria", Correo: "<ana.func@test.com>", Vínculo: "Funcionario" (responde la sección Labor profesional: frecuencia "Diariamente", actividades, proyectos futuros "Sí", jefatura "Sí"; no responde año de ingreso ni internacionalización), "No tengo certificado Cambridge" sin adjunto. **Esperado**: Tipo 2, Uso Inglés > 0, Internacionalización 0, Año Ingreso 0, Nivel Inglés 0, Carta 1,5 (o 3 con carta adjunta), Disponibilidad y Compromiso 2 cada una.
+    - **Fila C (Alumni)**: Vínculo con la PUCV: "Alumni", sin responder las secciones posteriores (el formulario las omite). **Esperado**: puntaje 0 en todas las áreas, `Observaciones` = `NO ELEGIBLE: alumni: el formulario no los evalúa…`, sin nivel postulado y fuera de `Seleccionados`.
+    - **Fila D (Estudiante sin matrícula)**: Vínculo: "Estudiante de pregrado", `¿Tienes matrícula vigente en la PUCV?` = "No". **Esperado**: aparece en `Evaluación automatizada` con puntaje y `Observaciones` = `NO ELEGIBLE: estudiante sin matrícula vigente`; `Estado de Procesamiento` con el mismo texto; no aparece en `Seleccionados`.
+    - **Fila E (Reprobó antes)**: `¿Has reprobado algún curso PUCV2English?` = "Sí". **Esperado**: `Observaciones` = `NO ELEGIBLE: reprobó un curso PUCV2English` (con más de un incumplimiento, se listan todos separados por `;`). Una respuesta "Mi carrera no tiene cursos de inglés obligatorios" en PILE **no** genera observación.
     - **Fila F (Estudiante, año de ingreso)**: dos estudiantes con año de ingreso 2025 y 2027 (programa 2027). **Esperado**: `Puntaje Año Ingreso` = 2 y 0 respectivamente.
-    - Los encabezados de la hoja deben ser los del formulario vigente (ver `CONFIG.COLUMNS`). Verifica que `Nivel Postulado` refleje "Nivel al que solicitas ingresar" y que "No tengo certificado Cambridge" dé 0 en `Puntaje Nivel Inglés`.
+    - Los encabezados de la hoja deben ser los del formulario vigente (ver `CONFIG.COLUMNS`). Verifica que `Nivel Postulado` refleje "Nivel al que solicitas ingresar" y que "No tengo certificado Cambridge" dé 0 en `Puntaje Nivel Inglés` (1 si adjunta un documento).
   - Verifica que la columna `"Estado de Procesamiento"` de ambas filas esté **vacía**.
 
 - [ ] **2.2. Ejecutar la Evaluación**
