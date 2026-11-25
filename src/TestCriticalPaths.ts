@@ -31,8 +31,8 @@ function testProcesarAccionPostulante_TokenReuse(): void {
     const token = generarToken_(testEmail);
     Logger.log("[TEST-TOKEN-REUSE] Generated token for " + testEmail);
 
-    const storedEmail = PropertiesService.getScriptProperties().getProperty('token_' + token);
-    if (storedEmail !== testEmail) {
+    const storedData = leerToken_(PropertiesService.getScriptProperties().getProperty('token_' + token));
+    if (!storedData || storedData.correo !== testEmail) {
       Logger.log("[TEST-TOKEN-REUSE] FAIL — Token was not stored in ScriptProperties.");
       return;
     }

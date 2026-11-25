@@ -233,14 +233,18 @@ function generarHojaSeleccionados_(resultados: any[][], ss: GoogleAppsScript.Spr
  * Orchestrates waitlist promotion when a spot becomes available.
  * Finds the next eligible candidate in "Evaluación automatizada" for the specific level and moves them to "Seleccionados".
  */
-function gestionarListaDeEspera_(nivelTarget?: string): void {
+function gestionarListaDeEspera_(nivelTarget?: string): string {
   const lock = LockService.getScriptLock();
+  let lockAcquired = false;
   try {
     lock.waitLock(30000);
+    lockAcquired = true;
     const ss = getSpreadsheet_();
     const hojaOutput = ss.getSheetByName(CONFIG.SHEETS.OUTPUT);
     const hojaSelected = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
-    if (!hojaOutput || !hojaSelected) return;
+    if (!hojaOutput || !hojaSelected) {
+      return "Error: No se encontraron las hojas requeridas para gestionar la lista de espera.";
+    }
 
     const valuesOutput = hojaOutput.getDataRange().getValues();
     const headersOutput = valuesOutput.shift()!;
@@ -267,8 +271,9 @@ function gestionarListaDeEspera_(nivelTarget?: string): void {
     }
 
     if (candidates.length === 0) {
-      logToWebApp_(`No hay candidatos disponibles en lista de espera${nivelTarget ? ' para el nivel ' + nivelTarget : ''}.`);
-      return;
+      const msg = `No hay candidatos disponibles en lista de espera${nivelTarget ? ' para el nivel ' + nivelTarget : ''}.`;
+      logToWebApp_(msg);
+      return msg;
     }
 
     const nextCandidate = candidates[0];
@@ -278,22 +283,14 @@ function gestionarListaDeEspera_(nivelTarget?: string): void {
     const candidateNivel = idxNivelPostulado !== -1 ? String(nextCandidate[idxNivelPostulado] || "").trim() : "";
 
     // Move to Seleccionados
-    const lastRanking = hojaSelected.getLastRow();
-    const newRow = [
-      lastRanking, // New Ranking
-      ...nextCandidate.filter((_, j) => j !== idxObs), // sin la columna Observaciones (Seleccionados no la tiene)
-      "", // Verificación Certificado
-      candidateNivel, // Nivel Asignado
-      "Pendiente", // Aceptación
-      "Pendiente", // Pago Matrícula
-      `Promovido desde lista de espera${nivelTarget ? ' para nivel ' + nivelTarget : ''}`, // Comentarios
-      ""           // Fecha Notificación
-    ];
-    hojaSelected.appendRow(newRow);
-    const newRowNum = hojaSelected.getLastRow();
-
-    // Apply validations for new row (Fix #9)
-    aplicarValidacionesSeleccionados_(hojaSelected, newRowNum, 1, headersS);
+    const newRowNum = agregarASeleccionados_(
+      hojaSelected,
+      headersS,
+      nextCandidate.filter((_, j) => j !== idxObs),
+      candidateNivel,
+      "Válido",
+      `Promovido desde lista de espera${nivelTarget ? ' para nivel ' + nivelTarget : ''}`
+    );
 
     // Remove candidate from Waitlist sheet to prevent duplicate/contradictory emails (Fix #10)
     const hojaWaitlist = ss.getSheetByName(CONFIG.SHEETS.WAITLIST);
@@ -306,14 +303,7 @@ function gestionarListaDeEspera_(nivelTarget?: string): void {
           for (let w = 1; w < waitlistValues.length; w++) {
             if (String(waitlistValues[w][idxEmailW]).trim().toLowerCase() === candidateEmail.toLowerCase()) {
               hojaWaitlist.deleteRow(w + 1);
-              const lastRowW = hojaWaitlist.getLastRow();
-              if (lastRowW > 1) {
-                const ranks = [];
-                for (let r = 1; r <= lastRowW - 1; r++) {
-                  ranks.push([r]);
-                }
-                hojaWaitlist.getRange(2, 1, lastRowW - 1, 1).setValues(ranks);
-              }
+              reordenarRankingEspera_(hojaWaitlist);
               break;
             }
           }
@@ -324,22 +314,74 @@ function gestionarListaDeEspera_(nivelTarget?: string): void {
     logToWebApp_(`Candidato ${candidateEmail} (${candidateNivel}) promovido de lista de espera.`);
 
     // Send targeted notification email ONLY to the newly promoted candidate
-    enviarCorreoIndividualSeleccionado_(candidateEmail, candidateNombre, candidateNivel, newRowNum);
+    const enviado = enviarCorreoIndividualSeleccionado_(candidateEmail, candidateNombre, candidateNivel, newRowNum);
+    if (!enviado) {
+      const idxVerifS = headersS.indexOf(HEADERS.CERT_VERIFICATION);
+      if (idxVerifS !== -1) {
+        hojaSelected.getRange(newRowNum, idxVerifS + 1).setValue("Manual");
+      }
+      return `Candidato ${candidateEmail} (${candidateNivel}) promovido, pero falló el envío de correo. Quedó marcado como 'Manual' para reenvío.`;
+    }
+    return `Se promovió a ${candidateNombre} (${candidateEmail}) al nivel ${candidateNivel} con éxito.`;
   } catch (e) {
-    logToWebApp_("Error en gestionarListaDeEspera_: " + mensajeError_(e));
+    const msg = "Error en gestionarListaDeEspera_: " + mensajeError_(e);
+    logToWebApp_(msg);
+    return msg;
   } finally {
-    lock.releaseLock();
+    if (lockAcquired) lock.releaseLock();
   }
 }
 
 /**
- * Specifically handles rejection from the Web App.
- * Updates state to "Rechaza". Waitlist promotion is triggered manually by admin, NOT automatically.
- * @param correo The email address of the rejecting applicant.
+ * Agrega un postulante a la hoja Seleccionados y aplica sus validaciones.
  */
-function procesarRechazoDesdeWebApp_(correo: string): void {
-  logToWebApp_(`Procesando rechazo de ${correo}. La lista de espera debe ser activada manualmente.`);
-  // Rejection email is sent in WebApp.ts through the confirmation flow.
+function agregarASeleccionados_(
+  hojaSelected: GoogleAppsScript.Spreadsheet.Sheet,
+  headersS: any[],
+  filaEval: any[],
+  nivel: string,
+  verificacion: string,
+  comentario: string
+): number {
+  const nextRanking = hojaSelected.getLastRow();
+  const newRow = [
+    nextRanking,
+    ...filaEval,
+    verificacion,
+    nivel,
+    "Pendiente",
+    "Pendiente",
+    comentario,
+    ""
+  ];
+  hojaSelected.appendRow(newRow);
+  const newRowNum = hojaSelected.getLastRow();
+  aplicarValidacionesSeleccionados_(hojaSelected, newRowNum, 1, headersS);
+  return newRowNum;
+}
+
+/**
+ * Reenumera la columna Ranking (columna 1) de la hoja Lista de Espera.
+ */
+function reordenarRankingEspera_(hojaWaitlist: GoogleAppsScript.Spreadsheet.Sheet): void {
+  const lastRowW = hojaWaitlist.getLastRow();
+  if (lastRowW > 1) {
+    const ranks = [];
+    for (let r = 1; r <= lastRowW - 1; r++) {
+      ranks.push([r]);
+    }
+    hojaWaitlist.getRange(2, 1, lastRowW - 1, 1).setValues(ranks);
+  }
+}
+
+/**
+ * Crea una copia de respaldo de la hoja Seleccionados antes de limpiarla o sobrescribirla.
+ */
+function respaldarHojaSeleccionados_(ss: GoogleAppsScript.Spreadsheet.Spreadsheet, sheet?: GoogleAppsScript.Spreadsheet.Sheet | null): void {
+  const hoja = sheet || ss.getSheetByName(CONFIG.SHEETS.SELECTED);
+  if (!hoja || hoja.getLastRow() <= 0) return;
+  const fecha = Utilities.formatDate(new Date(), PROGRAM_DATA.TIMEZONE || "America/Santiago", "yyyy-MM-dd HH-mm-ss");
+  hoja.copyTo(ss).setName("Seleccionados (respaldo " + fecha + ")");
 }
 
 /**
@@ -414,22 +456,14 @@ function promoverCandidatoActivo(): void {
 
   if (confirm !== ui.Button.YES) return;
 
-  const nextRanking = hojaSelected.getLastRow();
-  const newRow = [
-    nextRanking, // Ranking
-    ...rowData.filter((_, j) => j !== idxObs), // sin la columna Observaciones (Seleccionados no la tiene)
-    "Válido", // Verificación Certificado
-    nivelPostulado, // Nivel Asignado
-    "Pendiente", // Aceptación
-    "Pendiente", // Pago Matrícula
-    "Promovido manualmente" + (idxObs !== -1 && rowData[idxObs] ? ` (${rowData[idxObs]})` : ""), // Comentarios: deja registro si era NO ELEGIBLE
-    "" // Fecha Notificación
-  ];
-
-  hojaSelected.appendRow(newRow);
-
-  // Apply validations for drop-downs (Fix #9)
-  aplicarValidacionesSeleccionados_(hojaSelected, hojaSelected.getLastRow(), 1, headersS);
+  agregarASeleccionados_(
+    hojaSelected,
+    headersS,
+    rowData.filter((_, j) => j !== idxObs),
+    nivelPostulado,
+    "Válido",
+    "Promovido manualmente" + (idxObs !== -1 && rowData[idxObs] ? ` (${rowData[idxObs]})` : "")
+  );
 
   ui.alert("Promoción Exitosa", `Se ha promovido a ${nombres} ${apellidos} al nivel ${nivelPostulado} de seleccionados.`, ui.ButtonSet.OK);
 }
@@ -507,8 +541,9 @@ function generarHojaListaEspera_(resultados: any[][], ss: GoogleAppsScript.Sprea
       return nivelPost === nivel && !emailsSelected.has(email);
     });
 
-    // Candidates already in waitlist for this level
+    // Candidates already in waitlist for this level (exclude anyone already in Seleccionados)
     const alreadyWaitlistedEmails = Object.keys(emailMap).filter(email => {
+      if (emailsSelected.has(email)) return false;
       // Find candidate's level
       const matchInResults = datosPostulantes.find(f => idxEmail !== -1 && String(f[idxEmail]).trim().toLowerCase() === email);
       if (matchInResults) {
@@ -652,6 +687,13 @@ function restaurarHojaSeleccionadosPerdida(): void {
     return;
   }
 
+  const confirm = ui.alert(
+    "Confirmar Restauración",
+    "Esta acción sobrescribirá la hoja 'Seleccionados' actual con el respaldo del archivo.\n\nSi la hoja actual tiene datos, se guardará una copia de respaldo antes de continuar. ¿Deseas continuar?",
+    ui.ButtonSet.YES_NO
+  );
+  if (confirm !== ui.Button.YES) return;
+
   try {
     const file = DriveApp.getFileById(fileId);
     const tsvData = file.getBlob().getDataAsString("utf-8");
@@ -661,6 +703,7 @@ function restaurarHojaSeleccionadosPerdida(): void {
     if (!sheet) {
       sheet = ss.insertSheet(CONFIG.SHEETS.SELECTED);
     } else {
+      respaldarHojaSeleccionados_(ss, sheet);
       sheet.clearConditionalFormatRules();
       if (sheet.getLastRow() > 0 && sheet.getLastColumn() > 0) {
         sheet.getRange(1, 1, sheet.getLastRow(), sheet.getLastColumn()).clearContent();
@@ -781,8 +824,6 @@ function promoverDesdeListaEspera(): void {
 
   if (confirm !== ui.Button.YES) return;
 
-  const nextRanking = hojaSelected.getLastRow();
-  
   // The waitlist row format: [Ranking, ...resultados[0], Fecha Notificación, Fecha Notificación Cierre]
   // We want to extract findings from ...resultados[0] and build:
   // [Ranking, ...resultados[0], Verificación Certificado, Nivel Asignado, Aceptación, Pago Matrícula, Comentarios, Fecha Notificación]
@@ -791,35 +832,13 @@ function promoverDesdeListaEspera(): void {
   const sliceEnd = idxFechaNotifW !== -1 ? idxFechaNotifW : lastCol - 2;
   const evalRowPart = rowData.slice(1, sliceEnd);
 
-  const newRow = [
-    nextRanking, // Ranking
-    ...evalRowPart,
-    "Válido", // Verificación Certificado
-    nivelPostulado, // Nivel Asignado
-    "Pendiente", // Aceptación
-    "Pendiente", // Pago Matrícula
-    "Promovido de Lista de Espera", // Comentarios
-    "" // Fecha Notificación
-  ];
-
-  hojaSelected.appendRow(newRow);
-
-  // Apply validations for drop-downs (Fix #9)
-  aplicarValidacionesSeleccionados_(hojaSelected, hojaSelected.getLastRow(), 1, headersS);
+  agregarASeleccionados_(hojaSelected, headersS, evalRowPart, nivelPostulado, "Válido", "Promovido de Lista de Espera");
 
   // Delete from waitlist
   activeSheet.deleteRow(rowNum);
 
   // Re-index remaining rankings in Lista de Espera
-  const lastRowW = activeSheet.getLastRow();
-  if (lastRowW > 1) {
-    const rangeRank = activeSheet.getRange(2, 1, lastRowW - 1, 1);
-    const ranks = [];
-    for (let r = 1; r <= lastRowW - 1; r++) {
-      ranks.push([r]);
-    }
-    rangeRank.setValues(ranks);
-  }
+  reordenarRankingEspera_(activeSheet);
 
   ui.alert("Promoción Exitosa", `Se ha promovido a ${nombres} ${apellidos} de Lista de Espera a Seleccionados.`, ui.ButtonSet.OK);
 }

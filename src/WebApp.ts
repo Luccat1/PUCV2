@@ -8,18 +8,27 @@
  * @returns {GoogleAppsScript.HTML.HtmlOutput} The rendered HTML content.
  */
 function doGet(e: GoogleAppsScript.Events.DoGet): GoogleAppsScript.HTML.HtmlOutput {
-  cargarConfiguracionDesdeHoja_();
   const action = e.parameter.action;
   const token = e.parameter.token;
   const confirmed = e.parameter.confirmed;
 
   if (action && token) {
+    if (action !== 'accept' && action !== 'reject') {
+      return crearPaginaConfirmacion_(action, "Postulante", false, "El enlace no es válido.");
+    }
+
+    cargarConfiguracionDesdeHoja_();
+
     // If not confirmed yet, show intermediate confirmation screen (Fix #5: prevents email scanner pre-fetch)
     if (confirmed !== 'true' && confirmed !== '1') {
       const scriptProperties = PropertiesService.getScriptProperties();
-      const correo = scriptProperties.getProperty('token_' + token);
-      if (!correo) {
+      const tokenData = leerToken_(scriptProperties.getProperty('token_' + token));
+      if (!tokenData) {
         return crearPaginaConfirmacion_(action, "Postulante", false, "Este enlace ya fue utilizado o no es válido.");
+      }
+      if (tokenData.vencido) {
+        scriptProperties.deleteProperty('token_' + token);
+        return crearPaginaConfirmacion_(action, "Postulante", false, "Este enlace ha caducado. El plazo para confirmar tu cupo ha expirado.");
       }
       return crearPaginaConfirmacionPrevia_(action, token);
     }
@@ -223,8 +232,7 @@ function getSelectionData(): object {
   return {
     seleccionados,
     listaDeEspera,
-    estadisticas: stats,
-    logs: []
+    estadisticas: stats
   };
 }
 
@@ -425,10 +433,51 @@ function guardarRevisionPostulante(data: { correo: string, verificacion: string,
  * Uses Utilities.getUuid() to produce unique collision-free keys, avoiding
  * lock contention and timeouts during batch operations.
  */
+/**
+ * Lee y valida un token guardado en Script Properties.
+ * Soporta tokens nuevos ({correo, fecha}) y tokens antiguos (solo correo).
+ */
+function leerToken_(raw: string | null): { correo: string; vencido: boolean } | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed.correo === 'string') {
+      const dias = PROGRAM_DATA.DEADLINE_DAYS || 3;
+      const fechaMs = typeof parsed.fecha === 'number' ? parsed.fecha : Date.parse(parsed.fecha);
+      const vencido = !isNaN(fechaMs) && (Date.now() - fechaMs) > dias * 86400000;
+      return { correo: parsed.correo, vencido };
+    }
+  } catch (_) {
+    // Token antiguo en texto plano (solo correo)
+  }
+  return { correo: raw, vencido: false };
+}
+
+/**
+ * Elimina de Script Properties todos los tokens vencidos para evitar llenar la cuota de 500 KB.
+ */
+function limpiarTokensVencidos(): number {
+  const scriptProperties = PropertiesService.getScriptProperties();
+  const all = scriptProperties.getProperties();
+  let eliminados = 0;
+  for (const key of Object.keys(all)) {
+    if (!key.startsWith('token_')) continue;
+    const data = leerToken_(all[key]);
+    if (data && data.vencido) {
+      scriptProperties.deleteProperty(key);
+      eliminados++;
+    }
+  }
+  if (eliminados > 0) {
+    logToWebApp_(`Limpieza de tokens: ${eliminados} token(s) vencido(s) eliminado(s).`);
+  }
+  return eliminados;
+}
+
 function generarToken_(correo: string): string {
   try {
     const token = Utilities.getUuid();
-    PropertiesService.getScriptProperties().setProperty('token_' + token, correo);
+    PropertiesService.getScriptProperties().setProperty('token_' + token, JSON.stringify({ correo, fecha: Date.now() }));
     return token;
   } catch (e) {
     logToWebApp_("Error generando token: " + mensajeError_(e));
@@ -443,23 +492,16 @@ function generarToken_(correo: string): string {
 function generarTokensBatch_(correos: string[]): Record<string, string> {
   const props: Record<string, string> = {};
   const tokenMap: Record<string, string> = {};
+  const ahora = Date.now();
   correos.forEach(correo => {
     const token = Utilities.getUuid();
-    props['token_' + token] = correo;
+    props['token_' + token] = JSON.stringify({ correo, fecha: ahora });
     tokenMap[correo] = token;
   });
   if (Object.keys(props).length > 0) {
     PropertiesService.getScriptProperties().setProperties(props);
   }
   return tokenMap;
-}
-
-/**
- * Returns the full confirmation URL for an applicant's action.
- */
-function obtenerUrlConfirmacion_(correo: string, action: string): string {
-  const token = generarToken_(correo);
-  return obtenerUrlConfirmacionConToken_(token, action);
 }
 
 /**
@@ -493,14 +535,30 @@ function obtenerUrlConfirmacionConToken_(token: string, action: string): string 
  */
 function procesarAccionPostulante_(token: string, action: string): { exito: boolean; mensaje: string; nombre?: string; paymentUrl?: string } {
   const lock = LockService.getScriptLock();
+  let lockAcquired = false;
   try {
     lock.waitLock(10000);
-    const scriptProperties = PropertiesService.getScriptProperties();
-    const correo = scriptProperties.getProperty('token_' + token);
+    lockAcquired = true;
+  } catch (_) {
+    return { exito: false, mensaje: "El sistema está ocupado procesando otras solicitudes. Por favor, intenta de nuevo en un minuto." };
+  }
 
-    if (!correo) {
+  let correoConfirmacion: string | null = null;
+  let tipoConfirmacion: 'accept' | 'reject' | null = null;
+  let resultado: { exito: boolean; mensaje: string; nombre?: string; paymentUrl?: string };
+
+  try {
+    const scriptProperties = PropertiesService.getScriptProperties();
+    const tokenData = leerToken_(scriptProperties.getProperty('token_' + token));
+
+    if (!tokenData) {
       return { exito: false, mensaje: "Este enlace ya fue utilizado o no es válido." };
     }
+    if (tokenData.vencido) {
+      scriptProperties.deleteProperty('token_' + token);
+      return { exito: false, mensaje: "Este enlace ha caducado. El plazo para confirmar tu cupo ha expirado." };
+    }
+    const correo = tokenData.correo;
 
     const ss = getSpreadsheet_();
     const hojaS = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
@@ -607,17 +665,16 @@ function procesarAccionPostulante_(token: string, action: string): { exito: bool
     }
 
     if (action === 'reject') {
-      procesarRechazoDesdeWebApp_(correo);
       logToWebApp_(`Rechazo recibido y procesado para ${correo}.`);
-      // Send confirmation email of rejection
-      enviarCorreoConfirmacion_(correo, 'reject');
+      correoConfirmacion = correo;
+      tipoConfirmacion = 'reject';
     } else {
       logToWebApp_(`Aceptación recibida de ${correo}.`);
-      // Send confirmation email of acceptance (with payment link)
-      enviarCorreoConfirmacion_(correo, 'accept');
+      correoConfirmacion = correo;
+      tipoConfirmacion = 'accept';
     }
 
-    return { 
+    resultado = { 
       exito: true, 
       mensaje: action === 'accept' ? 
         "Gracias por confirmar tu participación. Para formalizar tu cupo, procede al pago de la matrícula." : 
@@ -626,8 +683,15 @@ function procesarAccionPostulante_(token: string, action: string): { exito: bool
       paymentUrl: PROGRAM_DATA.PAYMENT_URL
     };
   } finally {
-    lock.releaseLock();
+    if (lockAcquired) lock.releaseLock();
   }
+
+  // Enviar correo de confirmación fuera del candado para evitar contención
+  if (correoConfirmacion && tipoConfirmacion) {
+    enviarCorreoConfirmacion_(correoConfirmacion, tipoConfirmacion);
+  }
+
+  return resultado;
 }
 
 /**
@@ -635,8 +699,7 @@ function procesarAccionPostulante_(token: string, action: string): { exito: bool
  */
 function promoverSiguienteEsperaAPI(nivel: string): string {
   try {
-    gestionarListaDeEspera_(nivel);
-    return `Se promovió al siguiente candidato en lista de espera para el nivel ${nivel} con éxito.`;
+    return gestionarListaDeEspera_(nivel);
   } catch (e) {
     return `Error al promover candidato: ${mensajeError_(e)}`;
   }

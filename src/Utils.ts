@@ -145,6 +145,15 @@ function formatearColumnaFecha_(sheet: GoogleAppsScript.Spreadsheet.Sheet, heade
 }
 
 /**
+ * Evita inyección de fórmulas en Google Sheets anteponiendo comilla simple
+ * si el texto comienza con =, +, - o @.
+ */
+function comoTexto_(v: unknown): string {
+  const s = String(v ?? "");
+  return /^[=+\-@]/.test(s) ? "'" + s : s;
+}
+
+/**
  * Checks if a value string is an affirmative response ("Sí", "Si", etc.).
  * @param valor The raw string.
  */

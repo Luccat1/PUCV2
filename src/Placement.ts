@@ -402,8 +402,8 @@ function abrirDialogoPlacement_(mode: string): void {
   html.mode = mode;
 
   const props = PropertiesService.getDocumentProperties();
-  html.fechaInicial      = props.getProperty("PLACEMENT_FECHA_INICIAL")      || "viernes 25 de julio";
-  html.fechaRecordatorio = props.getProperty("PLACEMENT_FECHA_RECORDATORIO") || "miércoles 30 de julio";
+  html.fechaInicial      = props.getProperty("PLACEMENT_FECHA_INICIAL")      || "";
+  html.fechaRecordatorio = props.getProperty("PLACEMENT_FECHA_RECORDATORIO") || "";
   html.url               = props.getProperty("PLACEMENT_URL")                || "https://www.metritests.com/metrica/";
 
   const output = html.evaluate().setWidth(500).setHeight(500);

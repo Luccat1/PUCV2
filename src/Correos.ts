@@ -20,20 +20,22 @@ interface IDefCorreo {
   columnaSello: string;
   /** La plantilla trae los enlaces de aceptar y rechazar. */
   conToken: boolean;
+  /** La plantilla o su confirmación de aceptación incluye el enlace de pago. */
+  usaPago?: boolean;
 }
 
 const CORREOS: Record<TipoCorreo, IDefCorreo> = {
   SELECTED: {
     plantilla: 'CorreoSeleccionado', asunto: "Resultado de Postulación Programas de Inglés PUCV", asuntoPrueba: "[TEST] Resultado Postulación PUCV",
-    hoja: 'SELECTED', columnaSello: 'NOTIFICATION_DATE', conToken: true
+    hoja: 'SELECTED', columnaSello: 'NOTIFICATION_DATE', conToken: true, usaPago: true
   },
   TEST_LEVEL_ONLY: {
     plantilla: 'CorreoTestNivel', asunto: "Test de Nivel - Programas de Inglés PUCV", asuntoPrueba: "[TEST] Test de Nivel - PUCV",
-    hoja: 'SELECTED', columnaSello: 'NOTIFICATION_DATE', conToken: true
+    hoja: 'SELECTED', columnaSello: 'NOTIFICATION_DATE', conToken: true, usaPago: true
   },
   HAND_PICKED: {
     plantilla: 'CorreoHandPicked', asunto: "Cupo Disponible - Programas de Inglés PUCV", asuntoPrueba: "[TEST] Cupo Disponible - PUCV",
-    hoja: 'SELECTED', columnaSello: 'NOTIFICATION_DATE', conToken: true
+    hoja: 'SELECTED', columnaSello: 'NOTIFICATION_DATE', conToken: true, usaPago: true
   },
   WAITLIST: {
     plantilla: 'CorreoListaEspera', asunto: "Resultado de Postulación Programas de Inglés PUCV", asuntoPrueba: "[TEST] Lista de Espera - PUCV",
@@ -75,7 +77,7 @@ function varsComunes_(): Record<string, unknown> {
     programData: PROGRAM_DATA,
     fechaLimite: plazo,
     fechaPagoLimite: plazo,
-    paymentUrl: PROGRAM_DATA.PAYMENT_URL || "https://www.mercadopago.cl/link-pago-matricula"
+    paymentUrl: PROGRAM_DATA.PAYMENT_URL || ""
   };
 }
 
@@ -85,14 +87,6 @@ function varsToken_(token: string): Record<string, string> {
     urlAceptar: obtenerUrlConfirmacionConToken_(token, 'accept'),
     urlRechazar: obtenerUrlConfirmacionConToken_(token, 'reject')
   };
-}
-
-/**
- * Orchestrator called from Web App for batch sending.
- */
-function ejecutarEnvioCorreosDesdeWebApp_(): string {
-  // Logic from original: defaults to 'SELECTED' batch
-  return sendEmailBatch('SELECTED');
 }
 
 /**
@@ -244,60 +238,78 @@ function previewEmailBatch(type: TipoCorreo): string {
  * @returns Mensaje para la UI.
  */
 function sendEmailBatch(type: TipoCorreo, asDraft: boolean = false, limit: number = 0): string {
-  cargarConfiguracionDesdeHoja_();
-  const recipients = getRecipients_(type);
-  if (recipients.length === 0) return "No hay destinatarios pendientes para enviar '" + type + "'.";
-
-  const def = CORREOS[type];
-  const lote = limit > 0 ? recipients.slice(0, limit) : recipients;
-  const hojaSello = getSpreadsheet_().getSheetByName(CONFIG.SHEETS[def.hoja]);
-  if (!hojaSello) return `ERROR: Hoja ${CONFIG.SHEETS[def.hoja]} no encontrada.`;
-
-  // Si la plantilla lleva enlaces, falla una sola vez y antes de crear tokens (no una vez por destinatario)
-  if (def.conToken) {
-    try { urlBaseWebApp_(); } catch (e) { return "ERROR: " + mensajeError_(e); }
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) {
+    return "No se pudo iniciar el envío. Otra operación está en curso.";
   }
 
-  // Todos los tokens de aceptar/rechazar en una sola escritura a Script Properties
-  const tokens: Record<string, string> = def.conToken ? generarTokensBatch_(lote.map(r => r.email)) : {};
+  try {
+    cargarConfiguracionDesdeHoja_();
+    const recipients = getRecipients_(type);
+    if (recipients.length === 0) return "No hay destinatarios pendientes para enviar '" + type + "'.";
 
-  return enviarLote_({
-    etiqueta: `tipo '${type}'`,
-    destinatarios: lote,
-    asunto: def.asunto,
-    html: r => renderPlantilla_(def.plantilla, {
-      ...varsComunes_(),
-      nombre: r.nombre,
-      nivel: r.nivel,
-      cursoAnterior: r.cursoAnterior,
-      nivelSiguiente: r.nivelSiguiente,
-      ...(def.conToken ? varsToken_(tokens[r.email] || generarToken_(r.email)) : {})
-    }),
-    hojaSello,
-    columnaSello: asegurarColumna_(hojaSello, CONFIG.COLUMNS[def.columnaSello]),
-    asBorrador: asDraft,
-    limite: limit
-  });
+    const def = CORREOS[type];
+    if (def.usaPago && (!PROGRAM_DATA.PAYMENT_URL || PROGRAM_DATA.PAYMENT_URL === DEFAULT_PAYMENT_URL)) {
+      return "ERROR: Configura PAYMENT_URL en la hoja Configuración antes de enviar correos con enlace de pago.";
+    }
+    const lote = limit > 0 ? recipients.slice(0, limit) : recipients;
+    const hojaSello = getSpreadsheet_().getSheetByName(CONFIG.SHEETS[def.hoja]);
+    if (!hojaSello) return `ERROR: Hoja ${CONFIG.SHEETS[def.hoja]} no encontrada.`;
+
+    // Si la plantilla lleva enlaces, falla una sola vez y antes de crear tokens (no una vez por destinatario)
+    if (def.conToken) {
+      try { urlBaseWebApp_(); } catch (e) { return "ERROR: " + mensajeError_(e); }
+    }
+
+    // Todos los tokens de aceptar/rechazar en una sola escritura a Script Properties
+    const tokens: Record<string, string> = def.conToken ? generarTokensBatch_(lote.map(r => r.email)) : {};
+
+    return enviarLote_({
+      etiqueta: `tipo '${type}'`,
+      destinatarios: lote,
+      asunto: def.asunto,
+      html: r => renderPlantilla_(def.plantilla, {
+        ...varsComunes_(),
+        nombre: r.nombre,
+        nivel: r.nivel,
+        cursoAnterior: r.cursoAnterior,
+        nivelSiguiente: r.nivelSiguiente,
+        ...(def.conToken ? varsToken_(tokens[r.email] || generarToken_(r.email)) : {})
+      }),
+      hojaSello,
+      columnaSello: asegurarColumna_(hojaSello, CONFIG.COLUMNS[def.columnaSello]),
+      asBorrador: asDraft,
+      limite: limit
+    });
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 /**
  * Sends a targeted notification email to a single selected/promoted candidate.
  * Prevents mass accidental emailing to unnotified candidates in Seleccionados.
  */
-function enviarCorreoIndividualSeleccionado_(email: string, nombre: string, nivel: string, rowNum?: number): void {
-  cargarConfiguracionDesdeHoja_();
-  const def = CORREOS.SELECTED;
-  const hoja = getSpreadsheet_().getSheetByName(CONFIG.SHEETS.SELECTED);
+function enviarCorreoIndividualSeleccionado_(email: string, nombre: string, nivel: string, rowNum?: number): boolean {
+  try {
+    cargarConfiguracionDesdeHoja_();
+    const def = CORREOS.SELECTED;
+    const hoja = getSpreadsheet_().getSheetByName(CONFIG.SHEETS.SELECTED);
 
-  const resultado = enviarLote_({
-    etiqueta: "aviso a candidato promovido",
-    destinatarios: [{ email, rowNum: rowNum || 0 }],
-    asunto: def.asunto,
-    html: () => renderPlantilla_(def.plantilla, { ...varsComunes_(), ...varsToken_(generarToken_(email)), nombre, nivel }),
-    hojaSello: hoja,
-    columnaSello: hoja && rowNum ? asegurarColumna_(hoja, CONFIG.COLUMNS.NOTIFICATION_DATE) : 0
-  });
-  logToWebApp_(resultado);
+    const resultado = enviarLote_({
+      etiqueta: "aviso a candidato promovido",
+      destinatarios: [{ email, rowNum: rowNum || 0 }],
+      asunto: def.asunto,
+      html: () => renderPlantilla_(def.plantilla, { ...varsComunes_(), ...varsToken_(generarToken_(email)), nombre, nivel }),
+      hojaSello: hoja,
+      columnaSello: hoja && rowNum ? asegurarColumna_(hoja, CONFIG.COLUMNS.NOTIFICATION_DATE) : 0
+    });
+    logToWebApp_(resultado);
+    return !resultado.startsWith("ERROR:") && !resultado.includes("Hubo ");
+  } catch (e) {
+    logToWebApp_(`Error enviando aviso individual a ${email}: ${mensajeError_(e)}`);
+    return false;
+  }
 }
 
 

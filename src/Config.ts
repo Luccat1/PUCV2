@@ -80,31 +80,6 @@ interface IScoringParams {
 }
 
 /**
- * Metadata for a processed applicant.
- */
-interface IApplicantResult {
-  apellido: string;
-  nombre: string;
-  correo: string;
-  rut: string;
-  fecha: string;
-  categoria: string;
-  sede: string;
-  puntajes: {
-    disponibilidad: number;
-    tipo: number;
-    usoIngles: number;
-    intl: number;
-    nivelIngles: number;
-    anioIngreso: number;
-    compromiso: number;
-    carta: number;
-    total: number;
-  };
-  enlaceCertificado: string;
-}
-
-/**
  * Statistics for the dashboard.
  */
 interface IStatistics {
@@ -292,6 +267,8 @@ const DEFAULT_SCORING_PARAMS: IScoringParams = {
  */
 let SCORING_PARAMS: IScoringParams = JSON.parse(JSON.stringify(DEFAULT_SCORING_PARAMS));
 
+const DEFAULT_PAYMENT_URL = "https://www.mercadopago.cl/link-pago-matricula";
+
 /**
  * Default program specific data (fallback).
  */
@@ -300,10 +277,10 @@ const DEFAULT_PROGRAM_DATA: IProgramData = {
   FECHA_LIMITE: "viernes 11 de diciembre",
   FECHA_INICIO: "22 de marzo de 2027",
   FECHA_TERMINO: "1 de julio de 2027",
-  PAYMENT_URL: "https://www.mercadopago.cl/link-pago-matricula",
+  PAYMENT_URL: DEFAULT_PAYMENT_URL,
   DEADLINE_DAYS: 3,
-  TEST_FECHA: "2.ª semana de marzo de 2026",
-  TEST_INSTRUCCIONES_FECHA: "primera semana de marzo",
+  TEST_FECHA: "",
+  TEST_INSTRUCCIONES_FECHA: "",
   HORARIOS: {
     "B1+": { catedra: "Lunes y Miércoles 17:45-18:55", ayudantia: "Jueves 17:45-18:55" },
     "B2.1": { catedra: "Lunes y Miércoles 17:45-18:55", ayudantia: "Jueves 17:45-18:55" },

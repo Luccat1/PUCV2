@@ -151,9 +151,9 @@ function evaluarPostulacionesPUCV2(): string {
         const pTotalNum = Math.round(pTotal * 100) / 100;
 
         resultados.push([
-          apellidos, nombres, correo, rut, fecha, tipo, sede,
+          comoTexto_(apellidos), comoTexto_(nombres), correo, comoTexto_(rut), fecha, tipo, comoTexto_(sede),
           pDisp, pTipo, pUsoNum, pIntlNum, pCert, pAnio,
-          pComp, pCartaPond, pTotalNum, enlaceCert, nivelPostulado, observaciones
+          pComp, pCartaPond, pTotalNum, comoTexto_(enlaceCert), nivelPostulado, observaciones
         ]);
         nuevasProcesadas++;
 
@@ -758,9 +758,10 @@ function ejecutarReevaluacionCompleta(): void {
       }
     }
 
-    // 3. Limpiar hoja de Seleccionados
+    // 3. Limpiar hoja de Seleccionados (respaldo previo para no perder Acepta/Pago/Comentarios)
     const hojaSeleccionados = ss.getSheetByName(CONFIG.SHEETS.SELECTED);
     if (hojaSeleccionados) {
+      respaldarHojaSeleccionados_(ss, hojaSeleccionados);
       hojaSeleccionados.clearConditionalFormatRules();
       if (hojaSeleccionados.getLastRow() > 0 && hojaSeleccionados.getLastColumn() > 0) {
         hojaSeleccionados.getRange(1, 1, hojaSeleccionados.getLastRow(), hojaSeleccionados.getLastColumn()).clearContent();
