@@ -27,7 +27,7 @@ function doGet(e: GoogleAppsScript.Events.DoGet): GoogleAppsScript.HTML.HtmlOutp
         return crearPaginaConfirmacion_(action, "Postulante", false, "Este enlace ya fue utilizado o no es válido.");
       }
       if (tokenData.vencido) {
-        scriptProperties.deleteProperty('token_' + token);
+        marcarEnlaceCaducado_(tokenData.correo);
         return crearPaginaConfirmacion_(action, "Postulante", false, "Este enlace ha caducado. El plazo para confirmar tu cupo ha expirado.");
       }
       return crearPaginaConfirmacionPrevia_(action, token);
@@ -437,24 +437,55 @@ function guardarRevisionPostulante(data: { correo: string, verificacion: string,
  * Lee y valida un token guardado en Script Properties.
  * Soporta tokens nuevos ({correo, fecha}) y tokens antiguos (solo correo).
  */
-function leerToken_(raw: string | null): { correo: string; vencido: boolean } | null {
+function leerToken_(raw: string | null): { correo: string; vencido: boolean; diasVencido: number } | null {
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw);
     if (parsed && typeof parsed.correo === 'string') {
       const dias = PROGRAM_DATA.DEADLINE_DAYS || 3;
       const fechaMs = typeof parsed.fecha === 'number' ? parsed.fecha : Date.parse(parsed.fecha);
-      const vencido = !isNaN(fechaMs) && (Date.now() - fechaMs) > dias * 86400000;
-      return { correo: parsed.correo, vencido };
+      const msVencido = isNaN(fechaMs) ? 0 : Date.now() - fechaMs - dias * 86400000;
+      return { correo: parsed.correo, vencido: msVencido > 0, diasVencido: Math.max(0, msVencido / 86400000) };
     }
   } catch (_) {
     // Token antiguo en texto plano (solo correo)
   }
-  return { correo: raw, vencido: false };
+  return { correo: raw, vencido: false, diasVencido: 0 };
+}
+
+/** Días que se conserva un token ya vencido, para que quien abra su enlace siga viendo "ha caducado". */
+const DIAS_RETENCION_TOKEN_VENCIDO = 30;
+
+/**
+ * Anota "Enlace caducado" en Comentarios de Seleccionados cuando alguien abre un enlace vencido,
+ * para que la coordinación sepa a quién reenviar (menú "Reenviar enlace a un postulante").
+ */
+function marcarEnlaceCaducado_(correo: string): void {
+  try {
+    const buscado = correo.trim().toLowerCase();
+    // Seleccionados primero; si no está, la hoja Continuación (su columna Comentarios se crea si falta)
+    for (const nombre of [CONFIG.SHEETS.SELECTED, CONFIG.SHEETS.CONTINUATION]) {
+      if (!getSpreadsheet_().getSheetByName(nombre)) continue;
+      const h = leerHoja_(nombre);
+      const cCorreo = h.colOpc("Email") !== -1 ? h.colOpc("Email") : h.colOpc(HEADERS.EMAIL);
+      if (cCorreo === -1) continue;
+      const i = h.filas.findIndex(f => String(f[cCorreo]).trim().toLowerCase() === buscado);
+      if (i === -1) continue;
+      const colCom = asegurarColumna_(h.hoja, HEADERS.COMMENTS); // 1-based
+      const celda = h.hoja.getRange(i + 2, colCom);
+      const actual = String(celda.getValue() || "");
+      if (actual.includes("Enlace caducado")) return;
+      const fecha = Utilities.formatDate(new Date(), PROGRAM_DATA.TIMEZONE || "America/Santiago", "dd/MM/yyyy HH:mm");
+      celda.setValue(protegerFormulas_([[(actual ? actual + " | " : "") + `Enlace caducado (abierto el ${fecha})`]])[0][0]);
+      return;
+    }
+  } catch (e) {
+    logToWebApp_(`No se pudo anotar el enlace caducado de ${correo}: ${mensajeError_(e)}`);
+  }
 }
 
 /**
- * Elimina de Script Properties todos los tokens vencidos para evitar llenar la cuota de 500 KB.
+ * Elimina los tokens que llevan más de DIAS_RETENCION_TOKEN_VENCIDO días vencidos, para no llenar la cuota de 500 KB.
  */
 function limpiarTokensVencidos(): number {
   const scriptProperties = PropertiesService.getScriptProperties();
@@ -463,7 +494,7 @@ function limpiarTokensVencidos(): number {
   for (const key of Object.keys(all)) {
     if (!key.startsWith('token_')) continue;
     const data = leerToken_(all[key]);
-    if (data && data.vencido) {
+    if (data && data.vencido && data.diasVencido > DIAS_RETENCION_TOKEN_VENCIDO) {
       scriptProperties.deleteProperty(key);
       eliminados++;
     }
@@ -555,7 +586,7 @@ function procesarAccionPostulante_(token: string, action: string): { exito: bool
       return { exito: false, mensaje: "Este enlace ya fue utilizado o no es válido." };
     }
     if (tokenData.vencido) {
-      scriptProperties.deleteProperty('token_' + token);
+      marcarEnlaceCaducado_(tokenData.correo);
       return { exito: false, mensaje: "Este enlace ha caducado. El plazo para confirmar tu cupo ha expirado." };
     }
     const correo = tokenData.correo;

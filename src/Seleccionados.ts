@@ -851,19 +851,26 @@ function reenviarEnlacePostulante(): void {
   const ui = SpreadsheetApp.getUi();
   const r = ui.prompt(
     "Reenviar enlace",
-    "Correo del postulante en 'Seleccionados'. Se borrará su fecha de notificación y el próximo envío masivo le llegará de nuevo con enlaces nuevos (debe tener Verificación 'Válido', 'Manual' o 'Hand picked'):",
+    "Correo del postulante en 'Seleccionados' o 'Continuación'. Se borrará su fecha de notificación y el próximo envío masivo le llegará de nuevo con enlaces nuevos (debe tener Verificación 'Válido', 'Manual' o 'Hand picked'):",
     ui.ButtonSet.OK_CANCEL
   );
   if (r.getSelectedButton() !== ui.Button.OK) return;
   const correo = r.getResponseText().trim().toLowerCase();
   try {
-    const h = leerHoja_(CONFIG.SHEETS.SELECTED);
-    const cCorreo = h.col(HEADERS.EMAIL);
-    const cNotif = h.col(HEADERS.NOTIFICATION_DATE);
-    const i = h.filas.findIndex(f => String(f[cCorreo]).trim().toLowerCase() === correo);
-    if (i === -1) { ui.alert("No encontrado", `No hay un postulante con correo ${correo} en 'Seleccionados'.`, ui.ButtonSet.OK); return; }
-    h.hoja.getRange(i + 2, cNotif + 1).clearContent();
-    ui.alert("Listo", `Se limpió la notificación de ${correo}. Ejecuta el envío correspondiente para que reciba enlaces nuevos.`, ui.ButtonSet.OK);
+    // Seleccionados o, si no está ahí, Continuación
+    for (const nombre of [CONFIG.SHEETS.SELECTED, CONFIG.SHEETS.CONTINUATION]) {
+      if (!getSpreadsheet_().getSheetByName(nombre)) continue;
+      const h = leerHoja_(nombre);
+      const cCorreo = h.colOpc("Email") !== -1 ? h.colOpc("Email") : h.colOpc(HEADERS.EMAIL);
+      const cNotif = h.colOpc(HEADERS.NOTIFICATION_DATE);
+      if (cCorreo === -1 || cNotif === -1) continue;
+      const i = h.filas.findIndex(f => String(f[cCorreo]).trim().toLowerCase() === correo);
+      if (i === -1) continue;
+      h.hoja.getRange(i + 2, cNotif + 1).clearContent();
+      ui.alert("Listo", `Se limpió la notificación de ${correo} (hoja '${nombre}'). Ejecuta el envío correspondiente para que reciba enlaces nuevos.`, ui.ButtonSet.OK);
+      return;
+    }
+    ui.alert("No encontrado", `No hay un postulante con correo ${correo} en 'Seleccionados' ni en 'Continuación'.`, ui.ButtonSet.OK);
   } catch (e) {
     ui.alert("Error", mensajeError_(e), ui.ButtonSet.OK);
   }

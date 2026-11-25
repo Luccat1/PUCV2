@@ -105,6 +105,7 @@ console.log("== EXPIRACIÓN DE TOKENS (leerToken_) ==");
   ctx.__t2 = vencido;
   ok("token de 1 día sigue vigente", run("leerToken_(__t1)").vencido === false);
   ok("token de 5 días está vencido", run("leerToken_(__t2)").vencido === true);
+  ok("token vencido hace 2 días no se limpia aún", run("leerToken_(__t2)").diasVencido > 1.9 && run("leerToken_(__t2)").diasVencido < run("DIAS_RETENCION_TOKEN_VENCIDO"));
 }
 
 
